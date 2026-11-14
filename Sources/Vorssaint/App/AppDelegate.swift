@@ -134,6 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         }
         statusController.onMetricClick = { [weak self] metric, button in
             self?.captureStatusClick()
+            guard metric.detailKind != nil else { self?.showAgentsPage(); return }
             self?.showMetricPanel(for: metric, anchoredTo: button)
         }
         statusController.onClipboardPreviewClick = {
@@ -525,8 +526,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         statusController?.containsStatusItem(at: point) == true
     }
 
+    /// The AI reading has no detail of its own: its limits, with their
+    /// countdowns, are on the island's AI page. Without that page showing,
+    /// the click opens the panel like the icon does.
+    private func showAgentsPage() {
+        if NotchAgentSupport.isEnabled(), NotchService.shared.acceptsSystemFeedback {
+            NotchService.shared.open(.agents); return
+        }
+        toggleMainPopover()
+    }
+
     private func showMetricPanel(for metric: MenuBarMetric, anchoredTo button: NSStatusBarButton) {
-        let detailKind = metric.detailKind
+        guard let detailKind = metric.detailKind else { return }
         if NotchSupport.routesAppPanel(), NotchService.shared.acceptsSystemFeedback,
            NotchSupport.modules().contains(.system) {
             NotchService.shared.showMetric(detailKind, toggle: true); return

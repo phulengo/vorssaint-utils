@@ -394,6 +394,7 @@ private struct MenuBarMetricTile: View {
     @AppStorage(DefaultsKey.menuBarMemoryStyle) private var memoryStyle = "percent"
     @AppStorage(DefaultsKey.menuBarNetworkUploadFirst) private var uploadFirst = false
     @AppStorage(DiskMenuBarStyle.defaultsKey) private var diskStyle = DiskMenuBarStyle.percent
+    @AppStorage(DefaultsKey.menuBarAIAgentsProvider) private var agentProvider = AgentProvider.claude.rawValue
 
     init(metric: MenuBarMetric) {
         self.metric = metric
@@ -418,6 +419,7 @@ private struct MenuBarMetricTile: View {
             case DiskMenuBarStyle.used: return l10n.s.diskMenuBarUsedSpace
             default: return l10n.s.diskMenuBarUsedPercentage
             }
+        case .aiAgents: return AgentMenuBarSupport.provider(stored: agentProvider).displayName
         default: return ""
         }
     }
@@ -442,6 +444,18 @@ private struct MenuBarMetricTile: View {
                 Text(l10n.s.diskMenuBarUsedSpace).tag(DiskMenuBarStyle.used)
             }
             .pickerStyle(.menu))
+        case .aiAgents:
+            let strings = FeatureStrings.notchAgents(l10n.language)
+            return AnyView(VStack(alignment: .leading, spacing: 8) {
+                Picker(strings.agents, selection: $agentProvider) {
+                    ForEach(AgentMenuBarSupport.providers) { Text($0.displayName).tag($0.rawValue) }
+                }
+                .pickerStyle(.menu)
+                Text(strings.menuBarCaption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            })
         default:
             return nil
         }

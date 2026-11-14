@@ -200,12 +200,15 @@ enum NotchAgentSupport {
     }
 
     /// Whether anything shows or alerts on the plan limits: their alerts, the
-    /// live reading when it shows a limit, the resting island's allowance or,
-    /// while the AI page shows, its Limits card. Nothing asks for them otherwise.
+    /// live reading when it shows a limit, the resting island's allowance, the
+    /// reading pinned to the menu bar while it shows Claude Code or, while the
+    /// AI page shows, its Limits card. Nothing asks for them otherwise. Codex
+    /// limits come from its own logs, so a menu bar showing Codex needs no check.
     static func limitsInUse(pageShown: Bool, in defaults: UserDefaults = .standard) -> Bool {
         limitThreshold(in: defaults) != nil
             || (showsLiveActivity(in: defaults) && readout(in: defaults) == .limit)
             || NotchSupport.idleContent(in: defaults) == .agents
+            || (AgentMenuBarSupport.isShown(in: defaults) && AgentMenuBarSupport.provider(in: defaults) == .claude)
             || (pageShown && !hiddenCards(in: defaults).contains(.limits))
     }
 

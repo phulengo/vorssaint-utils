@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Pin AI Agents to the menu bar to see the session and weekly limits of Claude Code or Codex, shown as left or used like the island’s Limits card. It reads the limits AI Agents follows in Dynamic Island and shows a dash until the agent reports them. Clicking it opens the AI page.
+
 ## [3.4.4] - 2026-11-11
 
 ### Summary

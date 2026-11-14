@@ -57,6 +57,13 @@ final class StatusItemController {
     /// so bind() only touches it once the feature is actually available,
     /// rather than for every launch regardless of whether anyone uses it.
     private var clipboardBindingsInstalled = false
+    /// The AI reading as last drawn, so the AI section's frequent updates
+    /// redraw the bar only when what it shows changes.
+    private var drawnAgentReading: AgentMenuBarReading?
+    /// Redraws the AI reading when one of its windows renews, which changes
+    /// what it shows without any new reading from the agent.
+    private var agentRenewalTimer: Timer?
+    private var agentRenewalAt: Date?
     private static let mainAutosaveName = "VorssaintMenuBarItem"
     private static let metricAutosavePrefix = "VorssaintMetric"
     private static let clipboardPreviewAutosaveName = "VorssaintClipboardPreview"
@@ -197,8 +204,18 @@ final class StatusItemController {
         SystemMonitor.shared.$snapshot
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard MenuBarMetric.anyEnabled(in: .standard) else { return }
+                // The AI reading alone draws nothing from the sampler.
+                guard MenuBarMetric.enabled(in: .standard).contains(where: \.readsSystemMonitor) else { return }
                 self?.refresh()
+            }
+            .store(in: &cancellables)
+
+        AgentUsageService.shared.$snapshot
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self, MenuBarMetric.enabled(in: .standard).contains(.aiAgents),
+                      Self.agentReading() != self.drawnAgentReading else { return }
+                self.refresh()
             }
             .store(in: &cancellables)
 
@@ -266,6 +283,7 @@ final class StatusItemController {
         // so a future "recreate the status item" path can't leak a firing timer or
         // a block observer that outlives this instance.
         titleTimer?.invalidate()
+        agentRenewalTimer?.invalidate()
         if let defaultsObserver { NotificationCenter.default.removeObserver(defaultsObserver) }
         for item in metricStatusItems.values {
             NSStatusBar.system.removeStatusItem(item)
@@ -276,12 +294,42 @@ final class StatusItemController {
     }
 
     /// Keeps the background sampler in step with the menu bar settings: it runs
-    /// continuously only while at least one metric is pinned to the menu bar.
+    /// continuously only while at least one system metric is pinned to the
+    /// menu bar. The AI reading alone needs no sampling.
     private func syncMonitorMode() {
         let defaults = UserDefaults.standard
         let interval = Defaults.sanitizedMonitorInterval(defaults.integer(forKey: DefaultsKey.monitorInterval))
         SystemMonitor.shared.setInterval(seconds: interval)
-        SystemMonitor.shared.setMenuBarActive(MenuBarMetric.anyEnabled(in: defaults))
+        SystemMonitor.shared.setMenuBarActive(MenuBarMetric.enabled(in: defaults).contains(where: \.readsSystemMonitor))
+    }
+
+    /// The AI section's latest allowance for the agent the menu bar shows.
+    static func agentReading(now: Date = Date(), defaults: UserDefaults = .standard) -> AgentMenuBarReading {
+        AgentMenuBarSupport.reading(agentLimits(defaults: defaults),
+                                    display: NotchAgentSupport.limitDisplay(in: defaults), now: now)
+    }
+
+    private static func agentLimits(defaults: UserDefaults) -> AgentLimits? {
+        AgentUsageService.shared.snapshot.limits[AgentMenuBarSupport.provider(in: defaults)]
+    }
+
+    /// One timer at the next renewal of a shown window, only while the AI
+    /// reading is pinned, and set again only when that renewal moves.
+    private func syncAgentRenewalTimer(shown: Bool, defaults: UserDefaults) {
+        let renewal = shown ? AgentMenuBarSupport.nextRenewal(Self.agentLimits(defaults: defaults), after: Date()) : nil
+        guard renewal != agentRenewalAt else { return }
+        agentRenewalAt = renewal
+        agentRenewalTimer?.invalidate()
+        agentRenewalTimer = nil
+        guard let renewal else { return }
+        // A second late, so the window reads as renewed when it redraws.
+        let timer = Timer(fire: renewal.addingTimeInterval(1), interval: 0, repeats: false) { [weak self] _ in
+            self?.agentRenewalAt = nil
+            self?.refresh()
+        }
+        timer.tolerance = 5
+        RunLoop.main.add(timer, forMode: .common)
+        agentRenewalTimer = timer
     }
 
     private func syncTitleTimer(keepAwakeActive: Bool,
@@ -456,9 +504,13 @@ final class StatusItemController {
         let manager = KeepAwakeManager.shared
         let strings = L10n.shared.s
         let defaults = UserDefaults.standard
-        let snapshot = SystemMonitor.shared.snapshot
+        var snapshot = SystemMonitor.shared.snapshot
         let metrics = MenuBarMetric.enabled(in: defaults)
         let separateMetrics = defaults.bool(forKey: DefaultsKey.menuBarSeparateMetrics)
+        let showsAgents = metrics.contains(.aiAgents)
+        if showsAgents { snapshot.agentReading = Self.agentReading(defaults: defaults) }
+        drawnAgentReading = snapshot.agentReading
+        syncAgentRenewalTimer(shown: showsAgents, defaults: defaults)
 
         syncTitleTimer(keepAwakeActive: manager.isActive,
                        showsCountdown: defaults.bool(forKey: DefaultsKey.showCountdown),
@@ -688,7 +740,7 @@ final class StatusItemController {
                                      temperature: .batteryTemperature,
                                      primaryTitle: strings.batteryLabel)
             case .memory, .network, .diskUsage, .diskActivity, .batteryTime, .peripheralBattery, .power,
-                 .fanSpeed, .connectedDevices:
+                 .fanSpeed, .connectedDevices, .aiAgents:
                 let id = metric.rawValue
                 guard emittedIDs.insert(id).inserted else { continue }
                 groups.append(MetricStatusGroup(id: id,

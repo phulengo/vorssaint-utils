@@ -8,6 +8,7 @@ import SwiftUI
 /// visual cost before they occupy the actual menu bar.
 struct MenuBarMetricsPreview: View {
     @ObservedObject private var monitor = SystemMonitor.shared
+    @ObservedObject private var agents = AgentUsageService.shared
     @AppStorage(DefaultsKey.menuBarCPU) private var cpu = false
     @AppStorage(DefaultsKey.menuBarGPU) private var gpu = false
     @AppStorage(DefaultsKey.menuBarMemory) private var memory = false
@@ -24,6 +25,9 @@ struct MenuBarMetricsPreview: View {
     @AppStorage(DefaultsKey.menuBarPower) private var power = false
     @AppStorage(DefaultsKey.menuBarFanSpeed) private var fanSpeed = false
     @AppStorage(DefaultsKey.menuBarConnectedDevices) private var connectedDevices = false
+    @AppStorage(DefaultsKey.menuBarAIAgents) private var aiAgents = false
+    @AppStorage(DefaultsKey.menuBarAIAgentsProvider) private var aiAgentsProvider = AgentProvider.claude.rawValue
+    @AppStorage(DefaultsKey.notchAgentsLimitDisplay) private var agentLimitDisplay = NotchAgentLimitDisplay.remaining.rawValue
     @AppStorage(DefaultsKey.menuBarMetricOrder) private var metricOrder = ""
     @AppStorage(DefaultsKey.menuBarCombineTemperatures) private var combineTemperatures = true
     @AppStorage(DefaultsKey.menuBarMetricAppearance) private var metricAppearance = "values"
@@ -58,13 +62,16 @@ struct MenuBarMetricsPreview: View {
         let _ = temperatureUnit
         let _ = networkSpeedUnit
         let _ = metricSpacing
+        let _ = aiAgentsProvider
+        let _ = agentLimitDisplay
         let metrics = activeMetrics
-        let lines = separateMetrics ? [] : MenuBarRenderer.lines(for: monitor.snapshot, metrics: metrics)
+        let snapshot = previewSnapshot(showsAgents: metrics.contains(.aiAgents))
+        let lines = separateMetrics ? [] : MenuBarRenderer.lines(for: snapshot, metrics: metrics)
         // Separate items are their own status items, which macOS seats to
         // the left of the one that was there first.
         let items = separateMetrics
             ? StatusItemController.metricStatusGroups(for: metrics, strings: l10n.s)
-                .map { MenuBarRenderer.lines(for: monitor.snapshot, metrics: $0.metrics) }
+                .map { MenuBarRenderer.lines(for: snapshot, metrics: $0.metrics) }
                 .filter { !$0.isEmpty }
             : []
         // The steady state of the hide option: a pending update, a running
@@ -136,7 +143,16 @@ struct MenuBarMetricsPreview: View {
         let _ = power
         let _ = fanSpeed
         let _ = connectedDevices
+        let _ = aiAgents
         return MenuBarMetric.enabled(in: .standard)
+    }
+
+    /// The monitor's latest reading with the AI reading the menu bar would
+    /// draw beside it, redrawn as the AI section reads new limits.
+    private func previewSnapshot(showsAgents: Bool) -> SystemSnapshot {
+        var snapshot = monitor.snapshot
+        if showsAgents { snapshot.agentReading = StatusItemController.agentReading() }
+        return snapshot
     }
 
     @ViewBuilder

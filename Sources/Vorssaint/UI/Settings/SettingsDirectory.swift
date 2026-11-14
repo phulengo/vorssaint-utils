@@ -382,6 +382,9 @@ enum SettingsDirectory {
                                         (.monitorMemory, [s.monitorMemoryPressureDot, s.monitorMemoryMetricLabel]),
                                         (.monitorNetwork, [FeatureStrings.monitorLayout(language).networkSpeedUnit]),
                                         (.fanControl, [FeatureStrings.fanControl(language).menuBarTitle]),
+                                        (.notchAgents, [FeatureStrings.notchAgents(language).title,
+                                                        FeatureStrings.notchAgents(language).session,
+                                                        FeatureStrings.notchAgents(language).weekly]),
                                        ], terms: [
                                         .init([s.monitorCombineTemperatures], when: !state.bars),
                                         .init([barStyle.customize, barStyle.normalColor, barStyle.mediumColor, barStyle.highColor,

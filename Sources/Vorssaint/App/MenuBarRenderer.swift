@@ -6,6 +6,7 @@ import AppKit
 /// A live reading the user can pin next to the menu bar icon.
 enum MenuBarMetric: String, CaseIterable, Identifiable {
     case cpu, gpu, memory, cpuTemperature, gpuTemperature, batteryTemperature, network, diskUsage, diskActivity, battery, batteryTime, peripheralBattery, power, fanSpeed, connectedDevices
+    case aiAgents
 
     var id: String { rawValue }
 
@@ -26,6 +27,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .power: return DefaultsKey.menuBarPower
         case .connectedDevices: return DefaultsKey.menuBarConnectedDevices
         case .fanSpeed: return DefaultsKey.menuBarFanSpeed
+        case .aiAgents: return DefaultsKey.menuBarAIAgents
         }
     }
 
@@ -46,6 +48,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .connectedDevices: return "cable.connector"
         case .power: return "powerplug.fill"
         case .fanSpeed: return "fanblades"
+        case .aiAgents: return AppFeature.notchAgents.symbolName
         }
     }
 
@@ -66,6 +69,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .connectedDevices: return FeatureStrings.connectedDevices(L10n.shared.language).title
         case .power: return strings.monitorShowPowerLabel
         case .fanSpeed: return FeatureStrings.fanControl(L10n.shared.language).menuBarTitle
+        case .aiAgents: return FeatureStrings.notchAgents(L10n.shared.language).title
         }
     }
 
@@ -75,6 +79,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         .memory,
         .battery, .batteryTime, .batteryTemperature, .peripheralBattery,
         .network, .diskUsage, .diskActivity, .connectedDevices, .power, .fanSpeed,
+        .aiAgents,
     ]
 
     static func order(in defaults: UserDefaults) -> [MenuBarMetric] {
@@ -100,8 +105,13 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .connectedDevices: return .connectedDevices
         case .battery, .batteryTime, .batteryTemperature, .peripheralBattery, .power: return .monitorPower
         case .fanSpeed: return .fanControl
+        case .aiAgents: return .notchAgents
         }
     }
+
+    /// Readings the system sampler supplies. The AI reading comes from the
+    /// AI section of Dynamic Island instead.
+    var readsSystemMonitor: Bool { self != .aiAgents }
 
     var isAvailableOnCurrentHardware: Bool {
         switch self {
@@ -598,6 +608,18 @@ enum MenuBarRenderer {
                                                 style: style,
                                                 pressure: nil)])
                 }
+            case .aiAgents:
+                // Always drawn, with dashes until the agent reports its
+                // windows, so a pinned reading never vanishes unexplained.
+                let strings = FeatureStrings.notchAgents(L10n.shared.language)
+                let reading = snapshot.agentReading ?? .unknown
+                for (label, value) in [(strings.session, reading.session), (strings.weekly, reading.weekly)] {
+                    groups.append([.metricBlock(label: label.uppercased(),
+                                                value: value,
+                                                minimumValue: "100%",
+                                                style: style,
+                                                pressure: nil)])
+                }
             }
         }
         return blockJoined(groups, style: style)
@@ -680,6 +702,8 @@ enum MenuBarRenderer {
         case (_, .fanSpeed):
             let count = max(1, SystemMonitor.fanTelemetryCount)
             return FanControlPolicy.menuBarWidthUnits(fanCount: count)
+        case (_, .aiAgents):
+            return 11      // "100%" + "100%" under their session and week labels
         }
     }
 

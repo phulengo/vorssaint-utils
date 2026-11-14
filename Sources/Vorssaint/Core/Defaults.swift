@@ -424,6 +424,8 @@ enum DefaultsKey {
     static let menuBarConnectedDevices = "menuBarConnectedDevices"
     static let menuBarPower = "menuBarPower"
     static let menuBarFanSpeed = "menuBarFanSpeed"
+    static let menuBarAIAgents = "menuBarAIAgents" // the chosen agent's session and weekly limits
+    static let menuBarAIAgentsProvider = "menuBarAIAgentsProvider" // AgentProvider.rawValue: claude | codex
     static let menuBarPreset = "menuBarPreset"           // dense
     static let menuBarMetricSpacing = "menuBarMetricSpacing" // standard | compact
     static let menuBarMetricAppearance = "menuBarMetricAppearance" // values | bars
@@ -1226,6 +1228,7 @@ enum Defaults {
         "memory",
         "battery", "batteryTime", "batteryTemperature", "peripheralBattery",
         "network", "diskUsage", "diskActivity", "connectedDevices", "power", "fanSpeed",
+        "aiAgents",
     ]
     static let allowedMenuBarLabelStyles = ["compact", "classic"]
     static let allowedMenuBarMemoryStyles = ["dot", "percent", "both"]
@@ -1703,6 +1706,8 @@ enum Defaults {
         DefaultsKey.menuBarPeripheralBattery: false,
         DefaultsKey.menuBarConnectedDevices: false,
         DefaultsKey.menuBarFanSpeed: false,
+        DefaultsKey.menuBarAIAgents: false,
+        DefaultsKey.menuBarAIAgentsProvider: "claude",
         DefaultsKey.menuBarPreset: "dense",
         DefaultsKey.menuBarMetricSpacing: "compact",  // owner's call: compact by default in 3.1.8
         DefaultsKey.menuBarMetricAppearance: "values",
