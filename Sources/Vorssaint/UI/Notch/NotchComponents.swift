@@ -255,6 +255,8 @@ struct NotchArtwork: View {
     /// A player that sends no cover, as Firefox and Zen do, shows its own
     /// icon in its place, so the song still says where it plays.
     var source: RadialNowPlayingSnapshot? = nil
+    /// Plays the song's animated cover over the still one; see NotchMotionCover.
+    var animated = false
 
     var body: some View {
         Group {
@@ -272,6 +274,7 @@ struct NotchArtwork: View {
                 }
             }
         }
+        .overlay { if animated { NotchMotionCover(track: source) } }
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: size * 0.19, style: .continuous))
         .overlay {

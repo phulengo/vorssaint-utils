@@ -902,6 +902,7 @@ enum DefaultsKey {
     static let notchLyricsOnline = "notchLyricsOnline"
     static let notchBrowserCovers = "notchBrowserCovers"
     static let notchLiveEqualizer = "notchLiveEqualizer"
+    static let notchMotionCovers = "notchMotionCovers" // animated album art from Apple Music
     static let notchQueueEnabled = "notchQueueEnabled"
     static let notchDownloadsEnabled = "notchDownloadsEnabled"
     static let notchDownloadsFolderBookmark = "notchDownloadsFolderBookmark"
@@ -1552,6 +1553,7 @@ enum Defaults {
         DefaultsKey.notchLyricsOnline: false,
         DefaultsKey.notchBrowserCovers: false,
         DefaultsKey.notchLiveEqualizer: false,
+        DefaultsKey.notchMotionCovers: false,
         DefaultsKey.notchQueueEnabled: true,
         DefaultsKey.notchDownloadsEnabled: true,
         DefaultsKey.notchWatchEnabled: true,

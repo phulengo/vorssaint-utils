@@ -28,6 +28,7 @@ struct NotchMusicStrip: View {
     /// or a strip on its way out only shows the song.
     var interactive = false
     @ObservedObject private var music = NotchMusicService.shared
+    @ObservedObject private var barsGIF = NotchBarsGIF.shared
     @ObservedObject private var l10n = L10n.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -82,7 +83,7 @@ struct NotchMusicStrip: View {
                     if wing > 0 {
                         // Circular corners, like the strip's, so the two stay parallel.
                         NotchMusicCover(artwork: artwork, side: artworkSide, radius: artworkRadius,
-                                        source: playback?.track)
+                                        source: playback?.track, animated: true)
                     }
                 }
                 .padding(.leading, named == nil ? artworkInset : Layout.endInset)
@@ -100,8 +101,9 @@ struct NotchMusicStrip: View {
                 HStack {
                     if wing > 0 { bars }
                 }
+                // A GIF mirrors the cover across the camera, in a square of the cover's size.
                 .padding(.leading, innerInset)
-                .padding(.trailing, barsInset)
+                .padding(.trailing, barsGIF.data == nil ? barsInset : artworkInset)
                 .frame(width: wing, height: geometry.compactActivityContentHeight, alignment: .trailing)
                 .contentShape(Rectangle())
                 .onHover { if live { service.hoverMusicStrip(.bars, entered: $0) } }
@@ -123,16 +125,24 @@ struct NotchMusicStrip: View {
         .frame(width: (named ?? wing) * 2 + geometry.compactActivityCameraGap, alignment: .leading)
     }
 
-    /// The bars, or the button they become while the pointer rests on them.
-    /// Both stay in place and cross-fade, and hidden bars hold still.
+    /// The bars, or the person's GIF in their place, or the button they become
+    /// while the pointer rests on them. Both stay in place and cross-fade, and
+    /// hidden bars hold still.
     private var bars: some View {
         ZStack {
-            NotchLiveEqualizerBars(isPlaying: playing && !showsControl,
-                                   bars: NotchLayout.compactMusicBarCount,
-                                   barWidth: NotchLayout.compactMusicBarWidth,
-                                   height: geometry.compactMusicBarHeight,
-                                   tint: tint?.color ?? .white)
-                .opacity(showsControl ? 0 : 1)
+            Group {
+                if let gif = barsGIF.data {
+                    NotchBarsGIFView(data: gif, animates: playing && !showsControl && !reduceMotion)
+                        .frame(width: artworkSide, height: artworkSide)
+                } else {
+                    NotchLiveEqualizerBars(isPlaying: playing && !showsControl,
+                                           bars: NotchLayout.compactMusicBarCount,
+                                           barWidth: NotchLayout.compactMusicBarWidth,
+                                           height: geometry.compactMusicBarHeight,
+                                           tint: tint?.color ?? .white)
+                }
+            }
+            .opacity(showsControl ? 0 : 1)
             if showsControl {
                 NotchMusicStripButton(playing: playing, tint: tint?.color ?? .white,
                                       height: geometry.compactMusicBarHeight)
@@ -240,6 +250,8 @@ struct NotchMusicCover: View {
     let radius: CGFloat
     /// The player whose icon stands in for a missing cover; see NotchArtwork.
     var source: RadialNowPlayingSnapshot? = nil
+    /// Plays the song's animated cover over the still one; see NotchMotionCover.
+    var animated = false
 
     var body: some View {
         Group {
@@ -253,6 +265,7 @@ struct NotchMusicCover: View {
                 Color.black.overlay { Image(systemName: "music.note").foregroundStyle(.secondary) }
             }
         }
+        .overlay { if animated { NotchMotionCover(track: source) } }
         .frame(width: side, height: side)
         .clipShape(RoundedRectangle(cornerRadius: radius, style: .circular))
         .overlay {

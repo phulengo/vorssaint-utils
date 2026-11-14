@@ -29,6 +29,7 @@ struct NotchSettings: View {
     @AppStorage(DefaultsKey.notchLyricsEnabled) private var lyricsEnabled = true
     @AppStorage(DefaultsKey.notchLyricsOnline) private var lyricsOnline = false
     @AppStorage(DefaultsKey.notchBrowserCovers) private var browserCovers = false
+    @AppStorage(DefaultsKey.notchMotionCovers) private var motionCovers = false
     @AppStorage(DefaultsKey.notchQueueEnabled) private var queueEnabled = true
     @AppStorage(DefaultsKey.notchLiveEqualizer) private var liveEqualizer = false
     @AppStorage(DefaultsKey.notchEnabled) private var enabled = false
@@ -110,6 +111,9 @@ struct NotchSettings: View {
     @State private var draggingModule: NotchModule?
     @State private var draggingControl: NotchControlItem?
     @State private var preferredPlayers: [NotchPreferredPlayer.Choice]?
+    @ObservedObject private var barsGIF = NotchBarsGIF.shared
+    /// The last GIF chosen could not be used.
+    @State private var barsGIFRefused = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var text: NotchStrings { FeatureStrings.notch(l10n.language) }
@@ -179,6 +183,7 @@ struct NotchSettings: View {
         .onChange(of: configuration) { _, _ in sync() }
         .onChange(of: accessData) { _, _ in NotchService.shared.syncWithPreferences() }
         .onChange(of: browserCovers) { _, _ in NotchMusicService.shared.syncBrowserCovers() }
+        .onChange(of: motionCovers) { _, _ in NotchMotionArtwork.shared.sync() }
         .onChange(of: tab) { _, _ in draggingModule = nil; draggingControl = nil }
         .onAppear(perform: revealDestination)
         .onChange(of: router.requestID) { _, _ in revealDestination() }
@@ -450,6 +455,19 @@ struct NotchSettings: View {
                     .padding(.leading, settingsRowTextInset)
             }
             switchRow("photo", music.browserCovers, caption: music.browserCoversHint, isOn: $browserCovers)
+            switchRow("play.square", music.motionCovers, caption: music.motionCoversHint, isOn: $motionCovers)
+            SettingsRow(symbol: "waveform.circle", title: music.barsGIF,
+                        caption: barsGIFRefused ? music.invalidGIF : music.barsGIFHint) {
+                HStack(spacing: 8) {
+                    if let gif = barsGIF.data {
+                        NotchBarsGIFView(data: gif, animates: !reduceMotion)
+                            .frame(width: 26, height: 26)
+                            .accessibilityHidden(true)
+                        Button(music.removeGIF) { barsGIFRefused = false; barsGIF.remove() }
+                    }
+                    Button(music.chooseGIF) { barsGIFRefused = barsGIF.choose() == false }
+                }
+            }
             SettingsFeatureSwitchRow(symbol: "list.bullet", title: music.enableQueue, caption: music.queueDescription,
                                      isOn: $queueEnabled, feature: .notchQueue)
             SettingsFeatureSwitchRow(symbol: "waveform", title: music.liveEqualizer,

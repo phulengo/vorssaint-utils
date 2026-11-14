@@ -4,6 +4,7 @@
 import CoreGraphics
 import Foundation
 import ImageIO
+import UniformTypeIdentifiers
 
 enum NotchMusicExtrasTests {
     private static func musicVolumePreference(_ suite: TestSuite) {
@@ -592,6 +593,125 @@ enum NotchMusicExtrasTests {
                "the cover lookup only reads the sessions of Firefox-family browsers")
     }
 
+    private static func motionArtworkContracts(_ suite: TestSuite) {
+        func track(_ title: String?, _ artist: String?, album: String? = nil) -> RadialNowPlayingSnapshot {
+            RadialNowPlayingSnapshot(title: title, artist: artist, album: album, artworkData: nil,
+                                     appBundleIdentifier: "com.spotify.client", appPID: 3)
+        }
+        let song = NotchMotionArtworkSupport.songKey(for: track("Anti-Hero", "Taylor Swift", album: "Midnights"))
+        suite.expect(song != nil
+                && NotchMotionArtworkSupport.songKey(for: track("Anti-Hero", " ")) == nil
+                && NotchMotionArtworkSupport.songKey(for: track(nil, "Taylor Swift")) == nil
+                && NotchMotionArtworkSupport.songKey(for: nil) == nil
+                && song != NotchMotionArtworkSupport.songKey(for: track("Anti-Hero", "Taylor Swift", album: "Anti-Hero")),
+               "a cover's video belongs to one song by its artist, title and album, and a title alone names none")
+
+        let search = Data("""
+            {"resultCount":5,"results":[
+              {"trackName":"Anti-Hero","artistName":"Taylor Swift","collectionId":1689131527,
+               "collectionName":"Midnights (The Til Dawn Edition)",
+               "collectionViewUrl":"https://music.apple.com/vn/album/anti-hero/1689131527?i=1689131533&uo=4"},
+              {"trackName":"Anti-Hero","artistName":"Taylor Swift","collectionId":1689131527,
+               "collectionName":"Midnights (The Til Dawn Edition)",
+               "collectionViewUrl":"https://music.apple.com/vn/album/anti-hero/1689131527?i=1689131534&uo=4"},
+              {"trackName":"Anti-Hero (Piano)","artistName":"Taylor Swift","collectionId":1,
+               "collectionName":"Midnights","collectionViewUrl":"https://music.apple.com/vn/album/piano/1?i=2"},
+              {"trackName":"Anti-Hero","artistName":"Taylor Swift","collectionId":7,"collectionName":"Elsewhere",
+               "collectionViewUrl":"https://music.example.com/vn/album/anti-hero/7?i=8"},
+              {"trackName":"Anti-Hero","artistName":"Taylor Swift","collectionId":1650841512,
+               "collectionName":"Midnights",
+               "collectionViewUrl":"https://music.apple.com/vn/album/anti-hero/1650841512?i=1650841515&uo=4"}
+            ]}
+            """.utf8)
+        let pages = NotchMotionArtworkSupport.albumPageURLs(inSearch: search, title: "anti-hero", artist: "taylor swift",
+                                                            album: "Midnights")
+        suite.expect(pages.map(\.absoluteString) == [
+                    "https://music.apple.com/vn/album/anti-hero/1650841512?i=1650841515&uo=4",
+                    "https://music.apple.com/vn/album/anti-hero/1689131527?i=1689131533&uo=4"],
+               "the song's own album leads, each album is read once, and only music.apple.com pages of the same song count")
+        suite.expect(NotchMotionArtworkSupport.albumPageURLs(inSearch: search, title: "Anti-Hero", artist: "Taylor Swift",
+                                                             album: nil).first?.absoluteString
+                    == "https://music.apple.com/vn/album/anti-hero/1689131527?i=1689131533&uo=4"
+                && NotchMotionArtworkSupport.albumPageURLs(inSearch: search, title: "Anti-Hero", artist: nil,
+                                                           album: "Midnights").isEmpty,
+               "without an album Apple's ranking decides, and without an artist nothing is read")
+        suite.expect(NotchMotionArtworkSupport.albumKey(for: pages[0]) == "1650841512"
+                && NotchMotionArtworkSupport.albumKey(for: URL(string: "https://music.apple.com/vn/album/lavender-haze/1650841512?i=9")!)
+                    == NotchMotionArtworkSupport.albumKey(for: pages[0]),
+               "two songs of one album share its answer, whichever song's link led to the page")
+
+        func page(_ sections: String) -> Data {
+            Data(("<html><head><script type=\"application/json\" id=\"serialized-server-data\">"
+                  + #"{"data":[{"intent":{},"data":{"sections":["# + sections + "]}}],\"userTokenHash\":\"\"}"
+                  + "</script></head><body></body></html>").utf8)
+        }
+        func item(_ video: String?) -> String {
+            guard let video else { return #"{"title":"Album","videoArtwork":null}"# }
+            return #"{"title":"Album","videoArtwork":{"dictionary":{"motionDetailSquare":{"previewFrame":{},"video":""#
+                + video + #""}},"cropStyle":"cc"}}"#
+        }
+        let stream = "https://mvod.itunes.apple.com/itunes-assets/HLSMusic112/v4/1f/76/P517392561_default.m3u8"
+        let suggested = #"{"items":[{"title":"More by the artist"},"# + item(stream) + "]}"
+        suite.expect(NotchMotionArtworkSupport.motionVideoURL(inAlbumPage: page(#"{"items":["# + item(stream) + "]},"
+                                                                                 + suggested))?.absoluteString == stream,
+               "an album page with a square motion cover gives its stream")
+        suite.expect(NotchMotionArtworkSupport.motionVideoURL(inAlbumPage: page(#"{"items":["# + item(nil) + "]},"
+                                                                                 + suggested)) == nil,
+               "an album without a video never borrows one from the albums the page suggests")
+        suite.expect(NotchMotionArtworkSupport.motionVideoURL(
+                        inAlbumPage: page(#"{"items":["# + item("https://video.example.com/a.m3u8") + "]}")) == nil
+                && NotchMotionArtworkSupport.motionVideoURL(
+                        inAlbumPage: page(#"{"items":["# + item("https://other.itunes.apple.com/a.m3u8") + "]}")) == nil
+                && NotchMotionArtworkSupport.motionVideoURL(
+                        inAlbumPage: page(#"{"items":["# + item("http://mvod.itunes.apple.com/a.m3u8") + "]}")) == nil
+                && NotchMotionArtworkSupport.motionVideoURL(
+                        inAlbumPage: page(#"{"items":["# + item("https://mvod.itunes.apple.com/a.mp4") + "]}")) == nil
+                && NotchMotionArtworkSupport.motionVideoURL(inAlbumPage: Data("<html></html>".utf8)) == nil
+                && NotchMotionArtworkSupport.motionVideoURL(inAlbumPage: page("{")) == nil,
+               "the stream plays only from Apple's own video servers, and a page of another shape gives none")
+    }
+
+    private static func barsGIFContracts(_ suite: TestSuite) {
+        func image(_ type: UTType, frames: Int, width: Int = 4, height: Int = 4, delay: Double = 0.1) -> Data {
+            let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                                    space: CGColorSpaceCreateDeviceRGB(),
+                                    bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+            let output = NSMutableData()
+            let destination = CGImageDestinationCreateWithData(output, type.identifier as CFString, frames, nil)!
+            let frame = [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: delay]] as CFDictionary
+            for _ in 0..<frames { CGImageDestinationAddImage(destination, context.makeImage()!, type == .gif ? frame : nil) }
+            CGImageDestinationFinalize(destination)
+            return output as Data
+        }
+        let large = image(.gif, frames: 3, width: 400, height: 300, delay: 0.25)
+        let kept = NotchBarsGIFSupport.kept(large)
+        let keptSource = kept.flatMap { CGImageSourceCreateWithData($0 as CFData, nil) }
+        let keptFrames = keptSource.map { source in
+            (0..<CGImageSourceGetCount(source)).compactMap {
+                CGImageSourceCopyPropertiesAtIndex(source, $0, nil) as? [CFString: Any]
+            }
+        } ?? []
+        let delays = keptFrames.compactMap {
+            ($0[kCGImagePropertyGIFDictionary] as? [CFString: Any])?[kCGImagePropertyGIFDelayTime] as? Double
+        }
+        suite.expect(kept.map(NotchBarsGIFSupport.isGIF) == true && keptFrames.count == 3
+                && keptFrames.allSatisfy { max($0[kCGImagePropertyPixelWidth] as? Int ?? .max,
+                                               $0[kCGImagePropertyPixelHeight] as? Int ?? .max)
+                                           <= NotchBarsGIFSupport.keptPixels }
+                && delays.count == 3 && delays.allSatisfy { abs($0 - 0.25) < 0.011 },
+               "a chosen GIF is kept small, with every frame and its own timing")
+        suite.expect(NotchBarsGIFSupport.kept(image(.jpeg, frames: 1)) == nil,
+               "only a GIF is kept")
+        let gif = image(.gif, frames: 2)
+        var oversized = gif
+        oversized.append(Data(count: NotchBarsGIFSupport.maximumBytes))
+        suite.expect(NotchBarsGIFSupport.isGIF(gif) && NotchBarsGIFSupport.isGIF(image(.gif, frames: 1)),
+               "a GIF of one frame or more takes the bars' place")
+        suite.expect(!NotchBarsGIFSupport.isGIF(image(.jpeg, frames: 1)) && !NotchBarsGIFSupport.isGIF(Data())
+                && !NotchBarsGIFSupport.isGIF(Data("GIF89a".utf8)) && !NotchBarsGIFSupport.isGIF(oversized),
+               "another image, a broken file or one over the size bound is refused")
+    }
+
     static func run(_ suite: TestSuite) {
         musicVolumePreference(suite)
         NotchBrowserArtworkLifecycleTests.run(suite)
@@ -603,6 +723,8 @@ enum NotchMusicExtrasTests {
         lyricSearchContracts(suite)
         NotchLyricsCorpusTests.run(suite)
         browserArtworkContracts(suite)
+        motionArtworkContracts(suite)
+        barsGIFContracts(suite)
         NotchMusicHardeningTests.run(suite)
         let track = RadialNowPlayingSnapshot(title: "A & B + C", artist: "Artist / Example", album: "Studio Recording",
                                             artworkData: nil, appBundleIdentifier: "org.example.player", appPID: 42)
@@ -872,6 +994,20 @@ enum NotchMusicExtrasTests {
                && NotchBrowserArtworkSupport.lookupKey(for: rihanna, defaults: defaults) == nil,
                "browser covers follow their own option and stop with the island")
         defaults.set(true, forKey: DefaultsKey.notchEnabled)
+        let keshi = RadialNowPlayingSnapshot(title: "Less Of You", artist: "keshi", album: "GABRIEL", artworkData: nil,
+                                             appBundleIdentifier: "com.apple.Music", appPID: 9)
+        suite.expect(Defaults.registeredDefaults[DefaultsKey.notchMotionCovers] as? Bool == false
+               && !NotchMotionArtworkSupport.isEnabled(in: defaults)
+               && NotchMotionArtworkSupport.lookupKey(for: keshi, defaults: defaults) == nil
+               && NotchMotionArtworkSupport.songKey(for: keshi) != nil,
+               "animated covers stay offline until their option is turned on")
+        defaults.set(true, forKey: DefaultsKey.notchMotionCovers)
+        let motionOn = NotchMotionArtworkSupport.lookupKey(for: keshi, defaults: defaults)
+        defaults.set(false, forKey: DefaultsKey.notchEnabled)
+        suite.expect(motionOn != nil && motionOn == NotchMotionArtworkSupport.songKey(for: keshi)
+               && NotchMotionArtworkSupport.lookupKey(for: keshi, defaults: defaults) == nil,
+               "animated covers follow their own option and stop with the island")
+        defaults.set(true, forKey: DefaultsKey.notchEnabled)
         defaults.set(false, forKey: DefaultsKey.notchLyricsEnabled)
         defaults.set(false, forKey: DefaultsKey.notchQueueEnabled)
         suite.expect(!NotchLyricsSupport.isEnabled(in: defaults) && !NotchQueueSupport.isEnabled(in: defaults),
@@ -892,13 +1028,13 @@ enum NotchMusicExtrasTests {
         suite.expect(!NotchLyricsSupport.onlineEnabled(in: defaults) && !NotchQueueSupport.isEnabled(in: defaults),
                "hidden music does not retain an optional lyrics or queue subscription")
         suite.expect(SettingsBackupSupport.exportKeys().isSuperset(of: [DefaultsKey.notchLyricsEnabled, DefaultsKey.notchLyricsOnline,
-                                                                 DefaultsKey.notchBrowserCovers,
+                                                                 DefaultsKey.notchBrowserCovers, DefaultsKey.notchMotionCovers,
                                                                  DefaultsKey.notchQueueEnabled, DefaultsKey.notchLiveEqualizer, AppFeature.notchLyrics.availabilityKey,
                                                                  AppFeature.notchQueue.availabilityKey]),
                "music feature choices and online consent are accounted for by settings backup")
         for language in AppLanguage.allCases {
             let strings = Mirror(reflecting: FeatureStrings.notchMusicExtras(language)).children.compactMap { $0.value as? String }
-            suite.expect(strings.count == 45 && strings.allSatisfy { !$0.isEmpty && !$0.contains("—") },
+            suite.expect(strings.count == 52 && strings.allSatisfy { !$0.isEmpty && !$0.contains("—") },
                    "music extras have complete user-facing strings in \(language.rawValue)")
         }
     }

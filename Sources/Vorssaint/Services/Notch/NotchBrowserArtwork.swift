@@ -275,8 +275,8 @@ final class NotchBrowserArtwork {
 
 /// A single ephemeral request with no cookies or cache, bounded while bytes
 /// arrive. The delegate refuses redirects, so a request only ever reaches the
-/// host it names, whether YouTube's thumbnails, Apple's search or Apple's artwork.
-private final class NotchBrowserArtworkDownload: NSObject, URLSessionDataDelegate {
+/// host it names: YouTube's thumbnails, Apple's search, an album's page or Apple's artwork.
+final class NotchBrowserArtworkDownload: NSObject, URLSessionDataDelegate {
     private var data = Data()
     private var accepted = false
     private let completion: (Data?) -> Void

@@ -51,6 +51,13 @@ struct NotchMusicExtrasStrings {
     let openNamedPlayer: String
     let browserCovers: String
     let browserCoversHint: String
+    let motionCovers: String
+    let motionCoversHint: String
+    let barsGIF: String
+    let barsGIFHint: String
+    let chooseGIF: String
+    let removeGIF: String
+    let invalidGIF: String
 }
 
 extension FeatureStrings {
@@ -101,7 +108,14 @@ extension FeatureStrings {
             preferredPlayerHint: "The cover and the playback buttons open this app. Automatic opens the music app that played last, then Spotify or Apple Music.",
             openNamedPlayer: "Open %@",
             browserCovers: "Find covers for Firefox and Zen",
-            browserCoversHint: "When Firefox, Zen or another Firefox-based browser plays without a sharp cover, read its saved session on this Mac to find the song’s YouTube tab and load its thumbnail from i.ytimg.com. If no tab shows the song but a YouTube Music tab is open, send the song title, artist and region to itunes.apple.com and load the album art from mzstatic.com.")
+            browserCoversHint: "When Firefox, Zen or another Firefox-based browser plays without a sharp cover, read its saved session on this Mac to find the song’s YouTube tab and load its thumbnail from i.ytimg.com. If no tab shows the song but a YouTube Music tab is open, send the song title, artist and region to itunes.apple.com and load the album art from mzstatic.com.",
+            motionCovers: "Animated covers from Apple Music",
+            motionCoversHint: "When Apple Music has an animated cover for the album, play it in place of the still cover in Dynamic Island. Sends the song title, artist and region to itunes.apple.com, reads the album’s page on music.apple.com and streams the silent video from mvod.itunes.apple.com. Most albums have no animated cover. It stays still with Reduce Motion.",
+            barsGIF: "GIF in place of the bars",
+            barsGIFHint: "Show your own GIF where the closed island draws the music bars. It plays with the song and holds still while it is paused. Vorssaint keeps a private copy on this Mac.",
+            chooseGIF: "Choose GIF…",
+            removeGIF: "Use the bars",
+            invalidGIF: "Choose a GIF file of up to 16 MB.")
         case .ptBR: return NotchMusicExtrasStrings(
             lyrics: "Letra",
             lyricsDescription: "Acompanhe a letra da música atual no Dynamic Island.",
@@ -147,7 +161,14 @@ extension FeatureStrings {
             preferredPlayerHint: "A capa e os botões de reprodução abrem este app. Automático abre o app de música que tocou por último, depois o Spotify ou o Apple Music.",
             openNamedPlayer: "Abrir %@",
             browserCovers: "Buscar capas para Firefox e Zen",
-            browserCoversHint: "Quando o Firefox, o Zen ou outro navegador baseado no Firefox tocar sem uma capa nítida, leia a sessão salva do navegador neste Mac para achar a aba do YouTube com a música e carregar a miniatura de i.ytimg.com. Se nenhuma aba mostrar a música, mas houver uma aba do YouTube Music aberta, envie título, artista e região para itunes.apple.com e carregue a capa do álbum de mzstatic.com.")
+            browserCoversHint: "Quando o Firefox, o Zen ou outro navegador baseado no Firefox tocar sem uma capa nítida, leia a sessão salva do navegador neste Mac para achar a aba do YouTube com a música e carregar a miniatura de i.ytimg.com. Se nenhuma aba mostrar a música, mas houver uma aba do YouTube Music aberta, envie título, artista e região para itunes.apple.com e carregue a capa do álbum de mzstatic.com.",
+            motionCovers: "Capas animadas do Apple Music",
+            motionCoversHint: "Quando o Apple Music tiver uma capa animada para o álbum, reproduza-a no lugar da capa estática no Dynamic Island. Envia título, artista e região para itunes.apple.com, lê a página do álbum em music.apple.com e transmite o vídeo sem som de mvod.itunes.apple.com. A maioria dos álbuns não tem capa animada. Ela fica parada com Reduzir movimento.",
+            barsGIF: "GIF no lugar das barras",
+            barsGIFHint: "Mostre seu próprio GIF onde a ilha fechada desenha as barras de música. Ele toca com a música e fica parado enquanto ela está pausada. O Vorssaint guarda uma cópia privada neste Mac.",
+            chooseGIF: "Escolher GIF…",
+            removeGIF: "Usar as barras",
+            invalidGIF: "Escolha um arquivo GIF de até 16 MB.")
         case .es: return NotchMusicExtrasStrings(
             lyrics: "Letra",
             lyricsDescription: "Sigue la letra de la canción actual en el Dynamic Island.",
@@ -193,7 +214,14 @@ extension FeatureStrings {
             preferredPlayerHint: "La carátula y los botones de reproducción abren esta app. Automática abre la app de música que sonó por última vez, y luego Spotify o Apple Music.",
             openNamedPlayer: "Abrir %@",
             browserCovers: "Buscar portadas para Firefox y Zen",
-            browserCoversHint: "Cuando Firefox, Zen u otro navegador basado en Firefox reproduce sin una portada nítida, lee la sesión guardada del navegador en este Mac para encontrar la pestaña de YouTube de la canción y cargar su miniatura desde i.ytimg.com. Si ninguna pestaña muestra la canción pero hay una pestaña de YouTube Music abierta, envía el título, el artista y la región a itunes.apple.com y carga la portada del álbum desde mzstatic.com.")
+            browserCoversHint: "Cuando Firefox, Zen u otro navegador basado en Firefox reproduce sin una portada nítida, lee la sesión guardada del navegador en este Mac para encontrar la pestaña de YouTube de la canción y cargar su miniatura desde i.ytimg.com. Si ninguna pestaña muestra la canción pero hay una pestaña de YouTube Music abierta, envía el título, el artista y la región a itunes.apple.com y carga la portada del álbum desde mzstatic.com.",
+            motionCovers: "Portadas animadas de Apple Music",
+            motionCoversHint: "Cuando Apple Music tenga una portada animada del álbum, reprodúcela en lugar de la portada fija en el Dynamic Island. Envía el título, el artista y la región a itunes.apple.com, lee la página del álbum en music.apple.com y transmite el vídeo sin sonido desde mvod.itunes.apple.com. La mayoría de los álbumes no tienen portada animada. Se queda quieta con Reducir movimiento.",
+            barsGIF: "GIF en lugar de las barras",
+            barsGIFHint: "Muestra tu propio GIF donde la isla cerrada dibuja las barras de música. Se reproduce con la canción y se detiene mientras está en pausa. Vorssaint guarda una copia privada en este Mac.",
+            chooseGIF: "Elegir GIF…",
+            removeGIF: "Usar las barras",
+            invalidGIF: "Elige un archivo GIF de hasta 16 MB.")
         case .sk: return NotchMusicExtrasStrings(
             lyrics: "Text piesne",
             lyricsDescription: "Sledujte text aktuálnej skladby v Dynamic Island.",
@@ -239,7 +267,14 @@ extension FeatureStrings {
             preferredPlayerHint: "Obal a tlačidlá prehrávania otvoria túto aplikáciu. Automaticky otvorí hudobnú aplikáciu, ktorá hrala naposledy, potom Spotify alebo Apple Music.",
             openNamedPlayer: "Otvoriť %@",
             browserCovers: "Hľadať obaly pre Firefox a Zen",
-            browserCoversHint: "Keď Firefox, Zen alebo iný prehliadač založený na Firefoxe prehráva bez ostrého obalu, prečíta sa jeho uložená relácia v tomto Macu, aby sa našla karta YouTube so skladbou a jej miniatúra sa načítala z i.ytimg.com. Ak skladbu neukazuje žiadna karta, ale je otvorená karta YouTube Music, názov skladby, interpret a región sa odošlú na itunes.apple.com a obal albumu sa načíta z mzstatic.com.")
+            browserCoversHint: "Keď Firefox, Zen alebo iný prehliadač založený na Firefoxe prehráva bez ostrého obalu, prečíta sa jeho uložená relácia v tomto Macu, aby sa našla karta YouTube so skladbou a jej miniatúra sa načítala z i.ytimg.com. Ak skladbu neukazuje žiadna karta, ale je otvorená karta YouTube Music, názov skladby, interpret a región sa odošlú na itunes.apple.com a obal albumu sa načíta z mzstatic.com.",
+            motionCovers: "Animované obaly z Apple Music",
+            motionCoversHint: "Keď má Apple Music k albumu animovaný obal, prehrá sa v Dynamic Island namiesto statického obalu. Odošle názov skladby, interpreta a región na itunes.apple.com, načíta stránku albumu na music.apple.com a streamuje video bez zvuku z mvod.itunes.apple.com. Väčšina albumov animovaný obal nemá. Pri zapnutom Obmedziť pohyb zostane nehybný.",
+            barsGIF: "GIF namiesto pruhov",
+            barsGIFHint: "Zobrazte vlastný GIF tam, kde zatvorený ostrov kreslí hudobné pruhy. Hrá spolu so skladbou a počas pozastavenia stojí. Vorssaint si uchová súkromnú kópiu na tomto Macu.",
+            chooseGIF: "Vybrať GIF…",
+            removeGIF: "Použiť pruhy",
+            invalidGIF: "Vyberte súbor GIF s veľkosťou najviac 16 MB.")
         case .de: return NotchMusicExtrasStrings(
             lyrics: "Liedtext",
             lyricsDescription: "Verfolge den Text des aktuellen Songs im Dynamic Island.",
@@ -285,7 +320,14 @@ extension FeatureStrings {
             preferredPlayerHint: "Cover und Wiedergabetasten öffnen diese App. Automatisch öffnet die Musik-App, die zuletzt lief, danach Spotify oder Apple Music.",
             openNamedPlayer: "%@ öffnen",
             browserCovers: "Cover für Firefox und Zen suchen",
-            browserCoversHint: "Spielt Firefox, Zen oder ein anderer Firefox-basierter Browser ohne scharfes Cover, wird seine gespeicherte Sitzung auf diesem Mac gelesen, um den YouTube-Tab des Songs zu finden und sein Vorschaubild von i.ytimg.com zu laden. Zeigt kein Tab den Song, ist aber ein YouTube-Music-Tab geöffnet, werden Titel, Interpret und Region an itunes.apple.com gesendet und das Albumcover von mzstatic.com geladen.")
+            browserCoversHint: "Spielt Firefox, Zen oder ein anderer Firefox-basierter Browser ohne scharfes Cover, wird seine gespeicherte Sitzung auf diesem Mac gelesen, um den YouTube-Tab des Songs zu finden und sein Vorschaubild von i.ytimg.com zu laden. Zeigt kein Tab den Song, ist aber ein YouTube-Music-Tab geöffnet, werden Titel, Interpret und Region an itunes.apple.com gesendet und das Albumcover von mzstatic.com geladen.",
+            motionCovers: "Animierte Cover aus Apple Music",
+            motionCoversHint: "Wenn Apple Music für das Album ein animiertes Cover hat, wird es im Dynamic Island anstelle des festen Covers abgespielt. Sendet Titel, Künstler und Region an itunes.apple.com, liest die Albumseite auf music.apple.com und streamt das stumme Video von mvod.itunes.apple.com. Die meisten Alben haben kein animiertes Cover. Mit „Bewegung reduzieren“ bleibt es still.",
+            barsGIF: "GIF statt der Balken",
+            barsGIFHint: "Zeige dein eigenes GIF dort, wo die geschlossene Insel die Musikbalken zeichnet. Es läuft mit dem Song und hält an, solange er pausiert ist. Vorssaint behält eine private Kopie auf diesem Mac.",
+            chooseGIF: "GIF auswählen…",
+            removeGIF: "Balken verwenden",
+            invalidGIF: "Wähle eine GIF-Datei mit höchstens 16 MB.")
         case .fr: return NotchMusicExtrasStrings(
             lyrics: "Paroles",
             lyricsDescription: "Suivez les paroles du morceau en cours dans le Dynamic Island.",
@@ -331,7 +373,14 @@ extension FeatureStrings {
             preferredPlayerHint: "La pochette et les boutons de lecture ouvrent cette app. Automatique ouvre la dernière app de musique utilisée, puis Spotify ou Apple Music.",
             openNamedPlayer: "Ouvrir %@",
             browserCovers: "Chercher les pochettes pour Firefox et Zen",
-            browserCoversHint: "Quand Firefox, Zen ou un autre navigateur basé sur Firefox lit un morceau sans pochette nette, sa session enregistrée est lue sur ce Mac pour trouver l’onglet YouTube du morceau et charger sa miniature depuis i.ytimg.com. Si aucun onglet n’affiche le morceau mais qu’un onglet YouTube Music est ouvert, le titre, l’artiste et la région sont envoyés à itunes.apple.com et la pochette de l’album est chargée depuis mzstatic.com.")
+            browserCoversHint: "Quand Firefox, Zen ou un autre navigateur basé sur Firefox lit un morceau sans pochette nette, sa session enregistrée est lue sur ce Mac pour trouver l’onglet YouTube du morceau et charger sa miniature depuis i.ytimg.com. Si aucun onglet n’affiche le morceau mais qu’un onglet YouTube Music est ouvert, le titre, l’artiste et la région sont envoyés à itunes.apple.com et la pochette de l’album est chargée depuis mzstatic.com.",
+            motionCovers: "Pochettes animées d’Apple Music",
+            motionCoversHint: "Quand Apple Music propose une pochette animée pour l’album, elle remplace la pochette fixe dans le Dynamic Island. Envoie le titre, l’artiste et la région à itunes.apple.com, lit la page de l’album sur music.apple.com et diffuse la vidéo muette depuis mvod.itunes.apple.com. La plupart des albums n’ont pas de pochette animée. Elle reste fixe avec Réduire les animations.",
+            barsGIF: "GIF à la place des barres",
+            barsGIFHint: "Affichez votre propre GIF là où l’île fermée dessine les barres de musique. Il joue avec le morceau et reste figé pendant la pause. Vorssaint en garde une copie privée sur ce Mac.",
+            chooseGIF: "Choisir un GIF…",
+            removeGIF: "Utiliser les barres",
+            invalidGIF: "Choisissez un fichier GIF de 16 Mo maximum.")
         case .it: return NotchMusicExtrasStrings(
             lyrics: "Testo",
             lyricsDescription: "Segui il testo del brano attuale nel Dynamic Island.",
@@ -377,7 +426,14 @@ extension FeatureStrings {
             preferredPlayerHint: "La copertina e i pulsanti di riproduzione aprono questa app. Automatico apre l’app musicale usata per ultima, poi Spotify o Apple Music.",
             openNamedPlayer: "Apri %@",
             browserCovers: "Cerca copertine per Firefox e Zen",
-            browserCoversHint: "Quando Firefox, Zen o un altro browser basato su Firefox riproduce senza una copertina nitida, la sua sessione salvata su questo Mac viene letta per trovare la scheda YouTube del brano e caricarne la miniatura da i.ytimg.com. Se nessuna scheda mostra il brano ma è aperta una scheda di YouTube Music, titolo, artista e regione vengono inviati a itunes.apple.com e la copertina dell’album viene caricata da mzstatic.com.")
+            browserCoversHint: "Quando Firefox, Zen o un altro browser basato su Firefox riproduce senza una copertina nitida, la sua sessione salvata su questo Mac viene letta per trovare la scheda YouTube del brano e caricarne la miniatura da i.ytimg.com. Se nessuna scheda mostra il brano ma è aperta una scheda di YouTube Music, titolo, artista e regione vengono inviati a itunes.apple.com e la copertina dell’album viene caricata da mzstatic.com.",
+            motionCovers: "Copertine animate da Apple Music",
+            motionCoversHint: "Quando Apple Music ha una copertina animata per l’album, viene riprodotta nel Dynamic Island al posto della copertina fissa. Invia titolo, artista e regione a itunes.apple.com, legge la pagina dell’album su music.apple.com e trasmette il video muto da mvod.itunes.apple.com. La maggior parte degli album non ha una copertina animata. Resta ferma con Riduci movimento.",
+            barsGIF: "GIF al posto delle barre",
+            barsGIFHint: "Mostra una tua GIF dove l’isola chiusa disegna le barre della musica. Si muove con il brano e resta ferma mentre è in pausa. Vorssaint ne conserva una copia privata su questo Mac.",
+            chooseGIF: "Scegli GIF…",
+            removeGIF: "Usa le barre",
+            invalidGIF: "Scegli un file GIF fino a 16 MB.")
         case .ru: return NotchMusicExtrasStrings(
             lyrics: "Текст песни",
             lyricsDescription: "Следите за текстом текущей песни в вырезе.",
@@ -423,7 +479,14 @@ extension FeatureStrings {
             preferredPlayerHint: "Обложка и кнопки воспроизведения открывают это приложение. «Автоматически» открывает музыкальное приложение, игравшее последним, затем Spotify или Apple Music.",
             openNamedPlayer: "Открыть %@",
             browserCovers: "Искать обложки для Firefox и Zen",
-            browserCoversHint: "Когда Firefox, Zen или другой браузер на основе Firefox воспроизводит музыку без чёткой обложки, его сохранённый на этом Mac сеанс читается для поиска вкладки YouTube с песней, а её миниатюра загружается с i.ytimg.com. Если ни одна вкладка не показывает песню, но открыта вкладка YouTube Music, название песни, исполнитель и регион отправляются на itunes.apple.com, а обложка альбома загружается с mzstatic.com.")
+            browserCoversHint: "Когда Firefox, Zen или другой браузер на основе Firefox воспроизводит музыку без чёткой обложки, его сохранённый на этом Mac сеанс читается для поиска вкладки YouTube с песней, а её миниатюра загружается с i.ytimg.com. Если ни одна вкладка не показывает песню, но открыта вкладка YouTube Music, название песни, исполнитель и регион отправляются на itunes.apple.com, а обложка альбома загружается с mzstatic.com.",
+            motionCovers: "Анимированные обложки из Apple Music",
+            motionCoversHint: "Если в Apple Music у альбома есть анимированная обложка, она воспроизводится в вырезе вместо обычной. Отправляет название песни, исполнителя и регион на itunes.apple.com, читает страницу альбома на music.apple.com и загружает беззвучное видео с mvod.itunes.apple.com. У большинства альбомов анимированной обложки нет. При «Уменьшении движения» обложка не двигается.",
+            barsGIF: "GIF вместо полосок",
+            barsGIFHint: "Показывайте свой GIF там, где закрытый вырез рисует музыкальные полоски. Он движется вместе с песней и замирает на паузе. Vorssaint хранит личную копию на этом Mac.",
+            chooseGIF: "Выбрать GIF…",
+            removeGIF: "Вернуть полоски",
+            invalidGIF: "Выберите файл GIF размером до 16 МБ.")
         case .tr: return NotchMusicExtrasStrings(
             lyrics: "Şarkı sözleri",
             lyricsDescription: "Çalan şarkının sözlerini çentikte takip edin.",
@@ -469,7 +532,14 @@ extension FeatureStrings {
             preferredPlayerHint: "Kapak ve oynatma düğmeleri bu uygulamayı açar. Otomatik, en son çalan müzik uygulamasını, ardından Spotify veya Apple Music’i açar.",
             openNamedPlayer: "%@ uygulamasını aç",
             browserCovers: "Firefox ve Zen için kapak bul",
-            browserCoversHint: "Firefox, Zen veya Firefox tabanlı başka bir tarayıcı net bir kapak olmadan çaldığında, şarkının YouTube sekmesini bulmak ve küçük resmini i.ytimg.com adresinden yüklemek için tarayıcının bu Mac’teki kayıtlı oturumu okunur. Hiçbir sekme şarkıyı göstermiyor ancak bir YouTube Music sekmesi açıksa şarkı adı, sanatçı ve bölge itunes.apple.com adresine gönderilir ve albüm kapağı mzstatic.com adresinden yüklenir.")
+            browserCoversHint: "Firefox, Zen veya Firefox tabanlı başka bir tarayıcı net bir kapak olmadan çaldığında, şarkının YouTube sekmesini bulmak ve küçük resmini i.ytimg.com adresinden yüklemek için tarayıcının bu Mac’teki kayıtlı oturumu okunur. Hiçbir sekme şarkıyı göstermiyor ancak bir YouTube Music sekmesi açıksa şarkı adı, sanatçı ve bölge itunes.apple.com adresine gönderilir ve albüm kapağı mzstatic.com adresinden yüklenir.",
+            motionCovers: "Apple Music’ten hareketli kapaklar",
+            motionCoversHint: "Apple Music’te albümün hareketli kapağı varsa, çentikte sabit kapak yerine oynatılır. Şarkı adını, sanatçıyı ve bölgeyi itunes.apple.com’a gönderir, albümün music.apple.com sayfasını okur ve sessiz videoyu mvod.itunes.apple.com’dan akışla alır. Çoğu albümün hareketli kapağı yoktur. Hareketi Azalt açıkken sabit kalır.",
+            barsGIF: "Çubuklar yerine GIF",
+            barsGIFHint: "Kapalı çentiğin müzik çubuklarını çizdiği yerde kendi GIF’inizi gösterin. Şarkıyla birlikte oynar, duraklatıldığında durur. Vorssaint bu Mac’te özel bir kopyasını saklar.",
+            chooseGIF: "GIF Seç…",
+            removeGIF: "Çubukları kullan",
+            invalidGIF: "En fazla 16 MB boyutunda bir GIF dosyası seçin.")
         case .ja: return NotchMusicExtrasStrings(
             lyrics: "歌詞",
             lyricsDescription: "再生中の曲の歌詞をDynamic Islandに表示します。",
@@ -515,7 +585,14 @@ extension FeatureStrings {
             preferredPlayerHint: "ジャケットと再生ボタンでこのアプリを開きます。「自動」では、最後に再生した音楽アプリ、次にSpotifyまたはApple Musicを開きます。",
             openNamedPlayer: "%@を開く",
             browserCovers: "FirefoxとZenのジャケットを探す",
-            browserCoversHint: "Firefox、Zen、またはFirefoxベースのほかのブラウザが鮮明なジャケットなしで再生しているとき、このMacに保存されたブラウザのセッションを読み取り、曲のYouTubeタブを見つけて i.ytimg.com からサムネイルを読み込みます。曲を表示しているタブがなく、YouTube Musicのタブが開いている場合は、曲名、アーティスト、地域を itunes.apple.com に送信し、アルバムのジャケットを mzstatic.com から読み込みます。")
+            browserCoversHint: "Firefox、Zen、またはFirefoxベースのほかのブラウザが鮮明なジャケットなしで再生しているとき、このMacに保存されたブラウザのセッションを読み取り、曲のYouTubeタブを見つけて i.ytimg.com からサムネイルを読み込みます。曲を表示しているタブがなく、YouTube Musicのタブが開いている場合は、曲名、アーティスト、地域を itunes.apple.com に送信し、アルバムのジャケットを mzstatic.com から読み込みます。",
+            motionCovers: "Apple Musicの動くジャケット",
+            motionCoversHint: "Apple Musicにアルバムの動くジャケットがある場合、Dynamic Islandで静止画のジャケットの代わりに再生します。曲名、アーティスト、地域をitunes.apple.comに送信し、music.apple.comのアルバムページを読み込んで、音声のないビデオをmvod.itunes.apple.comからストリーミングします。ほとんどのアルバムには動くジャケットがありません。「視差効果を減らす」がオンのときは動きません。",
+            barsGIF: "バーの代わりにGIF",
+            barsGIFHint: "閉じたアイランドで音楽のバーが表示される場所に、自分のGIFを表示します。曲に合わせて再生され、一時停止中は止まります。VorssaintはこのMacに非公開のコピーを保存します。",
+            chooseGIF: "GIFを選択…",
+            removeGIF: "バーを使用",
+            invalidGIF: "16 MB以下のGIFファイルを選択してください。")
         case .ko: return NotchMusicExtrasStrings(
             lyrics: "가사",
             lyricsDescription: "현재 곡의 가사를 Dynamic Island에서 확인합니다.",
@@ -561,7 +638,14 @@ extension FeatureStrings {
             preferredPlayerHint: "커버와 재생 버튼을 누르면 이 앱이 열립니다. 자동은 마지막으로 재생한 음악 앱을, 그다음 Spotify 또는 Apple Music을 엽니다.",
             openNamedPlayer: "%@ 열기",
             browserCovers: "Firefox 및 Zen 커버 찾기",
-            browserCoversHint: "Firefox, Zen 또는 다른 Firefox 기반 브라우저가 선명한 커버 없이 재생하면 이 Mac에 저장된 브라우저 세션을 읽어 곡의 YouTube 탭을 찾고 i.ytimg.com에서 썸네일을 불러옵니다. 곡을 보여 주는 탭이 없지만 YouTube Music 탭이 열려 있으면 곡 제목, 아티스트 및 지역을 itunes.apple.com으로 보내고 mzstatic.com에서 앨범 커버를 불러옵니다.")
+            browserCoversHint: "Firefox, Zen 또는 다른 Firefox 기반 브라우저가 선명한 커버 없이 재생하면 이 Mac에 저장된 브라우저 세션을 읽어 곡의 YouTube 탭을 찾고 i.ytimg.com에서 썸네일을 불러옵니다. 곡을 보여 주는 탭이 없지만 YouTube Music 탭이 열려 있으면 곡 제목, 아티스트 및 지역을 itunes.apple.com으로 보내고 mzstatic.com에서 앨범 커버를 불러옵니다.",
+            motionCovers: "Apple Music 애니메이션 커버",
+            motionCoversHint: "Apple Music에 앨범의 애니메이션 커버가 있으면 Dynamic Island에서 정지된 커버 대신 재생합니다. 노래 제목, 아티스트, 지역을 itunes.apple.com으로 보내고, music.apple.com의 앨범 페이지를 읽어 소리 없는 비디오를 mvod.itunes.apple.com에서 스트리밍합니다. 대부분의 앨범에는 애니메이션 커버가 없습니다. 동작 줄이기가 켜져 있으면 움직이지 않습니다.",
+            barsGIF: "막대 대신 GIF",
+            barsGIFHint: "닫힌 아일랜드가 음악 막대를 그리는 자리에 나만의 GIF를 표시합니다. 노래와 함께 재생되고 일시 정지 중에는 멈춥니다. Vorssaint는 이 Mac에 비공개 사본을 보관합니다.",
+            chooseGIF: "GIF 선택…",
+            removeGIF: "막대 사용",
+            invalidGIF: "16MB 이하의 GIF 파일을 선택하세요.")
         case .zhHans: return NotchMusicExtrasStrings(
             lyrics: "歌词",
             lyricsDescription: "在Dynamic Island中跟随当前歌曲的歌词。",
@@ -607,7 +691,14 @@ extension FeatureStrings {
             preferredPlayerHint: "点按封面或播放按钮会打开此 App。“自动”会打开最近播放过的音乐 App，其次是 Spotify 或 Apple Music。",
             openNamedPlayer: "打开 %@",
             browserCovers: "为 Firefox 和 Zen 查找封面",
-            browserCoversHint: "当 Firefox、Zen 或其他基于 Firefox 的浏览器播放时没有清晰的封面，会读取浏览器保存在此 Mac 上的会话，找到这首歌的 YouTube 标签页，并从 i.ytimg.com 载入其缩略图。如果没有标签页显示这首歌，但打开了 YouTube Music 标签页，会将歌曲标题、艺人和地区发送至 itunes.apple.com，并从 mzstatic.com 载入专辑封面。")
+            browserCoversHint: "当 Firefox、Zen 或其他基于 Firefox 的浏览器播放时没有清晰的封面，会读取浏览器保存在此 Mac 上的会话，找到这首歌的 YouTube 标签页，并从 i.ytimg.com 载入其缩略图。如果没有标签页显示这首歌，但打开了 YouTube Music 标签页，会将歌曲标题、艺人和地区发送至 itunes.apple.com，并从 mzstatic.com 载入专辑封面。",
+            motionCovers: "Apple Music 动态封面",
+            motionCoversHint: "当 Apple Music 为专辑提供动态封面时，在 Dynamic Island 中用它替代静态封面。会将歌曲名称、艺人和地区发送到 itunes.apple.com，读取 music.apple.com 上的专辑页面，并从 mvod.itunes.apple.com 串流无声视频。大多数专辑没有动态封面。开启“减弱动态效果”时保持静止。",
+            barsGIF: "用 GIF 替代音柱",
+            barsGIFHint: "在收起的 Dynamic Island 显示音柱的位置显示你自己的 GIF。它随歌曲播放，暂停时保持静止。Vorssaint 会在这台 Mac 上保留一份私有副本。",
+            chooseGIF: "选择 GIF…",
+            removeGIF: "使用音柱",
+            invalidGIF: "请选择不超过 16 MB 的 GIF 文件。")
         case .zhTW: return NotchMusicExtrasStrings(
             lyrics: "歌詞",
             lyricsDescription: "在Dynamic Island中跟隨目前歌曲的歌詞。",
@@ -653,7 +744,14 @@ extension FeatureStrings {
             preferredPlayerHint: "點按封面或播放按鈕會開啟此 App。「自動」會開啟最近播放過的音樂 App，其次是 Spotify 或 Apple Music。",
             openNamedPlayer: "開啟 %@",
             browserCovers: "為 Firefox 和 Zen 尋找封面",
-            browserCoversHint: "當 Firefox、Zen 或其他以 Firefox 為基礎的瀏覽器播放時沒有清晰的封面，會讀取瀏覽器儲存在此 Mac 上的工作階段，找到這首歌的 YouTube 分頁，並從 i.ytimg.com 載入其縮圖。如果沒有分頁顯示這首歌，但開啟了 YouTube Music 分頁，會將歌曲名稱、演出者和地區傳送至 itunes.apple.com，並從 mzstatic.com 載入專輯封面。")
+            browserCoversHint: "當 Firefox、Zen 或其他以 Firefox 為基礎的瀏覽器播放時沒有清晰的封面，會讀取瀏覽器儲存在此 Mac 上的工作階段，找到這首歌的 YouTube 分頁，並從 i.ytimg.com 載入其縮圖。如果沒有分頁顯示這首歌，但開啟了 YouTube Music 分頁，會將歌曲名稱、演出者和地區傳送至 itunes.apple.com，並從 mzstatic.com 載入專輯封面。",
+            motionCovers: "Apple Music 動態封面",
+            motionCoversHint: "當 Apple Music 為專輯提供動態封面時，在 Dynamic Island 中以它取代靜態封面。會將歌曲名稱、藝人和地區傳送至 itunes.apple.com，讀取 music.apple.com 上的專輯頁面，並從 mvod.itunes.apple.com 串流無聲影片。大多數專輯沒有動態封面。開啟「減少動態效果」時保持靜止。",
+            barsGIF: "以 GIF 取代音柱",
+            barsGIFHint: "在收合的 Dynamic Island 顯示音柱的位置顯示你自己的 GIF。它會隨歌曲播放，暫停時保持靜止。Vorssaint 會在這台 Mac 上保留一份私人副本。",
+            chooseGIF: "選擇 GIF…",
+            removeGIF: "使用音柱",
+            invalidGIF: "請選擇不超過 16 MB 的 GIF 檔案。")
         case .zhHK: return NotchMusicExtrasStrings(
             lyrics: "歌詞",
             lyricsDescription: "在Dynamic Island中跟隨目前歌曲的歌詞。",
@@ -699,7 +797,14 @@ extension FeatureStrings {
             preferredPlayerHint: "點按封面或播放按鈕會開啟此 App。「自動」會開啟最近播放過的音樂 App，其次是 Spotify 或 Apple Music。",
             openNamedPlayer: "開啟 %@",
             browserCovers: "為 Firefox 和 Zen 尋找封面",
-            browserCoversHint: "當 Firefox、Zen 或其他以 Firefox 為基礎的瀏覽器播放時沒有清晰的封面，會讀取瀏覽器儲存在此 Mac 上的工作階段，找到這首歌的 YouTube 分頁，並從 i.ytimg.com 載入其縮圖。如果沒有分頁顯示這首歌，但開啟了 YouTube Music 分頁，會將歌曲名稱、演出者和地區傳送至 itunes.apple.com，並從 mzstatic.com 載入專輯封面。")
+            browserCoversHint: "當 Firefox、Zen 或其他以 Firefox 為基礎的瀏覽器播放時沒有清晰的封面，會讀取瀏覽器儲存在此 Mac 上的工作階段，找到這首歌的 YouTube 分頁，並從 i.ytimg.com 載入其縮圖。如果沒有分頁顯示這首歌，但開啟了 YouTube Music 分頁，會將歌曲名稱、演出者和地區傳送至 itunes.apple.com，並從 mzstatic.com 載入專輯封面。",
+            motionCovers: "Apple Music 動態封面",
+            motionCoversHint: "當 Apple Music 為專輯提供動態封面時，在 Dynamic Island 中以它取代靜態封面。會將歌曲名稱、藝人和地區傳送至 itunes.apple.com，讀取 music.apple.com 上的專輯頁面，並從 mvod.itunes.apple.com 串流無聲影片。大部分專輯沒有動態封面。開啟「減少動態效果」時會保持靜止。",
+            barsGIF: "以 GIF 取代音柱",
+            barsGIFHint: "在收起的 Dynamic Island 顯示音柱的位置顯示你自己的 GIF。它會隨歌曲播放，暫停時保持靜止。Vorssaint 會在這部 Mac 上保留一份私人副本。",
+            chooseGIF: "選擇 GIF…",
+            removeGIF: "使用音柱",
+            invalidGIF: "請選擇不超過 16 MB 的 GIF 檔案。")
         case .uk: return NotchMusicExtrasStrings(
             lyrics: "Текст пісні",
             lyricsDescription: "Слідкуйте за текстом поточної пісні у Dynamic Island.",
@@ -745,7 +850,14 @@ extension FeatureStrings {
             preferredPlayerHint: "Обкладинка й кнопки відтворення відкривають цей застосунок. «Автоматично» відкриває музичний застосунок, що грав останнім, потім Spotify або Apple Music.",
             openNamedPlayer: "Відкрити %@",
             browserCovers: "Шукати обкладинки для Firefox і Zen",
-            browserCoversHint: "Коли Firefox, Zen або інший браузер на основі Firefox відтворює без чіткої обкладинки, програма читає його збережений сеанс на цьому Mac, щоб знайти вкладку YouTube з піснею й завантажити її мініатюру з i.ytimg.com. Якщо жодна вкладка не показує пісню, але відкрито вкладку YouTube Music, програма надсилає назву пісні, виконавця та регіон на itunes.apple.com і завантажує обкладинку альбому з mzstatic.com.")
+            browserCoversHint: "Коли Firefox, Zen або інший браузер на основі Firefox відтворює без чіткої обкладинки, програма читає його збережений сеанс на цьому Mac, щоб знайти вкладку YouTube з піснею й завантажити її мініатюру з i.ytimg.com. Якщо жодна вкладка не показує пісню, але відкрито вкладку YouTube Music, програма надсилає назву пісні, виконавця та регіон на itunes.apple.com і завантажує обкладинку альбому з mzstatic.com.",
+            motionCovers: "Анімовані обкладинки з Apple Music",
+            motionCoversHint: "Якщо в Apple Music альбом має анімовану обкладинку, вона відтворюється в Dynamic Island замість звичайної. Надсилає назву пісні, виконавця й регіон на itunes.apple.com, читає сторінку альбому на music.apple.com і транслює беззвучне відео з mvod.itunes.apple.com. Більшість альбомів не мають анімованої обкладинки. Зі «Зменшенням руху» обкладинка не рухається.",
+            barsGIF: "GIF замість смужок",
+            barsGIFHint: "Показуйте власний GIF там, де закритий острів малює музичні смужки. Він рухається разом із піснею і завмирає на паузі. Vorssaint зберігає приватну копію на цьому Mac.",
+            chooseGIF: "Вибрати GIF…",
+            removeGIF: "Повернути смужки",
+            invalidGIF: "Виберіть файл GIF розміром до 16 МБ.")
         }
     }
 }
