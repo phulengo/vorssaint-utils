@@ -21,6 +21,7 @@ struct NotchMascotSettings: View {
     @AppStorage(DefaultsKey.notchMascotStyle) private var style = NotchMascotStyle.minimal.rawValue
     @AppStorage(DefaultsKey.notchMascotShape) private var shape = NotchMascotShape.ball.rawValue
     @AppStorage(DefaultsKey.notchMascotPalette) private var palette = NotchMascotPalette.pearl.rawValue
+    @AppStorage(DefaultsKey.notchMascotEnclosed) private var enclosed = false
     @AppStorage(DefaultsKey.notchMascotSide) private var side = NotchMascotSide.left.rawValue
     @AppStorage(DefaultsKey.notchMascotVisitFrequency) private var frequency = NotchMascotVisitFrequency.normal.rawValue
     @AppStorage(DefaultsKey.notchCommandBar) private var commandBar = true
@@ -33,7 +34,8 @@ struct NotchMascotSettings: View {
     private var look: NotchMascotLook {
         NotchMascotLook(style: NotchMascotStyle(rawValue: style) ?? .minimal,
                         shape: NotchMascotShape(rawValue: shape) ?? .ball,
-                        palette: NotchMascotPalette(rawValue: palette) ?? .pearl)
+                        palette: NotchMascotPalette(rawValue: palette) ?? .pearl,
+                        enclosed: enclosed)
     }
 
     private var restingSide: NotchMascotSide { NotchMascotSide(rawValue: side) ?? .left }
@@ -119,7 +121,8 @@ struct NotchMascotSettings: View {
                     NotchMascotChoiceTile(title: text.style(item), selected: look.style == item) {
                         style = item.rawValue
                     } preview: {
-                        NotchMascotView(look: NotchMascotLook(style: item, shape: look.shape, palette: look.palette),
+                        NotchMascotView(look: NotchMascotLook(style: item, shape: look.shape, palette: look.palette,
+                                                              enclosed: look.enclosed),
                                         size: 30, idles: false)
                             .frame(width: 30, height: 30)
                             .frame(width: 64, height: 42)
@@ -128,6 +131,9 @@ struct NotchMascotSettings: View {
                 }
             }
             .padding(.leading, settingsRowTextInset)
+            SettingsRow(symbol: "circle.dotted.circle", title: text.enclosure) {
+                Toggle(text.enclosure, isOn: $enclosed).labelsHidden().toggleStyle(.switch)
+            }
             if look.style == .minimal {
                 SettingsRow(symbol: "circle.square", title: text.shape) {
                     Text(text.shape(look.shape)).foregroundStyle(.secondary)

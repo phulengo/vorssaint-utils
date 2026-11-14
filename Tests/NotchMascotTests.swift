@@ -46,6 +46,10 @@ enum NotchMascotTests {
                         let parts = NotchMascotGeometry.robot(size: size)
                         figure = [parts.ears, parts.antenna, parts.bulb]
                             .reduce(parts.head.boundingBoxOfPath) { $0.union($1.boundingBoxOfPath) }
+                    } else if style == .pebble {
+                        let parts = NotchMascotGeometry.pebble(size: size)
+                        figure = [parts.feet, parts.crystal, parts.core]
+                            .reduce(parts.body.boundingBoxOfPath) { $0.union($1.boundingBoxOfPath) }
                     } else {
                         figure = NotchMascotGeometry.body(shape, size: size).boundingBoxOfPath
                     }
@@ -262,6 +266,37 @@ enum NotchMascotTests {
                          return box.minX >= 0 && box.minY >= 0 && box.maxX <= 20 && box.maxY <= 20
                      },
                      "the robot's eyes light its visor, and all of it fits its square")
+        let pebble = NotchMascotGeometry.pebble(size: 20)
+        let pebbleFace = NotchMascotLook(style: .pebble, shape: .ball, palette: .sky).face
+        func inSquare(_ path: CGPath) -> Bool {
+            let box = path.boundingBoxOfPath
+            return box.minX >= 0 && box.minY >= 0 && box.maxX <= 20 && box.maxY <= 20
+        }
+        suite.expect(pebble.body.contains(CGPoint(x: pebbleFace.leftEye.x * 20, y: pebbleFace.leftEye.y * 20))
+                     && pebble.body.contains(CGPoint(x: pebbleFace.rightEye.x * 20, y: pebbleFace.rightEye.y * 20))
+                     && [pebble.body, pebble.feet, pebble.crystal, pebble.core].allSatisfy(inSquare)
+                     && pebble.body.boundingBoxOfPath.contains(pebble.lit.boundingBoxOfPath)
+                     && pebble.body.boundingBoxOfPath.contains(pebble.shaded.boundingBoxOfPath)
+                     && !pebble.lit.isEmpty && !pebble.shaded.isEmpty,
+                     "the pebble's gem eyes sit on its stone, its lit and shaded faces stay on it, and all of it fits its square")
+        let dome = NotchMascotGeometry.enclosure(size: 20)
+        let scale = NotchMascotGeometry.enclosedScale
+        for style in NotchMascotStyle.allCases {
+            for shape in NotchMascotShape.allCases {
+                let look = NotchMascotLook(style: style, shape: shape, palette: .pearl, enclosed: true)
+                let figure = NotchMascotGeometry.figureBounds(look, size: 20)
+                let offset = NotchMascotGeometry.enclosedOffset(look, size: 20)
+                // Shrunk about its square's middle and moved, as the rig draws it.
+                let inside = CGRect(x: 10 + (figure.minX - 10) * scale + offset.x,
+                                    y: 10 + (figure.minY - 10) * scale + offset.y,
+                                    width: figure.width * scale, height: figure.height * scale)
+                suite.expect([dome.glass, dome.bars, dome.base].allSatisfy(inSquare)
+                             && dome.glass.boundingBoxOfPath.contains(inside)
+                             && abs(inside.maxY - NotchMascotGeometry.enclosedFloor * 20) < 0.001
+                             && abs(inside.midX - 10) < 0.001,
+                             "a \(style.rawValue) \(shape.rawValue) companion stands centred on its dome's base, inside the glass")
+            }
+        }
     }
 
     private static func trackContracts(_ suite: TestSuite) {

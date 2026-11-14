@@ -38,6 +38,8 @@ final class NotchMascotRig: NSObject {
     private(set) var idles = false
     var reduceMotion = false
 
+    /// Shrinks the companion into its dome, when it has one.
+    private let inside = CALayer()
     private let hopper = CALayer()
     private let squasher = CALayer()
     private let tilter = CALayer()
@@ -54,6 +56,10 @@ final class NotchMascotRig: NSObject {
     private let face = CALayer()
     private let leftEye = CAShapeLayer()
     private let rightEye = CAShapeLayer()
+    /// The dome stays put while the companion moves inside it.
+    private let domeGlass = CAShapeLayer()
+    private let domeBars = CAShapeLayer()
+    private let domeBase = CAShapeLayer()
     private var blinks = 0
     /// It grew sleepy on its own after a long rest, rather than being shown
     /// so, and anything that happens wakes it.
@@ -69,7 +75,11 @@ final class NotchMascotRig: NSObject {
 
     override init() {
         super.init()
-        root.addSublayer(hopper)
+        root.addSublayer(domeGlass)
+        root.addSublayer(inside)
+        root.addSublayer(domeBars)
+        root.addSublayer(domeBase)
+        inside.addSublayer(hopper)
         hopper.addSublayer(squasher)
         squasher.addSublayer(tilter)
         for layer in [ears, antenna, bulb, fill, visor, shine] { tilter.addSublayer(layer) }
@@ -78,10 +88,16 @@ final class NotchMascotRig: NSObject {
         face.addSublayer(leftEye)
         face.addSublayer(rightEye)
         fill.mask = fillMask
-        for layer in [root, hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, visor, shine,
-                      leftEye, rightEye] {
+        for layer in [root, inside, hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, visor,
+                      shine, leftEye, rightEye, domeGlass, domeBars, domeBase] {
             layer.actions = Self.noActions
         }
+        domeGlass.fillColor = CGColor(srgbRed: 0.75, green: 0.88, blue: 1, alpha: 0.10)
+        domeGlass.strokeColor = CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.45)
+        domeBars.fillColor = nil
+        domeBars.strokeColor = CGColor(srgbRed: 0.78, green: 0.80, blue: 0.84, alpha: 0.75)
+        domeBars.lineCap = .round
+        domeBase.fillColor = NotchMascotColor.darkStone.cgColor
         shine.fillColor = NotchMascotColor.shine.cgColor
         visor.fillColor = NotchMascotColor.visor.cgColor
     }
@@ -115,17 +131,24 @@ final class NotchMascotRig: NSObject {
         }
         let box = CGRect(x: 0, y: 0, width: size, height: size)
         root.bounds = box
-        for layer in [hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, visor, shine] {
+        for layer in [inside, hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, visor, shine,
+                      domeGlass, domeBars, domeBase] {
             layer.frame = box
             layer.contentsScale = scale
         }
         root.contentsScale = scale
+        configureDome(look)
         let robot = look.style == .robot
         let palette = look.palette
         fill.colors = [palette.light.cgColor, palette.shade.cgColor]
         fill.startPoint = CGPoint(x: 0.5, y: 0)
         fill.endPoint = CGPoint(x: 0.5, y: 1)
-        if robot {
+        visor.fillColor = NotchMascotColor.visor.cgColor
+        shine.fillColor = NotchMascotColor.shine.cgColor
+        for layer in [antenna, ears] { layer.shadowOpacity = 0 }
+        if look.style == .pebble {
+            configurePebble(palette: palette)
+        } else if robot {
             let parts = NotchMascotGeometry.robot(size: size)
             fillMask.path = parts.head
             ears.path = parts.ears
@@ -152,8 +175,8 @@ final class NotchMascotRig: NSObject {
                 eye.shadowOpacity = 0
             }
         }
-        for layer in [ears, antenna, bulb, visor] { layer.isHidden = !robot }
-        shine.path = NotchMascotGeometry.shine(look.face, size: size)
+        for layer in [ears, antenna, bulb, visor] { layer.isHidden = look.style == .minimal }
+        if look.style != .pebble { shine.path = NotchMascotGeometry.shine(look.face, size: size) }
         shine.isHidden = robot
         let face = look.face
         let side = size * 0.4
@@ -162,6 +185,59 @@ final class NotchMascotRig: NSObject {
         leftEye.contentsScale = scale
         rightEye.contentsScale = scale
         apply(mood.expression, animated: false)
+    }
+
+    /// The pebble: a cut stone, lit from the top left, with its upper face
+    /// catching the light and the faces below and to the right in shade, on
+    /// two darker feet, a crystal glowing behind it and gem eyes that glow.
+    private func configurePebble(palette: NotchMascotPalette) {
+        let parts = NotchMascotGeometry.pebble(size: size)
+        let stoneLight = NotchMascotColor.stone.mixed(with: palette.light, 0.45)
+        let stoneShade = NotchMascotColor.darkStone.mixed(with: palette.shade, 0.35)
+        fill.colors = [stoneLight.cgColor, stoneShade.cgColor]
+        fill.startPoint = CGPoint(x: 0.2, y: 0.1)
+        fill.endPoint = CGPoint(x: 0.85, y: 1)
+        fillMask.path = parts.body
+        ears.path = parts.feet
+        ears.fillColor = NotchMascotColor.darkStone.mixed(with: palette.shade, 0.2).cgColor
+        antenna.path = parts.crystal
+        antenna.fillColor = palette.light.mixed(with: palette.shade, 0.25).cgColor
+        antenna.shadowColor = palette.light.cgColor
+        antenna.shadowOpacity = 0.7
+        antenna.shadowRadius = max(0.6, size * 0.05)
+        antenna.shadowOffset = .zero
+        bulb.path = parts.core
+        bulb.fillColor = (mood == .sleepy ? palette.shade : palette.light).cgColor
+        bulb.shadowColor = palette.light.cgColor
+        bulb.shadowRadius = max(0.8, size * 0.09)
+        bulb.shadowOffset = .zero
+        visor.path = parts.shaded
+        visor.fillColor = NotchMascotColor.pebbleShade.cgColor
+        shine.path = parts.lit
+        shine.fillColor = NotchMascotColor.pebbleLight.cgColor
+        for eye in [leftEye, rightEye] {
+            eye.fillColor = palette.light.cgColor
+            eye.shadowColor = palette.light.cgColor
+            eye.shadowOpacity = 0.9
+            eye.shadowRadius = max(0.6, size * 0.045)
+            eye.shadowOffset = .zero
+        }
+    }
+
+    /// The dome, and the companion drawn smaller inside it, standing on its base.
+    private func configureDome(_ look: NotchMascotLook) {
+        for layer in [domeGlass, domeBars, domeBase] { layer.isHidden = !look.enclosed }
+        guard look.enclosed else { inside.transform = CATransform3DIdentity; return }
+        let parts = NotchMascotGeometry.enclosure(size: size)
+        domeGlass.path = parts.glass
+        domeGlass.lineWidth = max(0.5, size * 0.03)
+        domeBars.path = parts.bars
+        domeBars.lineWidth = max(0.5, size * 0.035)
+        domeBase.path = parts.base
+        let scale = NotchMascotGeometry.enclosedScale
+        let shift = NotchMascotGeometry.enclosedOffset(look, size: size)
+        inside.transform = CATransform3DConcat(CATransform3DMakeScale(scale, scale, 1),
+                                               CATransform3DMakeTranslation(shift.x, shift.y, 0))
     }
 
     // MARK: Faces
@@ -403,7 +479,7 @@ final class NotchMascotRig: NSObject {
     /// The robot's antenna bulb goes dark while it sleeps and lights again as
     /// it wakes.
     private func lightBulb(_ lit: Bool, animated: Bool) {
-        guard look.style == .robot else { return }
+        guard look.style != .minimal else { return }
         let color = (lit ? look.palette.light : look.palette.shade).cgColor
         if animated {
             let fade = CABasicAnimation(keyPath: "fillColor")
@@ -420,7 +496,7 @@ final class NotchMascotRig: NSObject {
 
     /// Lit already, the bulb shows dark a moment longer, then lights.
     private func relightBulb(after delay: TimeInterval) {
-        guard look.style == .robot else { return }
+        guard look.style != .minimal else { return }
         let dark = look.palette.shade.cgColor
         let light = CAKeyframeAnimation(keyPath: "fillColor")
         light.values = [dark, dark, look.palette.light.cgColor]
@@ -431,7 +507,7 @@ final class NotchMascotRig: NSObject {
 
     /// A reaction lights the robot's bulb up with a soft glow for as long as it plays.
     private func glowBulb(for duration: TimeInterval) {
-        guard look.style == .robot else { return }
+        guard look.style != .minimal else { return }
         let glow = CAKeyframeAnimation(keyPath: "shadowOpacity")
         glow.values = [0, 1, 1, 0]
         glow.keyTimes = [0, 0.12, 0.7, 1]

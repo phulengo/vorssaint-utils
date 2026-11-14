@@ -11,6 +11,10 @@ struct NotchMascotStrings {
     let style: String
     let minimal: String
     let robot: String
+    /// A cut stone with gem eyes and a crystal behind it.
+    let pebble: String
+    /// The switch that puts the companion in a little glass dome.
+    let enclosure: String
     let shape: String
     let ball: String
     let egg: String
@@ -68,7 +72,11 @@ struct NotchMascotStrings {
     let keywords: String
 
     func style(_ style: NotchMascotStyle) -> String {
-        style == .robot ? robot : minimal
+        switch style {
+        case .minimal: return minimal
+        case .robot: return robot
+        case .pebble: return pebble
+        }
     }
 
     func shape(_ shape: NotchMascotShape) -> String {
@@ -123,7 +131,7 @@ struct NotchMascotStrings {
 
     /// What a search finds its page by, besides its name.
     var searchKeywords: [String] {
-        [hint, visits, reactions, hidesWhenIdle, appearance, style, robot, color, behavior,
+        [hint, visits, reactions, hidesWhenIdle, appearance, style, robot, pebble, enclosure, color, behavior,
          commandBar, keywords]
     }
 
@@ -144,7 +152,7 @@ extension FeatureStrings {
             hint: "A little friend who lives in the Dynamic Island. It rests there when nothing else is showing, and comes out over music and activities to say hello and react to what happens.",
             visits: "Appear now and then",
             visitsHint: "Every few minutes it passes through the island with a short animation.",
-            style: "Style", minimal: "Minimal", robot: "Robot",
+            style: "Style", minimal: "Minimal", robot: "Robot", pebble: "Pebble", enclosure: "Glass dome",
             shape: "Shape", ball: "Ball", egg: "Egg", squircle: "Rounded square", pill: "Pill",
             color: "Color", pearl: "Pearl", mint: "Mint", peach: "Peach", lilac: "Lilac", lemon: "Lemon", rose: "Rose",
             commandBar: "Command Bar in the island",
@@ -171,7 +179,7 @@ extension FeatureStrings {
             hint: "Um amiguinho que mora no Dynamic Island. Descansa ali quando não há mais nada aparecendo e sai por cima de músicas e atividades para dar oi e reagir ao que acontece.",
             visits: "Aparecer de vez em quando",
             visitsHint: "A cada poucos minutos ele passa pela ilha com uma animação curta.",
-            style: "Estilo", minimal: "Minimalista", robot: "Robô",
+            style: "Estilo", minimal: "Minimalista", robot: "Robô", pebble: "Pedrinha", enclosure: "Cúpula de vidro",
             shape: "Forma", ball: "Bolinha", egg: "Ovo", squircle: "Quadrado arredondado", pill: "Pílula",
             color: "Cor", pearl: "Pérola", mint: "Menta", peach: "Pêssego", lilac: "Lilás", lemon: "Limão", rose: "Rosa",
             commandBar: "Barra de comando na ilha",
@@ -198,7 +206,7 @@ extension FeatureStrings {
             hint: "Un amiguito que vive en el Dynamic Island. Descansa allí cuando no se muestra nada más y sale sobre la música y las actividades para saludar y reaccionar a lo que pasa.",
             visits: "Aparecer de vez en cuando",
             visitsHint: "Cada pocos minutos pasa por la isla con una animación corta.",
-            style: "Estilo", minimal: "Minimalista", robot: "Robot",
+            style: "Estilo", minimal: "Minimalista", robot: "Robot", pebble: "Piedrita", enclosure: "Cúpula de cristal",
             shape: "Forma", ball: "Bolita", egg: "Huevo", squircle: "Cuadrado redondeado", pill: "Píldora",
             color: "Color", pearl: "Perla", mint: "Menta", peach: "Melocotón", lilac: "Lila", lemon: "Limón", rose: "Rosa",
             commandBar: "Barra de comandos en la isla",
@@ -225,7 +233,7 @@ extension FeatureStrings {
             hint: "Malý kamarát, ktorý býva v Dynamic Island. Odpočíva tam, keď sa nič iné nezobrazuje, a ponad hudbu a aktivity sa ukáže, aby pozdravil a zareagoval na to, čo sa deje.",
             visits: "Občas sa ukázať",
             visitsHint: "Každých pár minút prejde ostrovom s krátkou animáciou.",
-            style: "Štýl", minimal: "Minimalistický", robot: "Robot",
+            style: "Štýl", minimal: "Minimalistický", robot: "Robot", pebble: "Kamienok", enclosure: "Sklenená kupola",
             shape: "Tvar", ball: "Guľôčka", egg: "Vajíčko", squircle: "Zaoblený štvorec", pill: "Pilulka",
             color: "Farba", pearl: "Perleťová", mint: "Mätová", peach: "Broskyňová", lilac: "Orgovánová", lemon: "Citrónová", rose: "Ružová",
             commandBar: "Príkazová lišta na ostrove",
@@ -252,7 +260,7 @@ extension FeatureStrings {
             hint: "Ein kleiner Freund, der im Dynamic Island wohnt. Er ruht dort, wenn sonst nichts angezeigt wird, und kommt über Musik und Aktivitäten hervor, um Hallo zu sagen und auf das Geschehen zu reagieren.",
             visits: "Ab und zu vorbeischauen",
             visitsHint: "Alle paar Minuten läuft er mit einer kurzen Animation durch die Insel.",
-            style: "Stil", minimal: "Minimal", robot: "Roboter",
+            style: "Stil", minimal: "Minimal", robot: "Roboter", pebble: "Kiesel", enclosure: "Glaskuppel",
             shape: "Form", ball: "Kugel", egg: "Ei", squircle: "Abgerundetes Quadrat", pill: "Pille",
             color: "Farbe", pearl: "Perle", mint: "Minze", peach: "Pfirsich", lilac: "Flieder", lemon: "Zitrone", rose: "Rosa",
             commandBar: "Befehlsleiste in der Insel",
@@ -279,7 +287,7 @@ extension FeatureStrings {
             hint: "Un petit ami qui vit dans le Dynamic Island. Il s’y repose quand rien d’autre n’est affiché, et sort par-dessus la musique et les activités pour dire bonjour et réagir à ce qui se passe.",
             visits: "Passer de temps en temps",
             visitsHint: "Toutes les quelques minutes, il traverse l’île avec une courte animation.",
-            style: "Style", minimal: "Minimaliste", robot: "Robot",
+            style: "Style", minimal: "Minimaliste", robot: "Robot", pebble: "Galet", enclosure: "Dôme de verre",
             shape: "Forme", ball: "Boule", egg: "Œuf", squircle: "Carré arrondi", pill: "Pilule",
             color: "Couleur", pearl: "Perle", mint: "Menthe", peach: "Pêche", lilac: "Lilas", lemon: "Citron", rose: "Rose",
             commandBar: "Barre de commande dans l’île",
@@ -306,7 +314,7 @@ extension FeatureStrings {
             hint: "Un piccolo amico che vive nel Dynamic Island. Riposa lì quando non viene mostrato nient’altro ed esce sopra musica e attività per salutare e reagire a ciò che succede.",
             visits: "Comparire ogni tanto",
             visitsHint: "Ogni pochi minuti attraversa l’isola con una breve animazione.",
-            style: "Stile", minimal: "Minimale", robot: "Robot",
+            style: "Stile", minimal: "Minimale", robot: "Robot", pebble: "Sassolino", enclosure: "Cupola di vetro",
             shape: "Forma", ball: "Pallina", egg: "Uovo", squircle: "Quadrato arrotondato", pill: "Pillola",
             color: "Colore", pearl: "Perla", mint: "Menta", peach: "Pesca", lilac: "Lilla", lemon: "Limone", rose: "Rosa",
             commandBar: "Barra dei comandi nell’isola",
@@ -333,7 +341,7 @@ extension FeatureStrings {
             hint: "Маленький друг, который живёт в Dynamic Island. Он отдыхает там, когда больше ничего не показано, и выходит поверх музыки и активностей, чтобы поздороваться и отреагировать на происходящее.",
             visits: "Появляться время от времени",
             visitsHint: "Раз в несколько минут он пробегает по острову с короткой анимацией.",
-            style: "Стиль", minimal: "Минимализм", robot: "Робот",
+            style: "Стиль", minimal: "Минимализм", robot: "Робот", pebble: "Камешек", enclosure: "Стеклянный купол",
             shape: "Форма", ball: "Шарик", egg: "Яйцо", squircle: "Скруглённый квадрат", pill: "Пилюля",
             color: "Цвет", pearl: "Жемчуг", mint: "Мята", peach: "Персик", lilac: "Сирень", lemon: "Лимон", rose: "Роза",
             commandBar: "Командная панель на острове",
@@ -360,7 +368,7 @@ extension FeatureStrings {
             hint: "Dynamic Island’da yaşayan küçük bir dost. Başka bir şey görünmediğinde orada dinlenir, merhaba demek ve olanlara tepki vermek için müziğin ve etkinliklerin üzerine çıkar.",
             visits: "Arada bir görün",
             visitsHint: "Birkaç dakikada bir kısa bir animasyonla adadan geçer.",
-            style: "Stil", minimal: "Sade", robot: "Robot",
+            style: "Stil", minimal: "Sade", robot: "Robot", pebble: "Çakıl", enclosure: "Cam kubbe",
             shape: "Şekil", ball: "Top", egg: "Yumurta", squircle: "Yuvarlak kare", pill: "Hap",
             color: "Renk", pearl: "İnci", mint: "Nane", peach: "Şeftali", lilac: "Leylak", lemon: "Limon", rose: "Gül",
             commandBar: "Komut çubuğu adada",
@@ -387,7 +395,7 @@ extension FeatureStrings {
             hint: "Dynamic Island に住む小さな友だちです。ほかに何も表示されていないときはそこで休み、音楽やアクティビティの上にも出てきて、あいさつしたり出来事に反応したりします。",
             visits: "ときどき現れる",
             visitsHint: "数分ごとに、短いアニメーションでアイランドを通り抜けます。",
-            style: "スタイル", minimal: "ミニマル", robot: "ロボット",
+            style: "スタイル", minimal: "ミニマル", robot: "ロボット", pebble: "小石", enclosure: "ガラスドーム",
             shape: "形", ball: "まる", egg: "たまご", squircle: "角丸の四角", pill: "カプセル",
             color: "色", pearl: "パール", mint: "ミント", peach: "ピーチ", lilac: "ライラック", lemon: "レモン", rose: "ローズ",
             commandBar: "アイランドのコマンドバー",
@@ -414,7 +422,7 @@ extension FeatureStrings {
             hint: "Dynamic Island에 사는 작은 친구입니다. 다른 것이 표시되지 않을 때는 그곳에서 쉬고, 음악과 활동 위로도 나와 인사하고 일어난 일에 반응합니다.",
             visits: "가끔 나타나기",
             visitsHint: "몇 분마다 짧은 애니메이션으로 아일랜드를 지나갑니다.",
-            style: "스타일", minimal: "미니멀", robot: "로봇",
+            style: "스타일", minimal: "미니멀", robot: "로봇", pebble: "조약돌", enclosure: "유리 돔",
             shape: "모양", ball: "공", egg: "달걀", squircle: "둥근 사각형", pill: "알약",
             color: "색상", pearl: "펄", mint: "민트", peach: "피치", lilac: "라일락", lemon: "레몬", rose: "로즈",
             commandBar: "아일랜드의 명령 막대",
@@ -441,7 +449,7 @@ extension FeatureStrings {
             hint: "住在Dynamic Island里的小伙伴。没有其他内容显示时，它就在那里休息，也会出现在音乐和活动上方打招呼，并对发生的事做出反应。",
             visits: "偶尔出现",
             visitsHint: "每隔几分钟，它会以简短的动画从岛上经过。",
-            style: "风格", minimal: "极简", robot: "机器人",
+            style: "风格", minimal: "极简", robot: "机器人", pebble: "小石子", enclosure: "玻璃罩",
             shape: "形状", ball: "圆球", egg: "鸡蛋", squircle: "圆角方形", pill: "药丸",
             color: "颜色", pearl: "珍珠", mint: "薄荷", peach: "蜜桃", lilac: "丁香", lemon: "柠檬", rose: "玫瑰",
             commandBar: "在岛中使用命令栏",
@@ -468,7 +476,7 @@ extension FeatureStrings {
             hint: "住在Dynamic Island裡的小夥伴。沒有其他內容顯示時，它就在那裡休息，也會出現在音樂和活動上方打招呼，並對發生的事做出反應。",
             visits: "偶爾出現",
             visitsHint: "每隔幾分鐘，它會以簡短的動畫從動態島經過。",
-            style: "風格", minimal: "極簡", robot: "機器人",
+            style: "風格", minimal: "極簡", robot: "機器人", pebble: "小石頭", enclosure: "玻璃罩",
             shape: "形狀", ball: "圓球", egg: "雞蛋", squircle: "圓角方形", pill: "藥丸",
             color: "顏色", pearl: "珍珠", mint: "薄荷", peach: "蜜桃", lilac: "丁香", lemon: "檸檬", rose: "玫瑰",
             commandBar: "在動態島中使用指令列",
@@ -495,7 +503,7 @@ extension FeatureStrings {
             hint: "住在Dynamic Island裡的小夥伴。沒有其他內容顯示時，它就在那裡休息，也會出現在音樂和活動上方打招呼，並對發生的事作出反應。",
             visits: "間中出現",
             visitsHint: "每隔幾分鐘，它會以簡短的動畫從動態島經過。",
-            style: "風格", minimal: "極簡", robot: "機械人",
+            style: "風格", minimal: "極簡", robot: "機械人", pebble: "小石頭", enclosure: "玻璃罩",
             shape: "形狀", ball: "圓球", egg: "雞蛋", squircle: "圓角方形", pill: "藥丸",
             color: "顏色", pearl: "珍珠", mint: "薄荷", peach: "蜜桃", lilac: "丁香", lemon: "檸檬", rose: "玫瑰",
             commandBar: "在動態島中使用指令列",
@@ -522,7 +530,7 @@ extension FeatureStrings {
             hint: "Маленький друг, який живе в Dynamic Island. Він відпочиває там, коли більше нічого не показано, і виходить поверх музики й активностей, щоб привітатися та відреагувати на те, що відбувається.",
             visits: "З’являтися час від часу",
             visitsHint: "Раз на кілька хвилин він пробігає острівцем із короткою анімацією.",
-            style: "Стиль", minimal: "Мінімалізм", robot: "Робот",
+            style: "Стиль", minimal: "Мінімалізм", robot: "Робот", pebble: "Камінчик", enclosure: "Скляний купол",
             shape: "Форма", ball: "Кулька", egg: "Яйце", squircle: "Заокруглений квадрат", pill: "Пігулка",
             color: "Колір", pearl: "Перлина", mint: "М’ята", peach: "Персик", lilac: "Бузок", lemon: "Лимон", rose: "Троянда",
             commandBar: "Панель команд в острівці",
