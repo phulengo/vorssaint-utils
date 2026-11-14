@@ -15,6 +15,11 @@ struct NotchMascotStrings {
     let pebble: String
     /// The switch that puts the companion in a little glass dome.
     let enclosure: String
+    /// The style that shows a picture or GIF of the person's own.
+    let custom: String
+    let chooseImage: String
+    let customHint: String
+    let imageRefused: String
     let shape: String
     let ball: String
     let egg: String
@@ -76,6 +81,7 @@ struct NotchMascotStrings {
         case .minimal: return minimal
         case .robot: return robot
         case .pebble: return pebble
+        case .custom: return custom
         }
     }
 
@@ -131,7 +137,7 @@ struct NotchMascotStrings {
 
     /// What a search finds its page by, besides its name.
     var searchKeywords: [String] {
-        [hint, visits, reactions, hidesWhenIdle, appearance, style, robot, pebble, enclosure, color, behavior,
+        [hint, visits, reactions, hidesWhenIdle, appearance, style, robot, pebble, enclosure, custom, color, behavior,
          commandBar, keywords]
     }
 
@@ -153,6 +159,9 @@ extension FeatureStrings {
             visits: "Appear now and then",
             visitsHint: "Every few minutes it passes through the island with a short animation.",
             style: "Style", minimal: "Minimal", robot: "Robot", pebble: "Pebble", enclosure: "Glass dome",
+            custom: "Custom", chooseImage: "Choose picture…",
+            customHint: "Use a picture or GIF of your own. It hops, sways and reacts like the other companions, and a GIF also plays its own frames.",
+            imageRefused: "Choose a picture or GIF of up to 32 MB.",
             shape: "Shape", ball: "Ball", egg: "Egg", squircle: "Rounded square", pill: "Pill",
             color: "Color", pearl: "Pearl", mint: "Mint", peach: "Peach", lilac: "Lilac", lemon: "Lemon", rose: "Rose",
             commandBar: "Command Bar in the island",
@@ -180,6 +189,9 @@ extension FeatureStrings {
             visits: "Aparecer de vez em quando",
             visitsHint: "A cada poucos minutos ele passa pela ilha com uma animação curta.",
             style: "Estilo", minimal: "Minimalista", robot: "Robô", pebble: "Pedrinha", enclosure: "Cúpula de vidro",
+            custom: "Personalizado", chooseImage: "Escolher imagem…",
+            customHint: "Use uma imagem ou GIF seu. Ela pula, balança e reage como os outros companheiros, e um GIF também mostra seus próprios quadros.",
+            imageRefused: "Escolha uma imagem ou GIF de até 32 MB.",
             shape: "Forma", ball: "Bolinha", egg: "Ovo", squircle: "Quadrado arredondado", pill: "Pílula",
             color: "Cor", pearl: "Pérola", mint: "Menta", peach: "Pêssego", lilac: "Lilás", lemon: "Limão", rose: "Rosa",
             commandBar: "Barra de comando na ilha",
@@ -207,6 +219,9 @@ extension FeatureStrings {
             visits: "Aparecer de vez en cuando",
             visitsHint: "Cada pocos minutos pasa por la isla con una animación corta.",
             style: "Estilo", minimal: "Minimalista", robot: "Robot", pebble: "Piedrita", enclosure: "Cúpula de cristal",
+            custom: "Personalizado", chooseImage: "Elegir imagen…",
+            customHint: "Usa una imagen o un GIF propio. Salta, se balancea y reacciona como los demás compañeros, y un GIF también reproduce sus propios fotogramas.",
+            imageRefused: "Elige una imagen o un GIF de hasta 32 MB.",
             shape: "Forma", ball: "Bolita", egg: "Huevo", squircle: "Cuadrado redondeado", pill: "Píldora",
             color: "Color", pearl: "Perla", mint: "Menta", peach: "Melocotón", lilac: "Lila", lemon: "Limón", rose: "Rosa",
             commandBar: "Barra de comandos en la isla",
@@ -234,6 +249,9 @@ extension FeatureStrings {
             visits: "Občas sa ukázať",
             visitsHint: "Každých pár minút prejde ostrovom s krátkou animáciou.",
             style: "Štýl", minimal: "Minimalistický", robot: "Robot", pebble: "Kamienok", enclosure: "Sklenená kupola",
+            custom: "Vlastný", chooseImage: "Vybrať obrázok…",
+            customHint: "Použite vlastný obrázok alebo GIF. Skáče, kolíše sa a reaguje ako ostatní spoločníci a GIF navyše prehráva svoje snímky.",
+            imageRefused: "Vyberte obrázok alebo GIF s veľkosťou najviac 32 MB.",
             shape: "Tvar", ball: "Guľôčka", egg: "Vajíčko", squircle: "Zaoblený štvorec", pill: "Pilulka",
             color: "Farba", pearl: "Perleťová", mint: "Mätová", peach: "Broskyňová", lilac: "Orgovánová", lemon: "Citrónová", rose: "Ružová",
             commandBar: "Príkazová lišta na ostrove",
@@ -261,6 +279,9 @@ extension FeatureStrings {
             visits: "Ab und zu vorbeischauen",
             visitsHint: "Alle paar Minuten läuft er mit einer kurzen Animation durch die Insel.",
             style: "Stil", minimal: "Minimal", robot: "Roboter", pebble: "Kiesel", enclosure: "Glaskuppel",
+            custom: "Eigenes Bild", chooseImage: "Bild auswählen…",
+            customHint: "Nutze ein eigenes Bild oder GIF. Es hüpft, wippt und reagiert wie die anderen Begleiter, und ein GIF spielt zusätzlich seine eigenen Bilder ab.",
+            imageRefused: "Wähle ein Bild oder GIF mit höchstens 32 MB.",
             shape: "Form", ball: "Kugel", egg: "Ei", squircle: "Abgerundetes Quadrat", pill: "Pille",
             color: "Farbe", pearl: "Perle", mint: "Minze", peach: "Pfirsich", lilac: "Flieder", lemon: "Zitrone", rose: "Rosa",
             commandBar: "Befehlsleiste in der Insel",
@@ -288,6 +309,9 @@ extension FeatureStrings {
             visits: "Passer de temps en temps",
             visitsHint: "Toutes les quelques minutes, il traverse l’île avec une courte animation.",
             style: "Style", minimal: "Minimaliste", robot: "Robot", pebble: "Galet", enclosure: "Dôme de verre",
+            custom: "Personnalisé", chooseImage: "Choisir une image…",
+            customHint: "Utilisez votre propre image ou GIF. Elle saute, se balance et réagit comme les autres compagnons, et un GIF joue aussi ses propres images.",
+            imageRefused: "Choisissez une image ou un GIF de 32 Mo maximum.",
             shape: "Forme", ball: "Boule", egg: "Œuf", squircle: "Carré arrondi", pill: "Pilule",
             color: "Couleur", pearl: "Perle", mint: "Menthe", peach: "Pêche", lilac: "Lilas", lemon: "Citron", rose: "Rose",
             commandBar: "Barre de commande dans l’île",
@@ -315,6 +339,9 @@ extension FeatureStrings {
             visits: "Comparire ogni tanto",
             visitsHint: "Ogni pochi minuti attraversa l’isola con una breve animazione.",
             style: "Stile", minimal: "Minimale", robot: "Robot", pebble: "Sassolino", enclosure: "Cupola di vetro",
+            custom: "Personalizzato", chooseImage: "Scegli immagine…",
+            customHint: "Usa un’immagine o una GIF tua. Salta, ondeggia e reagisce come gli altri compagni, e una GIF riproduce anche i propri fotogrammi.",
+            imageRefused: "Scegli un’immagine o una GIF fino a 32 MB.",
             shape: "Forma", ball: "Pallina", egg: "Uovo", squircle: "Quadrato arrotondato", pill: "Pillola",
             color: "Colore", pearl: "Perla", mint: "Menta", peach: "Pesca", lilac: "Lilla", lemon: "Limone", rose: "Rosa",
             commandBar: "Barra dei comandi nell’isola",
@@ -342,6 +369,9 @@ extension FeatureStrings {
             visits: "Появляться время от времени",
             visitsHint: "Раз в несколько минут он пробегает по острову с короткой анимацией.",
             style: "Стиль", minimal: "Минимализм", robot: "Робот", pebble: "Камешек", enclosure: "Стеклянный купол",
+            custom: "Свой", chooseImage: "Выбрать картинку…",
+            customHint: "Используйте свою картинку или GIF. Она прыгает, покачивается и реагирует, как другие компаньоны, а GIF ещё и проигрывает свои кадры.",
+            imageRefused: "Выберите картинку или GIF размером до 32 МБ.",
             shape: "Форма", ball: "Шарик", egg: "Яйцо", squircle: "Скруглённый квадрат", pill: "Пилюля",
             color: "Цвет", pearl: "Жемчуг", mint: "Мята", peach: "Персик", lilac: "Сирень", lemon: "Лимон", rose: "Роза",
             commandBar: "Командная панель на острове",
@@ -369,6 +399,9 @@ extension FeatureStrings {
             visits: "Arada bir görün",
             visitsHint: "Birkaç dakikada bir kısa bir animasyonla adadan geçer.",
             style: "Stil", minimal: "Sade", robot: "Robot", pebble: "Çakıl", enclosure: "Cam kubbe",
+            custom: "Özel", chooseImage: "Resim Seç…",
+            customHint: "Kendi resminizi veya GIF’inizi kullanın. Diğer arkadaşlar gibi zıplar, sallanır ve tepki verir; GIF ayrıca kendi karelerini oynatır.",
+            imageRefused: "En fazla 32 MB boyutunda bir resim veya GIF seçin.",
             shape: "Şekil", ball: "Top", egg: "Yumurta", squircle: "Yuvarlak kare", pill: "Hap",
             color: "Renk", pearl: "İnci", mint: "Nane", peach: "Şeftali", lilac: "Leylak", lemon: "Limon", rose: "Gül",
             commandBar: "Komut çubuğu adada",
@@ -396,6 +429,9 @@ extension FeatureStrings {
             visits: "ときどき現れる",
             visitsHint: "数分ごとに、短いアニメーションでアイランドを通り抜けます。",
             style: "スタイル", minimal: "ミニマル", robot: "ロボット", pebble: "小石", enclosure: "ガラスドーム",
+            custom: "カスタム", chooseImage: "画像を選択…",
+            customHint: "自分の画像やGIFを使います。ほかのコンパニオンと同じように跳ねたり揺れたり反応したりし、GIFは自分のフレームも再生します。",
+            imageRefused: "32 MB以下の画像またはGIFを選択してください。",
             shape: "形", ball: "まる", egg: "たまご", squircle: "角丸の四角", pill: "カプセル",
             color: "色", pearl: "パール", mint: "ミント", peach: "ピーチ", lilac: "ライラック", lemon: "レモン", rose: "ローズ",
             commandBar: "アイランドのコマンドバー",
@@ -423,6 +459,9 @@ extension FeatureStrings {
             visits: "가끔 나타나기",
             visitsHint: "몇 분마다 짧은 애니메이션으로 아일랜드를 지나갑니다.",
             style: "스타일", minimal: "미니멀", robot: "로봇", pebble: "조약돌", enclosure: "유리 돔",
+            custom: "사용자 지정", chooseImage: "이미지 선택…",
+            customHint: "직접 고른 이미지나 GIF를 사용합니다. 다른 컴패니언처럼 뛰고 흔들리고 반응하며, GIF는 자체 프레임도 재생합니다.",
+            imageRefused: "32MB 이하의 이미지나 GIF를 선택하세요.",
             shape: "모양", ball: "공", egg: "달걀", squircle: "둥근 사각형", pill: "알약",
             color: "색상", pearl: "펄", mint: "민트", peach: "피치", lilac: "라일락", lemon: "레몬", rose: "로즈",
             commandBar: "아일랜드의 명령 막대",
@@ -450,6 +489,9 @@ extension FeatureStrings {
             visits: "偶尔出现",
             visitsHint: "每隔几分钟，它会以简短的动画从岛上经过。",
             style: "风格", minimal: "极简", robot: "机器人", pebble: "小石子", enclosure: "玻璃罩",
+            custom: "自定义", chooseImage: "选择图片…",
+            customHint: "使用你自己的图片或 GIF。它会像其他伙伴一样跳动、摇摆和做出反应，GIF 还会播放自己的帧。",
+            imageRefused: "请选择不超过 32 MB 的图片或 GIF。",
             shape: "形状", ball: "圆球", egg: "鸡蛋", squircle: "圆角方形", pill: "药丸",
             color: "颜色", pearl: "珍珠", mint: "薄荷", peach: "蜜桃", lilac: "丁香", lemon: "柠檬", rose: "玫瑰",
             commandBar: "在岛中使用命令栏",
@@ -477,6 +519,9 @@ extension FeatureStrings {
             visits: "偶爾出現",
             visitsHint: "每隔幾分鐘，它會以簡短的動畫從動態島經過。",
             style: "風格", minimal: "極簡", robot: "機器人", pebble: "小石頭", enclosure: "玻璃罩",
+            custom: "自訂", chooseImage: "選擇圖片…",
+            customHint: "使用你自己的圖片或 GIF。它會像其他夥伴一樣跳動、搖擺並做出反應，GIF 還會播放自己的影格。",
+            imageRefused: "請選擇不超過 32 MB 的圖片或 GIF。",
             shape: "形狀", ball: "圓球", egg: "雞蛋", squircle: "圓角方形", pill: "藥丸",
             color: "顏色", pearl: "珍珠", mint: "薄荷", peach: "蜜桃", lilac: "丁香", lemon: "檸檬", rose: "玫瑰",
             commandBar: "在動態島中使用指令列",
@@ -504,6 +549,9 @@ extension FeatureStrings {
             visits: "間中出現",
             visitsHint: "每隔幾分鐘，它會以簡短的動畫從動態島經過。",
             style: "風格", minimal: "極簡", robot: "機械人", pebble: "小石頭", enclosure: "玻璃罩",
+            custom: "自訂", chooseImage: "選擇圖片…",
+            customHint: "使用你自己的圖片或 GIF。它會像其他夥伴一樣跳動、搖擺並作出反應，GIF 亦會播放自己的影格。",
+            imageRefused: "請選擇不超過 32 MB 的圖片或 GIF。",
             shape: "形狀", ball: "圓球", egg: "雞蛋", squircle: "圓角方形", pill: "藥丸",
             color: "顏色", pearl: "珍珠", mint: "薄荷", peach: "蜜桃", lilac: "丁香", lemon: "檸檬", rose: "玫瑰",
             commandBar: "在動態島中使用指令列",
@@ -531,6 +579,9 @@ extension FeatureStrings {
             visits: "З’являтися час від часу",
             visitsHint: "Раз на кілька хвилин він пробігає острівцем із короткою анімацією.",
             style: "Стиль", minimal: "Мінімалізм", robot: "Робот", pebble: "Камінчик", enclosure: "Скляний купол",
+            custom: "Власний", chooseImage: "Вибрати зображення…",
+            customHint: "Використовуйте власне зображення або GIF. Воно стрибає, похитується й реагує, як інші компаньйони, а GIF ще й відтворює свої кадри.",
+            imageRefused: "Виберіть зображення або GIF розміром до 32 МБ.",
             shape: "Форма", ball: "Кулька", egg: "Яйце", squircle: "Заокруглений квадрат", pill: "Пігулка",
             color: "Колір", pearl: "Перлина", mint: "М’ята", peach: "Персик", lilac: "Бузок", lemon: "Лимон", rose: "Троянда",
             commandBar: "Панель команд в острівці",

@@ -3,6 +3,7 @@
 
 import CoreGraphics
 import Foundation
+import ImageIO
 
 /// The companion's model: its preferences, faces, outlines and strolls, and
 /// the drop that carries the Command Bar out of the island.
@@ -46,6 +47,8 @@ enum NotchMascotTests {
                         let parts = NotchMascotGeometry.robot(size: size)
                         figure = [parts.ears, parts.antenna, parts.bulb]
                             .reduce(parts.head.boundingBoxOfPath) { $0.union($1.boundingBoxOfPath) }
+                    } else if style == .custom {
+                        figure = NotchMascotGeometry.customFrame(size: size)
                     } else if style == .pebble {
                         let parts = NotchMascotGeometry.pebble(size: size)
                         figure = [parts.feet, parts.crystal, parts.core]
@@ -279,6 +282,35 @@ enum NotchMascotTests {
                      && pebble.body.boundingBoxOfPath.contains(pebble.shaded.boundingBoxOfPath)
                      && !pebble.lit.isEmpty && !pebble.shaded.isEmpty,
                      "the pebble's gem eyes sit on its stone, its lit and shaded faces stay on it, and all of it fits its square")
+        func picture(frames: Int, width: Int, height: Int, gif: Bool) -> Data {
+            let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                                    space: CGColorSpaceCreateDeviceRGB(),
+                                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+            let output = NSMutableData()
+            let type = (gif ? "com.compuserve.gif" : "public.png") as CFString
+            let destination = CGImageDestinationCreateWithData(output, type, frames, nil)!
+            for _ in 0..<frames {
+                CGImageDestinationAddImage(destination, context.makeImage()!,
+                                           gif ? [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 0.2]] as CFDictionary : nil)
+            }
+            CGImageDestinationFinalize(destination)
+            return output as Data
+        }
+        let still = NotchCompanionImageSupport.kept(picture(frames: 1, width: 900, height: 600, gif: false))
+        let moving = NotchCompanionImageSupport.kept(picture(frames: 3, width: 400, height: 400, gif: true))
+        let movingFrames = moving.flatMap { NotchCompanionImageSupport.frames($0.data) } ?? []
+        suite.expect(still?.animated == false
+                     && still.flatMap { NotchCompanionImageSupport.frames($0.data) }?.first.map {
+                         max($0.image.width, $0.image.height) <= NotchCompanionImageSupport.keptPixels } == true
+                     && moving?.animated == true && movingFrames.count == 3
+                     && movingFrames.allSatisfy { abs($0.delay - 0.2) < 0.011 },
+                     "a chosen picture is kept small, and a GIF keeps every frame and its timing")
+        suite.expect(NotchCompanionImageSupport.frames(Data()) == nil
+                     && NotchCompanionImageSupport.frames(Data("not a picture".utf8)) == nil
+                     && NotchCompanionImageSupport.isCompanionFile("a1.png") && NotchCompanionImageSupport.isCompanionFile("a1.gif")
+                     && !NotchCompanionImageSupport.isCompanionFile("../a1.png")
+                     && !NotchCompanionImageSupport.isCompanionFile("a1.jpg"),
+                     "only a picture is kept, and the companion reads only its own folder's files")
         let dome = NotchMascotGeometry.enclosure(size: 20)
         let scale = NotchMascotGeometry.enclosedScale
         for style in NotchMascotStyle.allCases {

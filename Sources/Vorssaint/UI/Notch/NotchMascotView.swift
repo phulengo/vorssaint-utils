@@ -53,6 +53,8 @@ final class NotchMascotRig: NSObject {
     private let fillMask = CAShapeLayer()
     private let visor = CAShapeLayer()
     private let shine = CAShapeLayer()
+    /// The custom style's own picture, in place of a drawn body and face.
+    private let picture = CALayer()
     private let face = CALayer()
     private let leftEye = CAShapeLayer()
     private let rightEye = CAShapeLayer()
@@ -82,16 +84,17 @@ final class NotchMascotRig: NSObject {
         inside.addSublayer(hopper)
         hopper.addSublayer(squasher)
         squasher.addSublayer(tilter)
-        for layer in [ears, antenna, bulb, fill, visor, shine] { tilter.addSublayer(layer) }
+        for layer in [ears, antenna, bulb, fill, visor, shine, picture] { tilter.addSublayer(layer) }
         tilter.addSublayer(attention)
         attention.addSublayer(face)
         face.addSublayer(leftEye)
         face.addSublayer(rightEye)
         fill.mask = fillMask
         for layer in [root, inside, hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, visor,
-                      shine, leftEye, rightEye, domeGlass, domeBars, domeBase] {
+                      shine, picture, leftEye, rightEye, domeGlass, domeBars, domeBase] {
             layer.actions = Self.noActions
         }
+        picture.contentsGravity = .resizeAspect
         domeGlass.fillColor = CGColor(srgbRed: 0.75, green: 0.88, blue: 1, alpha: 0.10)
         domeGlass.strokeColor = CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.45)
         domeBars.fillColor = nil
@@ -138,6 +141,7 @@ final class NotchMascotRig: NSObject {
         }
         root.contentsScale = scale
         configureDome(look)
+        configurePicture(look, scale: scale)
         let robot = look.style == .robot
         let palette = look.palette
         fill.colors = [palette.light.cgColor, palette.shade.cgColor]
@@ -175,9 +179,11 @@ final class NotchMascotRig: NSObject {
                 eye.shadowOpacity = 0
             }
         }
-        for layer in [ears, antenna, bulb, visor] { layer.isHidden = look.style == .minimal }
+        for layer in [ears, antenna, bulb, visor] { layer.isHidden = look.style == .minimal || look.style == .custom }
         if look.style != .pebble { shine.path = NotchMascotGeometry.shine(look.face, size: size) }
-        shine.isHidden = robot
+        shine.isHidden = robot || look.style == .custom
+        fill.isHidden = look.style == .custom
+        face.isHidden = look.style == .custom
         let face = look.face
         let side = size * 0.4
         leftEye.frame = CGRect(x: face.leftEye.x * size - side / 2, y: face.leftEye.y * size - side / 2, width: side, height: side)
@@ -222,6 +228,40 @@ final class NotchMascotRig: NSObject {
             eye.shadowRadius = max(0.6, size * 0.045)
             eye.shadowOffset = .zero
         }
+    }
+
+    /// The person's own picture fills the figure's square with its own
+    /// proportions. A GIF plays its frames at their own pace, through Core
+    /// Animation like every other motion, and holds its first one under
+    /// Reduce Motion. Without a picture yet, the square stays empty.
+    private func configurePicture(_ look: NotchMascotLook, scale: CGFloat) {
+        picture.removeAnimation(forKey: "frames")
+        guard look.style == .custom else {
+            picture.isHidden = true
+            picture.contents = nil
+            return
+        }
+        picture.isHidden = false
+        picture.frame = NotchMascotGeometry.customFrame(size: size)
+        picture.contentsScale = scale
+        let frames = NotchCompanionImage.shared.frames(named: look.customImage) ?? []
+        picture.contents = frames.first?.image
+        guard frames.count > 1, !reduceMotion else { return }
+        let total = frames.reduce(0) { $0 + $1.delay }
+        var elapsed = 0.0
+        var times: [NSNumber] = []
+        for frame in frames {
+            times.append(NSNumber(value: elapsed / total))
+            elapsed += frame.delay
+        }
+        let play = CAKeyframeAnimation(keyPath: "contents")
+        play.values = frames.map(\.image)
+        play.keyTimes = times
+        play.calculationMode = .discrete
+        play.duration = total
+        play.repeatCount = .infinity
+        play.isRemovedOnCompletion = false
+        picture.add(play, forKey: "frames")
     }
 
     /// The dome, and the companion drawn smaller inside it, standing on its base.

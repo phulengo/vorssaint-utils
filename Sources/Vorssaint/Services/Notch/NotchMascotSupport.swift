@@ -14,6 +14,8 @@ import Foundation
 
 enum NotchMascotStyle: String, CaseIterable, Identifiable {
     case minimal, robot, pebble
+    /// A picture or GIF of the person's own, moved by the same motions.
+    case custom
 
     var id: String { rawValue }
 }
@@ -93,6 +95,8 @@ struct NotchMascotLook: Equatable {
     /// Inside a little glass dome with bars, which stays put while the
     /// companion hops and reacts inside it.
     var enclosed = false
+    /// The custom style's picture, by its file name in the app's own folder.
+    var customImage = ""
 
     static let standard = NotchMascotLook(style: .minimal, shape: .ball, palette: .pearl)
 }
@@ -437,7 +441,14 @@ enum NotchMascotGeometry {
                 .reduce(parts.body.boundingBoxOfPath) { $0.union($1.boundingBoxOfPath) }
         case .minimal:
             return body(look.shape, size: size).boundingBoxOfPath
+        case .custom:
+            return customFrame(size: size)
         }
+    }
+
+    /// Where a custom picture is drawn, fitted inside with its own proportions.
+    static func customFrame(size: CGFloat) -> CGRect {
+        CGRect(x: 0.04 * size, y: 0.04 * size, width: 0.92 * size, height: 0.92 * size)
     }
 
     /// The pebble's stone, its feet, the crystal behind it and the crystal's
@@ -1398,7 +1409,8 @@ enum NotchMascotSupport {
             style: NotchMascotStyle(rawValue: defaults.string(forKey: DefaultsKey.notchMascotStyle) ?? "") ?? .minimal,
             shape: NotchMascotShape(rawValue: defaults.string(forKey: DefaultsKey.notchMascotShape) ?? "") ?? .ball,
             palette: NotchMascotPalette(rawValue: defaults.string(forKey: DefaultsKey.notchMascotPalette) ?? "") ?? .pearl,
-            enclosed: defaults.bool(forKey: DefaultsKey.notchMascotEnclosed))
+            enclosed: defaults.bool(forKey: DefaultsKey.notchMascotEnclosed),
+            customImage: defaults.string(forKey: DefaultsKey.notchMascotCustomImage) ?? "")
     }
 
     /// How the Command Bar comes out of the island, or nil when it opens in

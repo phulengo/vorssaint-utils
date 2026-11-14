@@ -22,6 +22,9 @@ struct NotchMascotSettings: View {
     @AppStorage(DefaultsKey.notchMascotShape) private var shape = NotchMascotShape.ball.rawValue
     @AppStorage(DefaultsKey.notchMascotPalette) private var palette = NotchMascotPalette.pearl.rawValue
     @AppStorage(DefaultsKey.notchMascotEnclosed) private var enclosed = false
+    @AppStorage(DefaultsKey.notchMascotCustomImage) private var customImage = ""
+    /// The last picture chosen could not be used.
+    @State private var imageRefused = false
     @AppStorage(DefaultsKey.notchMascotSide) private var side = NotchMascotSide.left.rawValue
     @AppStorage(DefaultsKey.notchMascotVisitFrequency) private var frequency = NotchMascotVisitFrequency.normal.rawValue
     @AppStorage(DefaultsKey.notchCommandBar) private var commandBar = true
@@ -35,7 +38,7 @@ struct NotchMascotSettings: View {
         NotchMascotLook(style: NotchMascotStyle(rawValue: style) ?? .minimal,
                         shape: NotchMascotShape(rawValue: shape) ?? .ball,
                         palette: NotchMascotPalette(rawValue: palette) ?? .pearl,
-                        enclosed: enclosed)
+                        enclosed: enclosed, customImage: customImage)
     }
 
     private var restingSide: NotchMascotSide { NotchMascotSide(rawValue: side) ?? .left }
@@ -121,9 +124,15 @@ struct NotchMascotSettings: View {
                     NotchMascotChoiceTile(title: text.style(item), selected: look.style == item) {
                         style = item.rawValue
                     } preview: {
-                        NotchMascotView(look: NotchMascotLook(style: item, shape: look.shape, palette: look.palette,
-                                                              enclosed: look.enclosed),
-                                        size: 30, idles: false)
+                        Group {
+                            if item == .custom, customImage.isEmpty {
+                                Image(systemName: "photo.badge.plus").font(.system(size: 17)).foregroundStyle(.white.opacity(0.8))
+                            } else {
+                                NotchMascotView(look: NotchMascotLook(style: item, shape: look.shape, palette: look.palette,
+                                                                      enclosed: look.enclosed, customImage: customImage),
+                                                size: 30, idles: false)
+                            }
+                        }
                             .frame(width: 30, height: 30)
                             .frame(width: 64, height: 42)
                             .background(Color.black, in: Capsule())
@@ -131,6 +140,12 @@ struct NotchMascotSettings: View {
                 }
             }
             .padding(.leading, settingsRowTextInset)
+            if look.style == .custom {
+                SettingsRow(symbol: "photo", title: text.custom, caption: imageRefused ? text.imageRefused : text.customHint) {
+                    Button(text.chooseImage) { imageRefused = NotchCompanionImage.shared.choose() == false }
+                }
+                .transition(.opacity)
+            }
             SettingsRow(symbol: "circle.dotted.circle", title: text.enclosure) {
                 Toggle(text.enclosure, isOn: $enclosed).labelsHidden().toggleStyle(.switch)
             }
