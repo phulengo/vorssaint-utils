@@ -6,6 +6,11 @@ import SwiftUI
 /// The AI page: cards the person picked, paired across the strip.
 struct NotchAgentsView: View {
     let size: CGSize
+    /// Drawn in the menu bar panel rather than the island: the page takes its
+    /// cards' height inside the panel's own scroll, `size` gives only its
+    /// width, and the period menu the island keeps beside its camera heads
+    /// the cards instead.
+    var inPanel = false
     @ObservedObject private var usage = AgentUsageService.shared
     @ObservedObject private var accounts = CodexProfileLimitsService.shared
     @ObservedObject private var l10n = L10n.shared
@@ -60,8 +65,14 @@ struct NotchAgentsView: View {
                 NotchEmptyView(symbol: "square.grid.2x2", message: text.noCards)
             } else {
                 let rows = rows
+                let followsPeriod = rows.joined().contains(where: { $0.card.followsPeriod })
                 TimelineView(.periodic(from: .now, by: 15)) { context in
-                    if NotchAgentSupport.contentHeight(rows) > size.height + 0.5 {
+                    if inPanel {
+                        VStack(alignment: .leading, spacing: NotchAgentSupport.spacing) {
+                            if followsPeriod { periodMenu }
+                            grid(rows, now: context.date)
+                        }
+                    } else if NotchAgentSupport.contentHeight(rows) > size.height + 0.5 {
                         ScrollView { grid(rows, now: context.date) }
                             .scrollIndicators(.automatic)
                     } else {
@@ -71,11 +82,12 @@ struct NotchAgentsView: View {
                 // The period drives several cards, so it sits in the island's
                 // top row, beside the camera, while any of them shows.
                 .notchBand(leading: {
-                    if rows.joined().contains(where: { $0.card.followsPeriod }) { periodMenu }
+                    if followsPeriod && !inPanel { periodMenu }
                 })
             }
         }
-        .frame(width: size.width, height: size.height, alignment: .top)
+        .frame(width: size.width, height: inPanel ? nil : size.height, alignment: .top)
+        .frame(minHeight: inPanel ? 120 : nil)
         .environment(\.locale, l10n.language.formattingLocale())
         .onAppear {
             usage.pageDidAppear(preview: preview)

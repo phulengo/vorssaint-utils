@@ -10,7 +10,8 @@ All notable changes to this project are documented here. The format follows
 - Dynamic Island can play an album’s animated cover from Apple Music in place of the still cover, both closed and open. Turn on Animated covers from Apple Music in the music settings. It’s off by default, and most albums don’t have one.
 - Choose your own GIF to replace the music bars in the closed Dynamic Island. It plays with the song and holds still while it’s paused. Every GIF you add stays in a collection to pick again or delete, and you can set its size and the strip’s side and top-and-bottom padding; the strip widens to fit.
 - A new Pebble companion: a cut stone with gem eyes and a glowing crystal, with every reaction of the other companions. Any companion can also sit in a little glass dome.
-- Pin AI Agents to the menu bar to see the session and weekly limits of Claude Code or Codex, shown as left or used like the island’s Limits card. It reads the limits AI Agents follows in Dynamic Island and shows a dash until the agent reports them. Clicking it opens the AI page.
+- Pin AI Agents to the menu bar to see the session and weekly limits of Claude Code or Codex, shown as left or used like the island’s Limits card. It reads the limits AI Agents follows in Dynamic Island and shows a dash until the agent reports them. Clicking it opens the panel’s AI Agents tab.
+- The menu bar panel has an AI Agents tab with the same cards as the AI page in Dynamic Island: limits with their countdowns, cost, trend, models, projects, activity and resets. You can hide it or move it in the panel layout.
 
 ## [3.4.4] - 2026-11-11
 

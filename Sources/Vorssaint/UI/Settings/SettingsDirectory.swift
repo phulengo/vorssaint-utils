@@ -206,7 +206,9 @@ enum SettingsDirectory {
                 .general, sectionAnchor: .panelConfiguration),
             title: s.menuBarSection, icon: "menubar.rectangle",
             keywords: [s.showMenuBarIcon, FeatureStrings.generalSettings(language).menuBarIconTitle,
-                       FeatureStrings.generalSettings(language).iconMissingTitle, "SF Symbols"]))
+                       FeatureStrings.generalSettings(language).iconMissingTitle, "SF Symbols",
+                       // The panel's AI tab is shown or hidden among the panel's sections.
+                       FeatureStrings.notchAgents(language).title]))
         items.append(SettingsSearchSupport.scrollingScreenshotItem(language: language))
         let alerts = FeatureStrings.monitorAlerts(language)
         items.append(SettingsSearchItem(

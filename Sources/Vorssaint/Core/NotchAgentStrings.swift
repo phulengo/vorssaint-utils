@@ -103,6 +103,10 @@ struct NotchAgentStrings {
     let resetsHelp: String
     /// Under the AI reading's options in the menu bar settings.
     let menuBarCaption: String
+    /// What the menu bar panel's AI tab shows, for the panel layout editor.
+    let panelDescription: String
+    /// The panel's AI tab while the AI section is off in Dynamic Island.
+    let panelOff: String
 
     func tokens(_ count: String) -> String { String(format: tokensFormat, count) }
     func cached(_ share: String) -> String { String(format: cachedFormat, share) }
@@ -288,7 +292,9 @@ extension NotchAgentStrings {
         resetsUpdate: "Update Codex to use resets here",
         resetsCheckFailed: "Couldn’t check resets",
         resetsHelp: "A reset renews the Codex session and weekly limits at once. Codex checks your resets with its own sign-in, which Vorssaint never reads.",
-        menuBarCaption: "Shows the session and weekly limits from AI Agents in Dynamic Island, as left or used like its Limits card. A dash means none has been read yet, or AI Agents or this agent is off in Dynamic Island.")
+        menuBarCaption: "Shows the session and weekly limits from AI Agents in Dynamic Island, as left or used like its Limits card. A dash means none has been read yet, or AI Agents or this agent is off in Dynamic Island.",
+        panelDescription: "The AI Agents page from Dynamic Island: limits, tokens, API value and the agents at work.",
+        panelOff: "Turn on AI Agents in Dynamic Island to see your agents’ limits and usage here.")
 
     static let uk = NotchAgentStrings(
         title: "ШІ-агенти",
@@ -388,7 +394,9 @@ extension NotchAgentStrings {
         resetsUpdate: "Оновіть Codex, щоб використовувати скидання тут",
         resetsCheckFailed: "Не вдалося перевірити скидання",
         resetsHelp: "Скидання одразу поновлює ліміти сеансу й тижня Codex. Codex перевіряє ваші скидання через власний вхід, який Vorssaint ніколи не читає.",
-        menuBarCaption: "Показує ліміти сеансу й тижня з розділу ШІ-агенти в Dynamic Island: залишок або використане, як на його картці лімітів. Прочерк означає, що даних ще немає або розділ ШІ-агенти чи цей агент вимкнено в Dynamic Island.")
+        menuBarCaption: "Показує ліміти сеансу й тижня з розділу ШІ-агенти в Dynamic Island: залишок або використане, як на його картці лімітів. Прочерк означає, що даних ще немає або розділ ШІ-агенти чи цей агент вимкнено в Dynamic Island.",
+        panelDescription: "Сторінка ШІ-агенти з Dynamic Island: ліміти, токени, вартість API та агенти в роботі.",
+        panelOff: "Увімкніть ШІ-агенти в Dynamic Island, щоб бачити тут ліміти й використання агентів.")
 
     static let ptBR = NotchAgentStrings(
         title: "Agentes de IA",
@@ -488,7 +496,9 @@ extension NotchAgentStrings {
         resetsUpdate: "Atualize o Codex para usar as redefinições aqui",
         resetsCheckFailed: "Não foi possível verificar as redefinições",
         resetsHelp: "Uma redefinição renova de uma vez os limites da sessão e da semana do Codex. O Codex verifica suas redefinições com o próprio login, que o Vorssaint nunca lê.",
-        menuBarCaption: "Mostra os limites da sessão e da semana dos Agentes de IA no Dynamic Island, como restante ou usado, igual ao cartão Limites. Um traço indica que nenhum foi lido ainda ou que os Agentes de IA ou este agente estão desligados no Dynamic Island.")
+        menuBarCaption: "Mostra os limites da sessão e da semana dos Agentes de IA no Dynamic Island, como restante ou usado, igual ao cartão Limites. Um traço indica que nenhum foi lido ainda ou que os Agentes de IA ou este agente estão desligados no Dynamic Island.",
+        panelDescription: "A página Agentes de IA do Dynamic Island: limites, tokens, valor de API e os agentes em ação.",
+        panelOff: "Ative os Agentes de IA no Dynamic Island para ver aqui os limites e o uso dos seus agentes.")
 
     static let es = NotchAgentStrings(
         title: "Agentes de IA",
@@ -588,7 +598,9 @@ extension NotchAgentStrings {
         resetsUpdate: "Actualiza Codex para usar los reinicios aquí",
         resetsCheckFailed: "No se pudieron comprobar los reinicios",
         resetsHelp: "Un reinicio renueva a la vez los límites de la sesión y de la semana de Codex. Codex comprueba tus reinicios con su propio inicio de sesión, que Vorssaint nunca lee.",
-        menuBarCaption: "Muestra los límites de la sesión y de la semana de Agentes de IA en el Dynamic Island, como restante o usado, igual que la tarjeta Límites. Un guion indica que aún no se ha leído ninguno o que Agentes de IA o este agente están desactivados en el Dynamic Island.")
+        menuBarCaption: "Muestra los límites de la sesión y de la semana de Agentes de IA en el Dynamic Island, como restante o usado, igual que la tarjeta Límites. Un guion indica que aún no se ha leído ninguno o que Agentes de IA o este agente están desactivados en el Dynamic Island.",
+        panelDescription: "La página Agentes de IA del Dynamic Island: límites, tokens, valor de API y los agentes en marcha.",
+        panelOff: "Activa Agentes de IA en el Dynamic Island para ver aquí los límites y el uso de tus agentes.")
 
     static let sk = NotchAgentStrings(
         title: "AI agenti",
@@ -688,7 +700,9 @@ extension NotchAgentStrings {
         resetsUpdate: "Aktualizujte Codex, aby ste tu mohli používať obnovenia",
         resetsCheckFailed: "Obnovenia sa nepodarilo skontrolovať",
         resetsHelp: "Obnovenie naraz obnoví limity relácie aj týždňa v Codexe. Codex kontroluje vaše obnovenia vlastným prihlásením, ktoré Vorssaint nikdy nečíta.",
-        menuBarCaption: "Zobrazuje limity relácie a týždňa z AI agentov v Dynamic Island ako zostatok alebo využité, rovnako ako karta Limity. Pomlčka znamená, že zatiaľ nebol načítaný žiadny, alebo sú AI agenti či tento agent v Dynamic Island vypnutí.")
+        menuBarCaption: "Zobrazuje limity relácie a týždňa z AI agentov v Dynamic Island ako zostatok alebo využité, rovnako ako karta Limity. Pomlčka znamená, že zatiaľ nebol načítaný žiadny, alebo sú AI agenti či tento agent v Dynamic Island vypnutí.",
+        panelDescription: "Stránka AI agentov z Dynamic Island: limity, tokeny, hodnota API a agenti pri práci.",
+        panelOff: "Zapnite AI agentov v Dynamic Island a uvidíte tu limity a využitie svojich agentov.")
 
     static let de = NotchAgentStrings(
         title: "KI-Agenten",
@@ -788,7 +802,9 @@ extension NotchAgentStrings {
         resetsUpdate: "Aktualisiere Codex, um Zurücksetzungen hier zu nutzen",
         resetsCheckFailed: "Zurücksetzungen konnten nicht geprüft werden",
         resetsHelp: "Eine Zurücksetzung erneuert das Sitzungs- und das Wochenlimit von Codex auf einmal. Codex prüft deine Zurücksetzungen mit seiner eigenen Anmeldung, die Vorssaint nie liest.",
-        menuBarCaption: "Zeigt die Sitzungs- und Wochenlimits aus KI-Agenten im Dynamic Island, als übrig oder genutzt wie auf der Karte Limits. Ein Strich bedeutet, dass noch keines gelesen wurde oder KI-Agenten bzw. dieser Agent im Dynamic Island aus sind.")
+        menuBarCaption: "Zeigt die Sitzungs- und Wochenlimits aus KI-Agenten im Dynamic Island, als übrig oder genutzt wie auf der Karte Limits. Ein Strich bedeutet, dass noch keines gelesen wurde oder KI-Agenten bzw. dieser Agent im Dynamic Island aus sind.",
+        panelDescription: "Die Seite KI-Agenten aus dem Dynamic Island: Limits, Tokens, API-Wert und die Agenten bei der Arbeit.",
+        panelOff: "Schalte KI-Agenten im Dynamic Island ein, um hier die Limits und die Nutzung deiner Agenten zu sehen.")
 
     static let fr = NotchAgentStrings(
         title: "Agents IA",
@@ -888,7 +904,9 @@ extension NotchAgentStrings {
         resetsUpdate: "Mettez à jour Codex pour utiliser les réinitialisations ici",
         resetsCheckFailed: "Impossible de vérifier les réinitialisations",
         resetsHelp: "Une réinitialisation renouvelle d’un coup les limites de la session et de la semaine de Codex. Codex vérifie vos réinitialisations avec sa propre connexion, que Vorssaint ne lit jamais.",
-        menuBarCaption: "Affiche les limites de la session et de la semaine des Agents IA dans le Dynamic Island, en restant ou utilisé comme la carte Limites. Un tiret signifie qu’aucune n’a encore été lue, ou que les Agents IA ou cet agent sont désactivés dans le Dynamic Island.")
+        menuBarCaption: "Affiche les limites de la session et de la semaine des Agents IA dans le Dynamic Island, en restant ou utilisé comme la carte Limites. Un tiret signifie qu’aucune n’a encore été lue, ou que les Agents IA ou cet agent sont désactivés dans le Dynamic Island.",
+        panelDescription: "La page Agents IA du Dynamic Island, avec limites, jetons, valeur API et agents au travail.",
+        panelOff: "Activez Agents IA dans le Dynamic Island pour voir ici les limites et l’usage de vos agents.")
 
     static let it = NotchAgentStrings(
         title: "Agenti IA",
@@ -988,7 +1006,9 @@ extension NotchAgentStrings {
         resetsUpdate: "Aggiorna Codex per usare i ripristini qui",
         resetsCheckFailed: "Impossibile controllare i ripristini",
         resetsHelp: "Un ripristino rinnova insieme i limiti della sessione e della settimana di Codex. Codex controlla i tuoi ripristini con il proprio accesso, che Vorssaint non legge mai.",
-        menuBarCaption: "Mostra i limiti della sessione e della settimana di Agenti IA nel Dynamic Island, rimasti o usati come nella scheda Limiti. Un trattino indica che non ne è stato ancora letto nessuno, oppure che Agenti IA o questo agente sono disattivati nel Dynamic Island.")
+        menuBarCaption: "Mostra i limiti della sessione e della settimana di Agenti IA nel Dynamic Island, rimasti o usati come nella scheda Limiti. Un trattino indica che non ne è stato ancora letto nessuno, oppure che Agenti IA o questo agente sono disattivati nel Dynamic Island.",
+        panelDescription: "La pagina Agenti IA del Dynamic Island: limiti, token, valore API e gli agenti al lavoro.",
+        panelOff: "Attiva Agenti IA nel Dynamic Island per vedere qui i limiti e l’uso dei tuoi agenti.")
 
     static let ru = NotchAgentStrings(
         title: "ИИ-агенты",
@@ -1088,7 +1108,9 @@ extension NotchAgentStrings {
         resetsUpdate: "Обновите Codex, чтобы использовать сбросы здесь",
         resetsCheckFailed: "Не удалось проверить сбросы",
         resetsHelp: "Сброс сразу обновляет лимиты сессии и недели Codex. Codex проверяет ваши сбросы через собственный вход, который Vorssaint никогда не читает.",
-        menuBarCaption: "Показывает лимиты сессии и недели из раздела ИИ-агенты в Dynamic Island: остаток или использованное, как на его карточке лимитов. Прочерк означает, что данных пока нет или раздел ИИ-агенты либо этот агент выключен в Dynamic Island.")
+        menuBarCaption: "Показывает лимиты сессии и недели из раздела ИИ-агенты в Dynamic Island: остаток или использованное, как на его карточке лимитов. Прочерк означает, что данных пока нет или раздел ИИ-агенты либо этот агент выключен в Dynamic Island.",
+        panelDescription: "Страница ИИ-агенты из Dynamic Island: лимиты, токены, стоимость API и агенты в работе.",
+        panelOff: "Включите раздел ИИ-агенты в Dynamic Island, чтобы видеть здесь лимиты и использование агентов.")
 
     static let tr = NotchAgentStrings(
         title: "YZ Ajanları",
@@ -1188,7 +1210,9 @@ extension NotchAgentStrings {
         resetsUpdate: "Sıfırlamaları burada kullanmak için Codex’i güncelleyin",
         resetsCheckFailed: "Sıfırlamalar denetlenemedi",
         resetsHelp: "Bir sıfırlama, Codex’in oturum ve haftalık sınırlarını tek seferde yeniler. Codex sıfırlamalarınızı kendi oturum açma bilgisiyle denetler. Vorssaint bunu hiçbir zaman okumaz.",
-        menuBarCaption: "Dynamic Island’daki YZ Ajanları’nın oturum ve hafta sınırlarını, Sınırlar kartındaki gibi kalan ya da kullanılan olarak gösterir. Kısa çizgi, henüz okunan bir değer olmadığı ya da Dynamic Island’da YZ Ajanları’nın veya bu ajanın kapalı olduğu anlamına gelir.")
+        menuBarCaption: "Dynamic Island’daki YZ Ajanları’nın oturum ve hafta sınırlarını, Sınırlar kartındaki gibi kalan ya da kullanılan olarak gösterir. Kısa çizgi, henüz okunan bir değer olmadığı ya da Dynamic Island’da YZ Ajanları’nın veya bu ajanın kapalı olduğu anlamına gelir.",
+        panelDescription: "Dynamic Island’daki YZ Ajanları sayfası: sınırlar, token’lar, API değeri ve çalışan ajanlar.",
+        panelOff: "Ajanlarınızın sınırlarını ve kullanımını burada görmek için Dynamic Island’da YZ Ajanları’nı açın.")
 
     static let ja = NotchAgentStrings(
         title: "AIエージェント",
@@ -1288,7 +1312,9 @@ extension NotchAgentStrings {
         resetsUpdate: "ここでリセットを使うにはCodexをアップデートしてください",
         resetsCheckFailed: "リセットを確認できませんでした",
         resetsHelp: "リセットを使うと、Codexのセッションと週の上限が同時に回復します。Codexは独自のサインイン情報でリセットを確認し、Vorssaintがそれを読み取ることはありません。",
-        menuBarCaption: "Dynamic IslandのAIエージェントが読み取ったセッションと週の上限を、上限カードと同じく残りまたは使用済みで表示します。ダッシュは、まだ読み取られていないか、Dynamic IslandでAIエージェントまたはこのエージェントがオフになっていることを示します。")
+        menuBarCaption: "Dynamic IslandのAIエージェントが読み取ったセッションと週の上限を、上限カードと同じく残りまたは使用済みで表示します。ダッシュは、まだ読み取られていないか、Dynamic IslandでAIエージェントまたはこのエージェントがオフになっていることを示します。",
+        panelDescription: "Dynamic IslandのAIエージェントページ。上限、トークン、API換算額、作業中のエージェントを表示します。",
+        panelOff: "ここでエージェントの上限と使用状況を見るには、Dynamic IslandでAIエージェントをオンにしてください。")
 
     static let ko = NotchAgentStrings(
         title: "AI 에이전트",
@@ -1388,7 +1414,9 @@ extension NotchAgentStrings {
         resetsUpdate: "여기서 초기화를 사용하려면 Codex를 업데이트하세요",
         resetsCheckFailed: "초기화를 확인할 수 없습니다",
         resetsHelp: "초기화를 사용하면 Codex의 세션 및 주간 한도가 한 번에 갱신됩니다. Codex는 자체 로그인으로 초기화를 확인하며, Vorssaint는 이를 읽지 않습니다.",
-        menuBarCaption: "Dynamic Island의 AI 에이전트가 읽은 세션 및 주간 한도를 한도 카드와 같이 남은 양 또는 사용량으로 표시합니다. 대시는 아직 읽은 값이 없거나 Dynamic Island에서 AI 에이전트 또는 이 에이전트가 꺼져 있다는 뜻입니다.")
+        menuBarCaption: "Dynamic Island의 AI 에이전트가 읽은 세션 및 주간 한도를 한도 카드와 같이 남은 양 또는 사용량으로 표시합니다. 대시는 아직 읽은 값이 없거나 Dynamic Island에서 AI 에이전트 또는 이 에이전트가 꺼져 있다는 뜻입니다.",
+        panelDescription: "Dynamic Island의 AI 에이전트 페이지: 한도, 토큰, API 가치, 작업 중인 에이전트.",
+        panelOff: "여기에서 에이전트의 한도와 사용량을 보려면 Dynamic Island에서 AI 에이전트를 켜세요.")
 
     static let zhHans = NotchAgentStrings(
         title: "AI 智能体",
@@ -1488,7 +1516,9 @@ extension NotchAgentStrings {
         resetsUpdate: "请更新 Codex 以在此使用重置",
         resetsCheckFailed: "无法检查重置",
         resetsHelp: "一次重置会同时恢复 Codex 的会话额度和每周额度。Codex 用自己的登录信息检查你的重置，Vorssaint 从不读取这些信息。",
-        menuBarCaption: "显示 Dynamic Island 中 AI 智能体读取的会话和每周额度，与额度卡片一样显示剩余或已用。短横线表示尚未读取到，或 Dynamic Island 中的 AI 智能体或此智能体已关闭。")
+        menuBarCaption: "显示 Dynamic Island 中 AI 智能体读取的会话和每周额度，与额度卡片一样显示剩余或已用。短横线表示尚未读取到，或 Dynamic Island 中的 AI 智能体或此智能体已关闭。",
+        panelDescription: "Dynamic Island 中的 AI 智能体页面：额度、Token、API 价值和正在工作的智能体。",
+        panelOff: "在 Dynamic Island 中开启 AI 智能体，即可在这里查看智能体的额度和用量。")
 
     static let zhTW = NotchAgentStrings(
         title: "AI 代理",
@@ -1588,7 +1618,9 @@ extension NotchAgentStrings {
         resetsUpdate: "請更新 Codex 以在此使用重設",
         resetsCheckFailed: "無法檢查重設",
         resetsHelp: "一次重設會同時恢復 Codex 的工作階段額度和每週額度。Codex 用自己的登入資訊檢查你的重設，Vorssaint 從不讀取這些資訊。",
-        menuBarCaption: "顯示 Dynamic Island 中 AI 代理讀取的工作階段與每週額度，與額度卡片一樣顯示剩餘或已用。短橫線表示尚未讀取到，或 Dynamic Island 中的 AI 代理或此代理已關閉。")
+        menuBarCaption: "顯示 Dynamic Island 中 AI 代理讀取的工作階段與每週額度，與額度卡片一樣顯示剩餘或已用。短橫線表示尚未讀取到，或 Dynamic Island 中的 AI 代理或此代理已關閉。",
+        panelDescription: "Dynamic Island 中的 AI 代理頁面：額度、Token、API 價值與正在工作的代理。",
+        panelOff: "在 Dynamic Island 中開啟 AI 代理，即可在這裡查看代理的額度與用量。")
 
     static let zhHK = NotchAgentStrings(
         title: "AI 代理",
@@ -1688,5 +1720,7 @@ extension NotchAgentStrings {
         resetsUpdate: "請更新 Codex 以在此使用重設",
         resetsCheckFailed: "無法檢查重設",
         resetsHelp: "一次重設會同時恢復 Codex 的工作階段額度和每週額度。Codex 用自己的登入資料檢查你的重設，Vorssaint 從不讀取這些資料。",
-        menuBarCaption: "顯示 Dynamic Island 中 AI 代理讀取的工作階段與每週額度，與額度卡一樣顯示剩餘或已用。短橫線表示仍未讀取到，或 Dynamic Island 中的 AI 代理或此代理已關閉。")
+        menuBarCaption: "顯示 Dynamic Island 中 AI 代理讀取的工作階段與每週額度，與額度卡一樣顯示剩餘或已用。短橫線表示仍未讀取到，或 Dynamic Island 中的 AI 代理或此代理已關閉。",
+        panelDescription: "Dynamic Island 中的 AI 代理頁面：額度、Token、API 價值及正在工作的代理。",
+        panelOff: "在 Dynamic Island 中開啟 AI 代理，即可在這裏查看代理的額度及用量。")
 }

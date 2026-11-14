@@ -134,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         }
         statusController.onMetricClick = { [weak self] metric, button in
             self?.captureStatusClick()
-            guard metric.detailKind != nil else { self?.showAgentsPage(); return }
+            guard metric.detailKind != nil else { self?.showAgentsPage(anchoredTo: button); return }
             self?.showMetricPanel(for: metric, anchoredTo: button)
         }
         statusController.onClipboardPreviewClick = {
@@ -526,14 +526,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         statusController?.containsStatusItem(at: point) == true
     }
 
-    /// The AI reading has no detail of its own: its limits, with their
-    /// countdowns, are on the island's AI page. Without that page showing,
-    /// the click opens the panel like the icon does.
-    private func showAgentsPage() {
-        if NotchAgentSupport.isEnabled(), NotchService.shared.acceptsSystemFeedback {
-            NotchService.shared.open(.agents); return
+    /// The AI reading opens the panel on its AI tab, which shows the island's
+    /// AI page. A second click closes it, as the icon does. Where the island
+    /// hosts the panel, the island's own AI page is the same page.
+    private func showAgentsPage(anchoredTo button: NSStatusBarButton) {
+        if NotchSupport.routesAppPanel(), NotchService.shared.acceptsSystemFeedback {
+            if NotchAgentSupport.isEnabled() { NotchService.shared.open(.agents) }
+            else { NotchService.shared.openAppPanel(toggle: true) }
+            return
         }
-        toggleMainPopover()
+        if popoverIsOpen {
+            closePopover(reason: .statusItem)
+            return
+        }
+        MenuPanelFocus.shared.focus(.agents)
+        showPopover(anchor: button)
     }
 
     private func showMetricPanel(for metric: MenuBarMetric, anchoredTo button: NSStatusBarButton) {

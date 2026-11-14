@@ -127,6 +127,7 @@ private extension PanelSectionID {
         case .network: return text.sectionNetwork
         case .disk: return text.sectionDisks
         case .power: return text.sectionPower
+        case .agents: return FeatureStrings.notchAgents(L10n.shared.language).panelDescription
         case .fanControl: return text.sectionFanControl
         case .utilities: return text.sectionUtilities
         case .controls: return text.sectionControls

@@ -85,6 +85,7 @@ struct MenuPanelView: View {
     @AppStorage(DefaultsKey.panelShowControls) private var showControls = true
     @AppStorage(DefaultsKey.panelShowToggles) private var showToggles = true
     @AppStorage(DefaultsKey.panelShowWallpaper) private var showWallpaper = true
+    @AppStorage(DefaultsKey.panelShowAgents) private var showAgents = true
     @AppStorage(DefaultsKey.panelSectionOrder) private var sectionOrderRaw = ""
     @State private var navigableContentHeight: CGFloat = 0
     @State private var metricContentHeight: CGFloat = 0
@@ -299,6 +300,7 @@ struct MenuPanelView: View {
         case .network: return 190
         case .disk: return 360
         case .power: return 170
+        case .agents: return 520
         case .fanControl: return 220
         case .utilities: return 500
         case .controls: return 360
@@ -337,6 +339,12 @@ struct MenuPanelView: View {
         case .network: if showNetwork { NetworkSection(collapsible: collapsible) }
         case .disk: if showDisk { DiskSection(collapsible: collapsible) }
         case .power: if showPower { PowerSection(collapsible: collapsible) }
+        case .agents:
+            // Like the fan curve, the AI page leaves a closed popover, which
+            // keeps its host: the page's leaving is what stops its checks.
+            if showAgents, notchSize != nil || panelFocus.popoverIsVisible {
+                AgentsSection(collapsible: collapsible, width: notchSize?.width ?? 308)
+            }
         case .fanControl:
             // The popover retains its host after closing; detach the curve editor
             // so cooling heartbeats cannot keep laying out an unseen panel.
@@ -364,7 +372,7 @@ struct MenuPanelView: View {
     /// what keeps the tabs refreshing when Settings flips one of them.
     private func isSectionVisible(_ id: PanelSectionID) -> Bool {
         _ = (showKeepAwake, showBrightness, brightnessEnabled, showMixer, showSystem, showNetwork,
-             showDisk, showPower, showFanControl, showUtilities, showControls, showToggles, showWallpaper)
+             showDisk, showPower, showAgents, showFanControl, showUtilities, showControls, showToggles, showWallpaper)
         return PanelLayout.isVisibleInPanel(id)
     }
 

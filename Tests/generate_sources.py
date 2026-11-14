@@ -2076,6 +2076,10 @@ def main():
     menu_panel = "Sources/Vorssaint/UI/MenuPanel/MenuPanelView.swift"
     write("MenuPanelSectionGates.swift", "import Foundation\n\nextension MenuPanelSectionGateContract {\n"
           + declaration("Sources/Vorssaint/UI/MenuPanel/PanelLayout.swift", "enum PanelSectionID:")
+          + "enum PanelLayout {\n"
+          + declaration("Sources/Vorssaint/UI/MenuPanel/PanelLayout.swift", "    static func order(saved raw: String)",
+                        scope="enum PanelLayout {")
+          + "}\n"
           + "".join(declaration(menu_panel, prefix).replace("private enum", "enum", 1)
                     for prefix in ["private enum UtilityPanelItem:", "private enum ControlPanelItem:",
                                    "private enum ControlCategory:"])
