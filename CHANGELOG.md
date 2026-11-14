@@ -8,7 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 - Dynamic Island can play an album’s animated cover from Apple Music in place of the still cover, both closed and open. Turn on Animated covers from Apple Music in the music settings. It’s off by default, and most albums don’t have one.
-- Choose your own GIF to replace the music bars in the closed Dynamic Island. It plays with the song and holds still while it’s paused.
+- Choose your own GIF to replace the music bars in the closed Dynamic Island. It plays with the song and holds still while it’s paused. Every GIF you add stays in a collection to pick again or delete, and you can set its size and the strip’s side and top-and-bottom padding; the strip widens to fit.
 - Pin AI Agents to the menu bar to see the session and weekly limits of Claude Code or Codex, shown as left or used like the island’s Limits card. It reads the limits AI Agents follows in Dynamic Island and shows a dash until the agent reports them. Clicking it opens the AI page.
 
 ## [3.4.4] - 2026-11-11

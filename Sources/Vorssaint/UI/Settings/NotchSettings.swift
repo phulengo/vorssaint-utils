@@ -30,6 +30,10 @@ struct NotchSettings: View {
     @AppStorage(DefaultsKey.notchLyricsOnline) private var lyricsOnline = false
     @AppStorage(DefaultsKey.notchBrowserCovers) private var browserCovers = false
     @AppStorage(DefaultsKey.notchMotionCovers) private var motionCovers = false
+    @AppStorage(DefaultsKey.notchMusicBarsGIF) private var chosenGIF = ""
+    @AppStorage(DefaultsKey.notchMusicGIFSize) private var gifSize = NotchMusicStripFit.defaultGIFSide
+    @AppStorage(DefaultsKey.notchMusicSidePadding) private var stripSidePadding = 0.0
+    @AppStorage(DefaultsKey.notchMusicVerticalPadding) private var stripVerticalPadding = 0.0
     @AppStorage(DefaultsKey.notchQueueEnabled) private var queueEnabled = true
     @AppStorage(DefaultsKey.notchLiveEqualizer) private var liveEqualizer = false
     @AppStorage(DefaultsKey.notchEnabled) private var enabled = false
@@ -137,7 +141,8 @@ struct NotchSettings: View {
          String(microphone), String(battery), String(clipboard), String(clipboardWindow), clipboardCardSize,
          String(capture), String(trackChange), captureAction, String(showInCaptures),
          String(returnHome), homeModule, String(opensActivity), String(scratchpad),
-         String(agentsEnabled), String(watchEnabled), String(keepAwakeActivity), String(shortcutEnabled)]
+         String(agentsEnabled), String(watchEnabled), String(keepAwakeActivity), String(shortcutEnabled),
+         chosenGIF, String(gifSize), String(stripSidePadding), String(stripVerticalPadding)]
     }
 
     private var access: Binding<NotchQuickAccessConfiguration> {
@@ -458,16 +463,14 @@ struct NotchSettings: View {
             switchRow("play.square", music.motionCovers, caption: music.motionCoversHint, isOn: $motionCovers)
             SettingsRow(symbol: "waveform.circle", title: music.barsGIF,
                         caption: barsGIFRefused ? music.invalidGIF : music.barsGIFHint) {
-                HStack(spacing: 8) {
-                    if let gif = barsGIF.data {
-                        NotchBarsGIFView(data: gif, animates: !reduceMotion)
-                            .frame(width: 26, height: 26)
-                            .accessibilityHidden(true)
-                        Button(music.removeGIF) { barsGIFRefused = false; barsGIF.remove() }
-                    }
-                    Button(music.chooseGIF) { barsGIFRefused = barsGIF.choose() == false }
-                }
+                Button(music.chooseGIF) { barsGIFRefused = barsGIF.add() == false }
             }
+            VStack(alignment: .leading, spacing: 14) {
+                NotchBarsGIFCollection(store: barsGIF, strings: music)
+                NotchMusicStripFitSliders(strings: music, showsGIFSize: barsGIF.data != nil,
+                                          stripHeight: notch.geometry.stripHeight)
+            }
+            .padding(.leading, settingsRowTextInset)
             SettingsFeatureSwitchRow(symbol: "list.bullet", title: music.enableQueue, caption: music.queueDescription,
                                      isOn: $queueEnabled, feature: .notchQueue)
             SettingsFeatureSwitchRow(symbol: "waveform", title: music.liveEqualizer,

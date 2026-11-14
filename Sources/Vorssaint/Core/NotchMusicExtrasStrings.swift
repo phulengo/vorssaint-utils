@@ -58,6 +58,11 @@ struct NotchMusicExtrasStrings {
     let chooseGIF: String
     let removeGIF: String
     let invalidGIF: String
+    let gifSize: String
+    let sidePadding: String
+    let verticalPadding: String
+    let deleteGIF: String
+    let stripFitHint: String
 }
 
 extension FeatureStrings {
@@ -115,7 +120,12 @@ extension FeatureStrings {
             barsGIFHint: "Show your own GIF where the closed island draws the music bars. It plays with the song and holds still while it is paused. Vorssaint keeps a private copy on this Mac.",
             chooseGIF: "Choose GIF…",
             removeGIF: "Use the bars",
-            invalidGIF: "Choose a GIF file of up to 16 MB.")
+            invalidGIF: "Choose a GIF file of up to 16 MB.",
+            gifSize: "GIF size",
+            sidePadding: "Side padding",
+            verticalPadding: "Top and bottom padding",
+            deleteGIF: "Delete GIF",
+            stripFitHint: "These shape the closed island’s music strip. A GIF can be as tall as the island, which widens to fit it.")
         case .ptBR: return NotchMusicExtrasStrings(
             lyrics: "Letra",
             lyricsDescription: "Acompanhe a letra da música atual no Dynamic Island.",
@@ -168,7 +178,12 @@ extension FeatureStrings {
             barsGIFHint: "Mostre seu próprio GIF onde a ilha fechada desenha as barras de música. Ele toca com a música e fica parado enquanto ela está pausada. O Vorssaint guarda uma cópia privada neste Mac.",
             chooseGIF: "Escolher GIF…",
             removeGIF: "Usar as barras",
-            invalidGIF: "Escolha um arquivo GIF de até 16 MB.")
+            invalidGIF: "Escolha um arquivo GIF de até 16 MB.",
+            gifSize: "Tamanho do GIF",
+            sidePadding: "Margem lateral",
+            verticalPadding: "Margem superior e inferior",
+            deleteGIF: "Apagar GIF",
+            stripFitHint: "Ajustam a faixa de música da ilha fechada. Um GIF pode ser tão alto quanto a ilha, que se alarga para caber.")
         case .es: return NotchMusicExtrasStrings(
             lyrics: "Letra",
             lyricsDescription: "Sigue la letra de la canción actual en el Dynamic Island.",
@@ -221,7 +236,12 @@ extension FeatureStrings {
             barsGIFHint: "Muestra tu propio GIF donde la isla cerrada dibuja las barras de música. Se reproduce con la canción y se detiene mientras está en pausa. Vorssaint guarda una copia privada en este Mac.",
             chooseGIF: "Elegir GIF…",
             removeGIF: "Usar las barras",
-            invalidGIF: "Elige un archivo GIF de hasta 16 MB.")
+            invalidGIF: "Elige un archivo GIF de hasta 16 MB.",
+            gifSize: "Tamaño del GIF",
+            sidePadding: "Margen lateral",
+            verticalPadding: "Margen superior e inferior",
+            deleteGIF: "Eliminar GIF",
+            stripFitHint: "Ajustan la franja de música de la isla cerrada. Un GIF puede ser tan alto como la isla, que se ensancha para que quepa.")
         case .sk: return NotchMusicExtrasStrings(
             lyrics: "Text piesne",
             lyricsDescription: "Sledujte text aktuálnej skladby v Dynamic Island.",
@@ -274,7 +294,12 @@ extension FeatureStrings {
             barsGIFHint: "Zobrazte vlastný GIF tam, kde zatvorený ostrov kreslí hudobné pruhy. Hrá spolu so skladbou a počas pozastavenia stojí. Vorssaint si uchová súkromnú kópiu na tomto Macu.",
             chooseGIF: "Vybrať GIF…",
             removeGIF: "Použiť pruhy",
-            invalidGIF: "Vyberte súbor GIF s veľkosťou najviac 16 MB.")
+            invalidGIF: "Vyberte súbor GIF s veľkosťou najviac 16 MB.",
+            gifSize: "Veľkosť GIF",
+            sidePadding: "Bočný okraj",
+            verticalPadding: "Horný a dolný okraj",
+            deleteGIF: "Vymazať GIF",
+            stripFitHint: "Upravujú hudobný pás zatvoreného ostrova. GIF môže byť vysoký ako ostrov, ktorý sa rozšíri, aby sa zmestil.")
         case .de: return NotchMusicExtrasStrings(
             lyrics: "Liedtext",
             lyricsDescription: "Verfolge den Text des aktuellen Songs im Dynamic Island.",
@@ -327,7 +352,12 @@ extension FeatureStrings {
             barsGIFHint: "Zeige dein eigenes GIF dort, wo die geschlossene Insel die Musikbalken zeichnet. Es läuft mit dem Song und hält an, solange er pausiert ist. Vorssaint behält eine private Kopie auf diesem Mac.",
             chooseGIF: "GIF auswählen…",
             removeGIF: "Balken verwenden",
-            invalidGIF: "Wähle eine GIF-Datei mit höchstens 16 MB.")
+            invalidGIF: "Wähle eine GIF-Datei mit höchstens 16 MB.",
+            gifSize: "GIF-Größe",
+            sidePadding: "Seitlicher Abstand",
+            verticalPadding: "Abstand oben und unten",
+            deleteGIF: "GIF löschen",
+            stripFitHint: "Diese formen den Musikstreifen der geschlossenen Insel. Ein GIF kann so hoch sein wie die Insel, die breiter wird, damit es passt.")
         case .fr: return NotchMusicExtrasStrings(
             lyrics: "Paroles",
             lyricsDescription: "Suivez les paroles du morceau en cours dans le Dynamic Island.",
@@ -380,7 +410,12 @@ extension FeatureStrings {
             barsGIFHint: "Affichez votre propre GIF là où l’île fermée dessine les barres de musique. Il joue avec le morceau et reste figé pendant la pause. Vorssaint en garde une copie privée sur ce Mac.",
             chooseGIF: "Choisir un GIF…",
             removeGIF: "Utiliser les barres",
-            invalidGIF: "Choisissez un fichier GIF de 16 Mo maximum.")
+            invalidGIF: "Choisissez un fichier GIF de 16 Mo maximum.",
+            gifSize: "Taille du GIF",
+            sidePadding: "Marge latérale",
+            verticalPadding: "Marge en haut et en bas",
+            deleteGIF: "Supprimer le GIF",
+            stripFitHint: "Ces réglages ajustent la bande musique de l’île fermée. Un GIF peut être aussi haut que l’île, qui s’élargit pour l’accueillir.")
         case .it: return NotchMusicExtrasStrings(
             lyrics: "Testo",
             lyricsDescription: "Segui il testo del brano attuale nel Dynamic Island.",
@@ -433,7 +468,12 @@ extension FeatureStrings {
             barsGIFHint: "Mostra una tua GIF dove l’isola chiusa disegna le barre della musica. Si muove con il brano e resta ferma mentre è in pausa. Vorssaint ne conserva una copia privata su questo Mac.",
             chooseGIF: "Scegli GIF…",
             removeGIF: "Usa le barre",
-            invalidGIF: "Scegli un file GIF fino a 16 MB.")
+            invalidGIF: "Scegli un file GIF fino a 16 MB.",
+            gifSize: "Dimensione GIF",
+            sidePadding: "Margine laterale",
+            verticalPadding: "Margine sopra e sotto",
+            deleteGIF: "Elimina GIF",
+            stripFitHint: "Regolano la striscia musicale dell’isola chiusa. Una GIF può essere alta quanto l’isola, che si allarga per contenerla.")
         case .ru: return NotchMusicExtrasStrings(
             lyrics: "Текст песни",
             lyricsDescription: "Следите за текстом текущей песни в вырезе.",
@@ -486,7 +526,12 @@ extension FeatureStrings {
             barsGIFHint: "Показывайте свой GIF там, где закрытый вырез рисует музыкальные полоски. Он движется вместе с песней и замирает на паузе. Vorssaint хранит личную копию на этом Mac.",
             chooseGIF: "Выбрать GIF…",
             removeGIF: "Вернуть полоски",
-            invalidGIF: "Выберите файл GIF размером до 16 МБ.")
+            invalidGIF: "Выберите файл GIF размером до 16 МБ.",
+            gifSize: "Размер GIF",
+            sidePadding: "Отступ по бокам",
+            verticalPadding: "Отступ сверху и снизу",
+            deleteGIF: "Удалить GIF",
+            stripFitHint: "Настраивают музыкальную полосу закрытого выреза. GIF может быть высотой с вырез, который расширится, чтобы его вместить.")
         case .tr: return NotchMusicExtrasStrings(
             lyrics: "Şarkı sözleri",
             lyricsDescription: "Çalan şarkının sözlerini çentikte takip edin.",
@@ -539,7 +584,12 @@ extension FeatureStrings {
             barsGIFHint: "Kapalı çentiğin müzik çubuklarını çizdiği yerde kendi GIF’inizi gösterin. Şarkıyla birlikte oynar, duraklatıldığında durur. Vorssaint bu Mac’te özel bir kopyasını saklar.",
             chooseGIF: "GIF Seç…",
             removeGIF: "Çubukları kullan",
-            invalidGIF: "En fazla 16 MB boyutunda bir GIF dosyası seçin.")
+            invalidGIF: "En fazla 16 MB boyutunda bir GIF dosyası seçin.",
+            gifSize: "GIF boyutu",
+            sidePadding: "Yan boşluk",
+            verticalPadding: "Üst ve alt boşluk",
+            deleteGIF: "GIF’i sil",
+            stripFitHint: "Kapalı çentiğin müzik şeridini ayarlar. GIF çentik kadar yüksek olabilir; çentik sığması için genişler.")
         case .ja: return NotchMusicExtrasStrings(
             lyrics: "歌詞",
             lyricsDescription: "再生中の曲の歌詞をDynamic Islandに表示します。",
@@ -592,7 +642,12 @@ extension FeatureStrings {
             barsGIFHint: "閉じたアイランドで音楽のバーが表示される場所に、自分のGIFを表示します。曲に合わせて再生され、一時停止中は止まります。VorssaintはこのMacに非公開のコピーを保存します。",
             chooseGIF: "GIFを選択…",
             removeGIF: "バーを使用",
-            invalidGIF: "16 MB以下のGIFファイルを選択してください。")
+            invalidGIF: "16 MB以下のGIFファイルを選択してください。",
+            gifSize: "GIFのサイズ",
+            sidePadding: "左右の余白",
+            verticalPadding: "上下の余白",
+            deleteGIF: "GIFを削除",
+            stripFitHint: "閉じたアイランドの音楽ストリップを調整します。GIFはアイランドの高さまで大きくでき、収まるようにアイランドが広がります。")
         case .ko: return NotchMusicExtrasStrings(
             lyrics: "가사",
             lyricsDescription: "현재 곡의 가사를 Dynamic Island에서 확인합니다.",
@@ -645,7 +700,12 @@ extension FeatureStrings {
             barsGIFHint: "닫힌 아일랜드가 음악 막대를 그리는 자리에 나만의 GIF를 표시합니다. 노래와 함께 재생되고 일시 정지 중에는 멈춥니다. Vorssaint는 이 Mac에 비공개 사본을 보관합니다.",
             chooseGIF: "GIF 선택…",
             removeGIF: "막대 사용",
-            invalidGIF: "16MB 이하의 GIF 파일을 선택하세요.")
+            invalidGIF: "16MB 이하의 GIF 파일을 선택하세요.",
+            gifSize: "GIF 크기",
+            sidePadding: "좌우 여백",
+            verticalPadding: "위아래 여백",
+            deleteGIF: "GIF 삭제",
+            stripFitHint: "닫힌 아일랜드의 음악 스트립을 조정합니다. GIF는 아일랜드 높이까지 커질 수 있으며, 아일랜드가 맞게 넓어집니다.")
         case .zhHans: return NotchMusicExtrasStrings(
             lyrics: "歌词",
             lyricsDescription: "在Dynamic Island中跟随当前歌曲的歌词。",
@@ -698,7 +758,12 @@ extension FeatureStrings {
             barsGIFHint: "在收起的 Dynamic Island 显示音柱的位置显示你自己的 GIF。它随歌曲播放，暂停时保持静止。Vorssaint 会在这台 Mac 上保留一份私有副本。",
             chooseGIF: "选择 GIF…",
             removeGIF: "使用音柱",
-            invalidGIF: "请选择不超过 16 MB 的 GIF 文件。")
+            invalidGIF: "请选择不超过 16 MB 的 GIF 文件。",
+            gifSize: "GIF 大小",
+            sidePadding: "左右边距",
+            verticalPadding: "上下边距",
+            deleteGIF: "删除 GIF",
+            stripFitHint: "调整收起时 Dynamic Island 的音乐条。GIF 最高可与 Dynamic Island 等高，Dynamic Island 会随之变宽。")
         case .zhTW: return NotchMusicExtrasStrings(
             lyrics: "歌詞",
             lyricsDescription: "在Dynamic Island中跟隨目前歌曲的歌詞。",
@@ -751,7 +816,12 @@ extension FeatureStrings {
             barsGIFHint: "在收合的 Dynamic Island 顯示音柱的位置顯示你自己的 GIF。它會隨歌曲播放，暫停時保持靜止。Vorssaint 會在這台 Mac 上保留一份私人副本。",
             chooseGIF: "選擇 GIF…",
             removeGIF: "使用音柱",
-            invalidGIF: "請選擇不超過 16 MB 的 GIF 檔案。")
+            invalidGIF: "請選擇不超過 16 MB 的 GIF 檔案。",
+            gifSize: "GIF 大小",
+            sidePadding: "左右邊距",
+            verticalPadding: "上下邊距",
+            deleteGIF: "刪除 GIF",
+            stripFitHint: "調整收合時 Dynamic Island 的音樂條。GIF 最高可與 Dynamic Island 等高，Dynamic Island 會隨之變寬。")
         case .zhHK: return NotchMusicExtrasStrings(
             lyrics: "歌詞",
             lyricsDescription: "在Dynamic Island中跟隨目前歌曲的歌詞。",
@@ -804,7 +874,12 @@ extension FeatureStrings {
             barsGIFHint: "在收起的 Dynamic Island 顯示音柱的位置顯示你自己的 GIF。它會隨歌曲播放，暫停時保持靜止。Vorssaint 會在這部 Mac 上保留一份私人副本。",
             chooseGIF: "選擇 GIF…",
             removeGIF: "使用音柱",
-            invalidGIF: "請選擇不超過 16 MB 的 GIF 檔案。")
+            invalidGIF: "請選擇不超過 16 MB 的 GIF 檔案。",
+            gifSize: "GIF 大小",
+            sidePadding: "左右邊距",
+            verticalPadding: "上下邊距",
+            deleteGIF: "刪除 GIF",
+            stripFitHint: "調整收起時 Dynamic Island 的音樂條。GIF 最高可與 Dynamic Island 一樣高，Dynamic Island 會隨之變闊。")
         case .uk: return NotchMusicExtrasStrings(
             lyrics: "Текст пісні",
             lyricsDescription: "Слідкуйте за текстом поточної пісні у Dynamic Island.",
@@ -857,7 +932,12 @@ extension FeatureStrings {
             barsGIFHint: "Показуйте власний GIF там, де закритий острів малює музичні смужки. Він рухається разом із піснею і завмирає на паузі. Vorssaint зберігає приватну копію на цьому Mac.",
             chooseGIF: "Вибрати GIF…",
             removeGIF: "Повернути смужки",
-            invalidGIF: "Виберіть файл GIF розміром до 16 МБ.")
+            invalidGIF: "Виберіть файл GIF розміром до 16 МБ.",
+            gifSize: "Розмір GIF",
+            sidePadding: "Відступ з боків",
+            verticalPadding: "Відступ згори й знизу",
+            deleteGIF: "Видалити GIF",
+            stripFitHint: "Налаштовують музичну смугу закритого острова. GIF може бути заввишки з острів, який розшириться, щоб його вмістити.")
         }
     }
 }

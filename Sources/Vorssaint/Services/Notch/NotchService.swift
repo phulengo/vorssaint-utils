@@ -677,7 +677,9 @@ final class NotchService: ObservableObject {
             geometry.compactSideRoom = min(geometry.compactSideRoom ?? 0, room)
         }
         switch activity {
-        case .music: return geometry.compactMusicGeometry
+        case .music:
+            geometry.musicStripFit = NotchMusicStripFit.current(hasGIF: NotchBarsGIF.shared.data != nil)
+            return geometry.compactMusicGeometry
         case .timer:
             return geometry.compactTimerGeometry(showsDownloads: companion == .downloads,
                                                  wing: timerStripWing(for: companion, in: geometry))

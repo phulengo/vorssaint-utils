@@ -702,6 +702,49 @@ enum NotchMusicExtrasTests {
                "a chosen GIF is kept small, with every frame and its own timing")
         suite.expect(NotchBarsGIFSupport.kept(image(.jpeg, frames: 1)) == nil,
                "only a GIF is kept")
+        suite.expect(NotchBarsGIFSupport.isCollectionFile("3f2a.gif")
+                && !NotchBarsGIFSupport.isCollectionFile("../secret.gif")
+                && !NotchBarsGIFSupport.isCollectionFile(".hidden.gif")
+                && !NotchBarsGIFSupport.isCollectionFile("notes.txt")
+                && !NotchBarsGIFSupport.isCollectionFile(String(repeating: "a", count: 70) + ".gif"),
+               "a chosen GIF names only a file inside the collection")
+
+        let domain = "com.vorssaint.tests.notch-music-strip-fit"
+        let defaults = UserDefaults(suiteName: domain)!
+        defaults.removePersistentDomain(forName: domain)
+        defer { defaults.removePersistentDomain(forName: domain) }
+        suite.expect(NotchMusicStripFit.current(in: defaults, hasGIF: false) == NotchMusicStripFit()
+                && NotchMusicStripFit.current(in: defaults, hasGIF: true).gifSide
+                    == CGFloat(NotchMusicStripFit.defaultGIFSide),
+               "without a fit of its own the strip keeps its usual shape, and a GIF starts at its default size")
+        defaults.set(500.0, forKey: DefaultsKey.notchMusicGIFSize)
+        defaults.set(-3.0, forKey: DefaultsKey.notchMusicSidePadding)
+        defaults.set(Double.nan, forKey: DefaultsKey.notchMusicVerticalPadding)
+        let wild = NotchMusicStripFit.current(in: defaults, hasGIF: true)
+        suite.expect(wild.gifSide == CGFloat(NotchMusicStripFit.gifSideRange.upperBound)
+                && wild.sidePadding == 0 && wild.verticalPadding == 0,
+               "a stored fit out of range or not a number is held to its bounds")
+
+        for (name, safeAreaTop, camera) in [("notched", CGFloat(32), CGFloat(200)), ("simulated", CGFloat(0), CGFloat(0))] {
+            let island = NotchGeometry(screen: CGRect(x: 0, y: 0, width: 1512, height: 982), safeAreaTop: safeAreaTop,
+                                       cameraWidth: camera, compactSideRoom: 400)
+            var unchanged = island
+            unchanged.musicStripFit = NotchMusicStripFit()
+            var fitted = island
+            fitted.musicStripFit = NotchMusicStripFit(gifSide: 60, sidePadding: 8, verticalPadding: 2)
+            let usual = island.compactMusicGeometry
+            let grown = fitted.compactMusicGeometry
+            let gif = grown.compactMusicGIFSide ?? 0
+            suite.expect(unchanged.compactMusicGeometry == usual,
+                         "\(name): no GIF and no padding leave the music strip as it was")
+            suite.expect(gif > 8 && gif <= grown.compactActivityContentHeight - 4
+                    && grown.compactActivityWingWidth >= usual.compactActivityWingWidth
+                    && grown.compactActivityWingWidth
+                        >= grown.compactMusicGIFInset + gif + NotchMusicStripLayout.innerInset(grown),
+                         "\(name): a large GIF stays within the strip's height, and the strip is wide enough for it; "
+                            + "GIF \(gif) of \(grown.compactActivityContentHeight), wings \(usual.compactActivityWingWidth) "
+                            + "to \(grown.compactActivityWingWidth), inset \(grown.compactMusicGIFInset)")
+        }
         let gif = image(.gif, frames: 2)
         var oversized = gif
         oversized.append(Data(count: NotchBarsGIFSupport.maximumBytes))
@@ -1034,7 +1077,7 @@ enum NotchMusicExtrasTests {
                "music feature choices and online consent are accounted for by settings backup")
         for language in AppLanguage.allCases {
             let strings = Mirror(reflecting: FeatureStrings.notchMusicExtras(language)).children.compactMap { $0.value as? String }
-            suite.expect(strings.count == 52 && strings.allSatisfy { !$0.isEmpty && !$0.contains("—") },
+            suite.expect(strings.count == 57 && strings.allSatisfy { !$0.isEmpty && !$0.contains("—") },
                    "music extras have complete user-facing strings in \(language.rawValue)")
         }
     }

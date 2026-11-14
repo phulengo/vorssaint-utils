@@ -2239,6 +2239,33 @@ struct NotchNoticeWings: Equatable {
     var widest: CGFloat { max(leading, trailing) }
 }
 
+/// The person's own fit for the closed music strip: the GIF's size and the
+/// room around what the strip shows. No GIF and no padding draw the strip as
+/// it always was.
+struct NotchMusicStripFit: Equatable {
+    /// The GIF's side in points, nil while the bars show.
+    var gifSide: CGFloat? = nil
+    /// Extra room between each end of the strip and the cover or the GIF.
+    var sidePadding: CGFloat = 0
+    /// Extra room above and below the cover and the GIF.
+    var verticalPadding: CGFloat = 0
+
+    static let gifSideRange: ClosedRange<Double> = 12...64
+    static let defaultGIFSide: Double = 22
+    static let paddingRange: ClosedRange<Double> = 0...16
+
+    static func current(in defaults: UserDefaults = .standard, hasGIF: Bool) -> NotchMusicStripFit {
+        func clamped(_ key: String, to range: ClosedRange<Double>, fallback: Double) -> CGFloat {
+            let value = defaults.object(forKey: key) as? Double ?? fallback
+            return CGFloat(value.isFinite ? min(range.upperBound, max(range.lowerBound, value)) : fallback)
+        }
+        return NotchMusicStripFit(
+            gifSide: hasGIF ? clamped(DefaultsKey.notchMusicGIFSize, to: gifSideRange, fallback: defaultGIFSide) : nil,
+            sidePadding: clamped(DefaultsKey.notchMusicSidePadding, to: paddingRange, fallback: 0),
+            verticalPadding: clamped(DefaultsKey.notchMusicVerticalPadding, to: paddingRange, fallback: 0))
+    }
+}
+
 struct NotchGeometry: Equatable {
     let screen: CGRect
     /// How far the island's centre sits right of the camera's: a closed
@@ -2264,6 +2291,8 @@ struct NotchGeometry: Equatable {
     let outlineRoom: CGFloat
     private let capsuleWidthFit: CGFloat
     var compactSideRoom: CGFloat?
+    /// Set only for the closed music strip; see NotchMusicStripFit.
+    var musicStripFit = NotchMusicStripFit()
     var quickAccessBottomInset: CGFloat = 0
     var requiresFullWidthHeader = false
     /// What the open page puts in the island's top row.
@@ -2449,8 +2478,13 @@ struct NotchGeometry: Equatable {
         var compact = self
         compact.allowsActivityFooter = false
         let room = compactSideRoom ?? 0
-        let wing = isNotched ? compact.compactMusicContentWing : 44
-        compact.compactSideRoom = room.isFinite && room >= wing ? min(isNotched ? wing : 56, room) : 0
+        // A simulated camera's wings widen only for a fit of the person's own,
+        // keeping the drawn cutout's air beside what they show.
+        let fitted = compact.compactMusicContentWing + NotchMusicStripLayout.innerInset(self)
+        let custom = musicStripFit != NotchMusicStripFit()
+        let wing = isNotched ? compact.compactMusicContentWing : custom ? max(44, fitted) : 44
+        let widest = isNotched ? wing : custom ? max(56, fitted) : 56
+        compact.compactSideRoom = room.isFinite && room >= wing ? min(widest, room) : 0
         compact.minimumWing = wing
         return compact
     }
@@ -2463,7 +2497,7 @@ struct NotchGeometry: Equatable {
     }
     /// The cover takes the strip's height less an even gap above and below.
     var compactMusicArtworkSide: CGFloat {
-        max(0, min(26, compactActivityContentHeight - NotchLayout.compactEdgeGap * 2))
+        max(0, min(26, compactActivityContentHeight - NotchLayout.compactEdgeGap * 2 - musicStripFit.verticalPadding * 2))
     }
     /// A cover that fills the strip keeps the same gap from its end as from
     /// its top and bottom, and its corners share a centre with the strip's
@@ -2483,16 +2517,28 @@ struct NotchGeometry: Equatable {
         let gap = compactMusicArtworkFills ? (compactActivityContentHeight - compactMusicArtworkSide) / 2
             : NotchLayout.compactEdgeGap
         return compactActivityEdgeInset(boxHeight: compactMusicArtworkSide, radius: compactMusicArtworkRadius, gap: gap)
+            + musicStripFit.sidePadding
     }
     var compactMusicBarHeight: CGFloat {
         min(16, max(6, compactActivityContentHeight - NotchLayout.compactEdgeGap * 2))
     }
     var compactMusicBarsInset: CGFloat {
         compactActivityEdgeInset(boxHeight: compactMusicBarHeight, radius: NotchLayout.compactMusicBarWidth / 2)
+            + musicStripFit.sidePadding
+    }
+    /// The person's GIF in the bars' place, as large as asked within the
+    /// strip's height less the room asked above and below it.
+    var compactMusicGIFSide: CGFloat? {
+        musicStripFit.gifSide.map { max(8, min($0, compactActivityContentHeight - musicStripFit.verticalPadding * 2)) }
+    }
+    var compactMusicGIFInset: CGFloat {
+        guard let side = compactMusicGIFSide else { return compactMusicBarsInset }
+        return compactActivityEdgeInset(boxHeight: side, radius: side / 4) + musicStripFit.sidePadding
     }
     private var compactMusicContentWing: CGFloat {
         max(compactMusicArtworkInset + compactMusicArtworkSide,
-            compactMusicBarsInset + NotchLayout.compactMusicBarsWidth).rounded(.up)
+            compactMusicGIFSide.map { compactMusicGIFInset + $0 }
+                ?? compactMusicBarsInset + NotchLayout.compactMusicBarsWidth).rounded(.up)
     }
     var musicCameraGap: CGFloat { cameraWidth }
     var compactMusicLabelInset: CGFloat {

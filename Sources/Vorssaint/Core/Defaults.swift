@@ -903,6 +903,10 @@ enum DefaultsKey {
     static let notchBrowserCovers = "notchBrowserCovers"
     static let notchLiveEqualizer = "notchLiveEqualizer"
     static let notchMotionCovers = "notchMotionCovers" // animated album art from Apple Music
+    static let notchMusicBarsGIF = "notchMusicBarsGIF" // file name of the chosen GIF in the collection, "" for the bars
+    static let notchMusicGIFSize = "notchMusicGIFSize" // points
+    static let notchMusicSidePadding = "notchMusicSidePadding" // extra points at both ends of the music strip
+    static let notchMusicVerticalPadding = "notchMusicVerticalPadding" // extra points above and below
     static let notchQueueEnabled = "notchQueueEnabled"
     static let notchDownloadsEnabled = "notchDownloadsEnabled"
     static let notchDownloadsFolderBookmark = "notchDownloadsFolderBookmark"
@@ -1554,6 +1558,10 @@ enum Defaults {
         DefaultsKey.notchBrowserCovers: false,
         DefaultsKey.notchLiveEqualizer: false,
         DefaultsKey.notchMotionCovers: false,
+        DefaultsKey.notchMusicBarsGIF: "",
+        DefaultsKey.notchMusicGIFSize: NotchMusicStripFit.defaultGIFSide,
+        DefaultsKey.notchMusicSidePadding: 0.0,
+        DefaultsKey.notchMusicVerticalPadding: 0.0,
         DefaultsKey.notchQueueEnabled: true,
         DefaultsKey.notchDownloadsEnabled: true,
         DefaultsKey.notchWatchEnabled: true,

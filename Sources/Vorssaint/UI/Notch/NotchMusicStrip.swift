@@ -52,6 +52,16 @@ struct NotchMusicStrip: View {
     private var artworkSide: CGFloat { Layout.coverSide(geometry) }
     private var artworkRadius: CGFloat { min(artworkSide / 2, geometry.compactMusicArtworkRadius) }
     private var artworkInset: CGFloat { Layout.coverInset(geometry) }
+    /// The person's GIF takes the size asked in Settings, or mirrors the cover
+    /// across the camera on a geometry that carries no fit of its own.
+    private var gifSide: CGFloat {
+        min(geometry.compactMusicGIFSide ?? artworkSide,
+            max(0, geometry.compactActivityWingWidth - innerInset))
+    }
+    private var gifInset: CGFloat {
+        let inset = geometry.compactMusicGIFSide == nil ? artworkInset : geometry.compactMusicGIFInset
+        return max(0, min(inset, geometry.compactActivityWingWidth - gifSide - innerInset))
+    }
     private var barsInset: CGFloat {
         max(0, min(geometry.compactMusicBarsInset,
                    geometry.compactActivityWingWidth - NotchLayout.compactMusicBarsWidth - innerInset))
@@ -101,9 +111,8 @@ struct NotchMusicStrip: View {
                 HStack {
                     if wing > 0 { bars }
                 }
-                // A GIF mirrors the cover across the camera, in a square of the cover's size.
                 .padding(.leading, innerInset)
-                .padding(.trailing, barsGIF.data == nil ? barsInset : artworkInset)
+                .padding(.trailing, barsGIF.data == nil ? barsInset : gifInset)
                 .frame(width: wing, height: geometry.compactActivityContentHeight, alignment: .trailing)
                 .contentShape(Rectangle())
                 .onHover { if live { service.hoverMusicStrip(.bars, entered: $0) } }
@@ -133,7 +142,7 @@ struct NotchMusicStrip: View {
             Group {
                 if let gif = barsGIF.data {
                     NotchBarsGIFView(data: gif, animates: playing && !showsControl && !reduceMotion)
-                        .frame(width: artworkSide, height: artworkSide)
+                        .frame(width: gifSide, height: gifSide)
                 } else {
                     NotchLiveEqualizerBars(isPlaying: playing && !showsControl,
                                            bars: NotchLayout.compactMusicBarCount,
