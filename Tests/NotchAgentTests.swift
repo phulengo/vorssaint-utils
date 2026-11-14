@@ -3156,21 +3156,28 @@ enum NotchAgentTests {
             window("session", .session, used: 41.6, resets: 1800),
             window("week", .weekly, used: 18, resets: 86_400),
         ], observedAt: now, source: .account)
-        suite.expect(AgentMenuBarSupport.reading(limits, display: .used, now: now)
-                        == AgentMenuBarReading(session: "42%", weekly: "18%"),
+        func texts(_ reading: AgentMenuBarReading) -> [String] { [reading.session, reading.weekly] }
+        func close(_ share: AgentMenuBarShare?, shown: Double, used: Double) -> Bool {
+            guard let share else { return false }
+            return abs(share.shown - shown) < 0.0001 && abs(share.used - used) < 0.0001
+        }
+        let used = AgentMenuBarSupport.reading(limits, display: .used, now: now)
+        suite.expect(texts(used) == ["42%", "18%"]
+                        && close(used.sessionShare, shown: 0.416, used: 0.416) && close(used.weeklyShare, shown: 0.18, used: 0.18),
                      "the menu bar shows the plan's session and week as used, never a model's own allowance")
-        suite.expect(AgentMenuBarSupport.reading(limits, display: .remaining, now: now)
-                        == AgentMenuBarReading(session: "58%", weekly: "82%"),
-                     "the menu bar shows what is left when the island does")
-        suite.expect(AgentMenuBarSupport.reading(limits, display: .used, now: now.addingTimeInterval(1801))
-                        == AgentMenuBarReading(session: "0%", weekly: "18%"),
+        let left = AgentMenuBarSupport.reading(limits, display: .remaining, now: now)
+        suite.expect(texts(left) == ["58%", "82%"]
+                        && close(left.sessionShare, shown: 0.584, used: 0.416) && close(left.weeklyShare, shown: 0.82, used: 0.18),
+                     "the menu bar shows what is left when the island does, and a gauge still warns by what is used")
+        let renewed = AgentMenuBarSupport.reading(limits, display: .used, now: now.addingTimeInterval(1801))
+        suite.expect(texts(renewed) == ["0%", "18%"] && close(renewed.sessionShare, shown: 0, used: 0),
                      "a session that renewed since it was read shows nothing spent")
         let sessionOnly = AgentLimits(provider: .codex, windows: [window("session", .session, used: 7, resets: nil)],
                                       observedAt: now, source: .sessionLog)
-        suite.expect(AgentMenuBarSupport.reading(sessionOnly, display: .used, now: now)
-                        == AgentMenuBarReading(session: "7%", weekly: AgentMenuBarSupport.placeholder)
+        let partial = AgentMenuBarSupport.reading(sessionOnly, display: .used, now: now)
+        suite.expect(texts(partial) == ["7%", AgentMenuBarSupport.placeholder] && partial.weeklyShare == nil
                         && AgentMenuBarSupport.reading(nil, display: .remaining, now: now) == .unknown,
-                     "a window the agent has not reported shows a dash instead of disappearing")
+                     "a window the agent has not reported shows a dash and an empty gauge instead of disappearing")
         suite.expect(AgentMenuBarSupport.nextRenewal(limits, after: now) == now.addingTimeInterval(1800)
                         && AgentMenuBarSupport.nextRenewal(limits, after: now.addingTimeInterval(1800))
                             == now.addingTimeInterval(86_400)

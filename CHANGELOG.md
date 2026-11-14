@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The format follows
 - A new Pebble companion: a cut stone with gem eyes and a glowing crystal, with every reaction of the other companions. Any companion can also sit in a little glass dome.
 - Pin AI Agents to the menu bar to see the session and weekly limits of Claude Code or Codex, shown as left or used like the island’s Limits card. It reads the limits AI Agents follows in Dynamic Island and shows a dash until the agent reports them. Clicking it opens the panel’s AI Agents tab.
 - The menu bar panel has an AI Agents tab with the same cards as the AI page in Dynamic Island: limits with their countdowns, cost, trend, models, projects, activity and resets. You can hide it or move it in the panel layout.
+- Menu bar readings can show a progress ring beside the number. Usage display now offers Rings, and CPU, GPU, memory, disk usage, battery and AI Agents can each keep their own style of values, bars or a ring in their options. Readings without a style of their own look the same as before.
 
 ## [3.4.4] - 2026-11-11
 

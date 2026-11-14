@@ -8,9 +8,19 @@ import Foundation
 struct AgentMenuBarReading: Equatable {
     let session: String
     let weekly: String
+    /// What a bar or a ring fills with, nil while the window is unread.
+    var sessionShare: AgentMenuBarShare? = nil
+    var weeklyShare: AgentMenuBarShare? = nil
 
     static let unknown = AgentMenuBarReading(session: AgentMenuBarSupport.placeholder,
                                              weekly: AgentMenuBarSupport.placeholder)
+}
+
+/// One window as a gauge draws it: filled with the share the number shows,
+/// left or used, and coloured by the share used.
+struct AgentMenuBarShare: Equatable {
+    let shown: Double
+    let used: Double
 }
 
 /// The AI reading pinned to the menu bar. It reads nothing of its own: the
@@ -42,13 +52,19 @@ enum AgentMenuBarSupport {
     /// card shows them. A window that renewed since it was read has nothing
     /// spent yet, and a model's own allowance is never the plan's.
     static func reading(_ limits: AgentLimits?, display: NotchAgentLimitDisplay, now: Date) -> AgentMenuBarReading {
-        func share(_ kind: AgentLimitWindow.Kind) -> String {
-            guard let window = planWindow(kind, in: limits) else { return placeholder }
+        func share(_ kind: AgentLimitWindow.Kind) -> AgentMenuBarShare? {
+            guard let window = planWindow(kind, in: limits) else { return nil }
             let current = AgentLimitSupport.current(window, at: now)
-            let fraction = display == .used ? current.usedFraction : current.remainingFraction
-            return "\(Int((fraction * 100).rounded()))%"
+            return AgentMenuBarShare(shown: display == .used ? current.usedFraction : current.remainingFraction,
+                                     used: current.usedFraction)
         }
-        return AgentMenuBarReading(session: share(.session), weekly: share(.weekly))
+        func text(_ share: AgentMenuBarShare?) -> String {
+            share.map { "\(Int(($0.shown * 100).rounded()))%" } ?? placeholder
+        }
+        let session = share(.session)
+        let weekly = share(.weekly)
+        return AgentMenuBarReading(session: text(session), weekly: text(weekly),
+                                   sessionShare: session, weeklyShare: weekly)
     }
 
     /// When a shown window next renews, so the bar can redraw then even if

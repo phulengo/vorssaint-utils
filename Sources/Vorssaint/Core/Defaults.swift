@@ -429,7 +429,15 @@ enum DefaultsKey {
     static let menuBarAIAgentsProvider = "menuBarAIAgentsProvider" // AgentProvider.rawValue: claude | codex
     static let menuBarPreset = "menuBarPreset"           // dense
     static let menuBarMetricSpacing = "menuBarMetricSpacing" // standard | compact
-    static let menuBarMetricAppearance = "menuBarMetricAppearance" // values | bars
+    static let menuBarMetricAppearance = "menuBarMetricAppearance" // values | bars | ring
+    // One reading's own style: values | bars | ring, or empty for its default
+    // (the Usage display choice, or values for battery).
+    static let menuBarCPUAppearance = "menuBarCPUAppearance"
+    static let menuBarGPUAppearance = "menuBarGPUAppearance"
+    static let menuBarMemoryAppearance = "menuBarMemoryAppearance"
+    static let menuBarDiskUsageAppearance = "menuBarDiskUsageAppearance"
+    static let menuBarBatteryAppearance = "menuBarBatteryAppearance"
+    static let menuBarAIAgentsAppearance = "menuBarAIAgentsAppearance"
     static let menuBarUsageBarNormalColor = "menuBarUsageBarNormalColor" // #RRGGBB
     static let menuBarUsageBarElevatedColor = "menuBarUsageBarElevatedColor" // #RRGGBB
     static let menuBarUsageBarCriticalColor = "menuBarUsageBarCriticalColor" // #RRGGBB
@@ -1228,7 +1236,7 @@ enum Defaults {
     static let allowedMouseClickDebounceWindowRange = 5...100
     static let allowedMenuBarPresets = ["dense"]
     static let allowedMenuBarMetricSpacings = ["standard", "compact"]
-    static let allowedMenuBarMetricAppearances = ["values", "bars"]
+    static let allowedMenuBarMetricAppearances = ["values", "bars", "ring"]
     static let defaultMenuBarMetricOrder = [
         "cpu", "cpuTemperature",
         "gpu", "gpuTemperature",
@@ -1725,6 +1733,12 @@ enum Defaults {
         DefaultsKey.menuBarPreset: "dense",
         DefaultsKey.menuBarMetricSpacing: "compact",  // owner's call: compact by default in 3.1.8
         DefaultsKey.menuBarMetricAppearance: "values",
+        DefaultsKey.menuBarCPUAppearance: "",
+        DefaultsKey.menuBarGPUAppearance: "",
+        DefaultsKey.menuBarMemoryAppearance: "",
+        DefaultsKey.menuBarDiskUsageAppearance: "",
+        DefaultsKey.menuBarBatteryAppearance: "",
+        DefaultsKey.menuBarAIAgentsAppearance: "",
         DefaultsKey.menuBarUsageBarNormalColor: "#64D2FF",
         DefaultsKey.menuBarUsageBarElevatedColor: "#FFD60A",
         DefaultsKey.menuBarUsageBarCriticalColor: "#FF453A",
@@ -2647,6 +2661,11 @@ enum Defaults {
 
     static func sanitizedMenuBarMetricAppearance(_ appearance: String) -> String {
         allowedMenuBarMetricAppearances.contains(appearance) ? appearance : "values"
+    }
+
+    /// A reading's own style, or empty while it keeps its default.
+    static func sanitizedMenuBarReadingAppearance(_ appearance: String) -> String {
+        allowedMenuBarMetricAppearances.contains(appearance) ? appearance : ""
     }
 
     static func sanitizedMenuBarMetricOrder(_ raw: String) -> [String] {

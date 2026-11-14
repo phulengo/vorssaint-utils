@@ -15,12 +15,13 @@ enum MenuBarMetricSpacing: String, CaseIterable {
         return MenuBarMetricSpacing(rawValue: Defaults.sanitizedMenuBarMetricSpacing(raw)) ?? .standard
     }
 }
-/// How percentage based monitor readings appear in the menu bar. Values keep
-/// the existing numeric blocks; bars replace CPU, GPU, memory and disk usage
-/// with a compact vertical gauge. Readings without a fixed 0...100 scale stay
-/// numeric in either mode.
+/// How a reading with a 0...100 scale appears in the menu bar. Values keep the
+/// numeric blocks; bars draw a compact vertical gauge; a ring draws a round
+/// progress gauge beside the number. `current` is the Usage display choice,
+/// the default of every usage reading without a style of its own. Readings
+/// without a fixed scale stay numeric whatever the choice.
 enum MenuBarMetricAppearance: String, CaseIterable {
-    case values, bars
+    case values, bars, ring
 
     var allowsCombinedTemperatures: Bool { self == .values }
 
@@ -28,6 +29,70 @@ enum MenuBarMetricAppearance: String, CaseIterable {
         let raw = UserDefaults.standard.string(forKey: DefaultsKey.menuBarMetricAppearance) ?? ""
         let appearance = Defaults.sanitizedMenuBarMetricAppearance(raw)
         return MenuBarMetricAppearance(rawValue: appearance) ?? .values
+    }
+}
+
+/// Each reading with a percentage can keep its own style. A usage reading
+/// without one follows the Usage display choice; the battery never did, so it
+/// keeps its numeric block until it is given a style of its own.
+enum MenuBarReadingStyleSupport {
+    /// About what a ring and its gap add beside a block, in the status
+    /// font's columns.
+    static let ringColumns = 3
+
+    static func appearance(own: String?, followsUsageDisplay: Bool, usageDisplay: String?) -> MenuBarMetricAppearance {
+        let chosen = Defaults.sanitizedMenuBarReadingAppearance(own ?? "")
+        if !chosen.isEmpty { return MenuBarMetricAppearance(rawValue: chosen) ?? .values }
+        guard followsUsageDisplay else { return .values }
+        return MenuBarMetricAppearance(rawValue: Defaults.sanitizedMenuBarMetricAppearance(usageDisplay ?? "")) ?? .values
+    }
+
+    /// Where each reading with a percentage keeps its own style, and whether
+    /// it follows the Usage display choice until it has one.
+    static let readings: [(key: String, followsUsageDisplay: Bool)] = [
+        (DefaultsKey.menuBarCPUAppearance, true),
+        (DefaultsKey.menuBarGPUAppearance, true),
+        (DefaultsKey.menuBarMemoryAppearance, true),
+        (DefaultsKey.menuBarDiskUsageAppearance, true),
+        (DefaultsKey.menuBarBatteryAppearance, false),
+        (DefaultsKey.menuBarAIAgentsAppearance, true),
+    ]
+
+    static func appearance(key: String, followsUsageDisplay: Bool, in defaults: UserDefaults) -> MenuBarMetricAppearance {
+        appearance(own: defaults.string(forKey: key), followsUsageDisplay: followsUsageDisplay,
+                   usageDisplay: defaults.string(forKey: DefaultsKey.menuBarMetricAppearance))
+    }
+
+    /// Whether a bar or a ring can show anywhere, which their colours and
+    /// limits are for.
+    static func usesGauges(in defaults: UserDefaults) -> Bool {
+        appearance(own: nil, followsUsageDisplay: true,
+                   usageDisplay: defaults.string(forKey: DefaultsKey.menuBarMetricAppearance)) != .values
+            || readings.contains { appearance(key: $0.key, followsUsageDisplay: $0.followsUsageDisplay, in: defaults) != .values }
+    }
+
+    /// Whether combining a temperature with its component can apply: only a
+    /// component that shows its value shares a block with its temperature.
+    static func offersCombinedTemperatures(in defaults: UserDefaults) -> Bool {
+        [(DefaultsKey.menuBarCPUAppearance, true), (DefaultsKey.menuBarGPUAppearance, true),
+         (DefaultsKey.menuBarBatteryAppearance, false)]
+            .contains { appearance(key: $0.0, followsUsageDisplay: $0.1, in: defaults) == .values }
+    }
+
+    /// The columns a reading of `blocks` blocks adds for its style. Bars sit
+    /// in the room the number would take; rings sit beside it.
+    static func extraColumns(for appearance: MenuBarMetricAppearance, blocks: Int = 1) -> Int {
+        appearance == .ring ? ringColumns * max(0, blocks) : 0
+    }
+
+    /// The colour level of a battery gauge: the battery's own warning, so a
+    /// full battery is never drawn as critical the way a full CPU is.
+    static func level(for warning: BatteryWarning) -> MenuBarUsageBarSupport.Level {
+        switch warning {
+        case .none: return .normal
+        case .early: return .elevated
+        case .low: return .critical
+        }
     }
 }
 

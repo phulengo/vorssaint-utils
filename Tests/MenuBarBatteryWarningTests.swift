@@ -7,7 +7,20 @@ import AppKit
 /// isolated preferences and readings. No status item or hardware is opened.
 enum MenuBarBatteryWarningTests {
     enum ReviewDefaults { static var current: UserDefaults! }
-    enum MenuBarMetric { case battery, batteryTemperature }
+    /// The battery's own style resolves through the production rules.
+    enum MenuBarMetric {
+        case battery, batteryTemperature
+
+        func appearance(in defaults: UserDefaults) -> MenuBarMetricAppearance {
+            let resolved = MenuBarReadingStyleSupport.appearance(key: DefaultsKey.menuBarBatteryAppearance,
+                                                                 followsUsageDisplay: false, in: defaults)
+            return MenuBarMetricAppearance(rawValue: resolved.rawValue) ?? .values
+        }
+
+        func combinesTemperature(in defaults: UserDefaults) -> Bool {
+            defaults.bool(forKey: DefaultsKey.menuBarCombineTemperatures) && appearance(in: defaults) == .values
+        }
+    }
     struct SystemSnapshot {
         var power: PowerReading?
         var batteryTemperature: Double?
@@ -37,7 +50,8 @@ enum MenuBarBatteryWarningTests {
         // must not be reached by this battery-only fixture.
         static func symbolAttachment(named: String, stacked: Bool, enlarged: Bool = false) -> NSAttributedString { preconditionFailure() }
         static func usageBarBlockAttachment(label: String, fraction: Double?, style: MenuBarBlockStyle,
-                                            pressure: MemoryPressure?) -> NSAttributedString { preconditionFailure() }
+                                            pressure: MemoryPressure?,
+                                            level: MenuBarUsageBarSupport.Level?) -> NSAttributedString { preconditionFailure() }
         static func networkBlockAttachment(down: String, up: String, style: MenuBarBlockStyle) -> NSAttributedString { preconditionFailure() }
         static func diskActivityBlockAttachment(read: String, write: String, style: MenuBarBlockStyle) -> NSAttributedString { preconditionFailure() }
     }
@@ -61,6 +75,64 @@ enum MenuBarBatteryWarningTests {
         defaults.set(true, forKey: DefaultsKey.menuBarCombineTemperatures)
         segmentContracts(suite, defaults: defaults)
         imageContracts(suite, defaults: defaults)
+        ringContracts(suite, defaults: defaults)
+    }
+
+    /// A battery given a bar or a ring keeps its warning as the gauge's
+    /// colour and stops sharing a block with its temperature.
+    private static func ringContracts(_ suite: TestSuite, defaults: UserDefaults) {
+        defer { defaults.removeObject(forKey: DefaultsKey.menuBarBatteryAppearance) }
+        defaults.set("bars", forKey: DefaultsKey.menuBarMetricAppearance)
+        let untouched = Renderer.blockSegments(for: snapshot(10), metrics: [.battery, .batteryTemperature], style: .dense)
+        suite.expect(warnings(untouched) == [.low] && untouched.count == 1,
+                     "a battery without a style of its own keeps its combined value whatever the Usage display says")
+        defaults.removeObject(forKey: DefaultsKey.menuBarMetricAppearance)
+
+        defaults.set("ring", forKey: DefaultsKey.menuBarBatteryAppearance)
+        let ring = Renderer.blockSegments(for: snapshot(10), metrics: [.battery, .batteryTemperature], style: .dense)
+        if ring.count == 2, case let .ringBlock(label, value, minimum, fraction, level, _, pressure, warning) = ring[0],
+           case let .metricBlock(temperatureLabel, _, _, _, _, temperatureWarning) = ring[1] {
+            suite.expect(label == "BAT" && value == "10%" && minimum == "100%" && fraction == 0.1
+                            && level == .critical && pressure == nil && warning == .low
+                            && temperatureLabel.contains("BAT") && temperatureWarning == .none,
+                         "a ring keeps the charge, its warning and reserve, and leaves the temperature its own block")
+        } else {
+            suite.expect(false, "a battery ring and its temperature are two blocks")
+        }
+        defaults.set("bars", forKey: DefaultsKey.menuBarBatteryAppearance)
+        if case let .usageBarBlock(label, fraction, _, _, level)? = Renderer.blockSegments(
+            for: snapshot(25), metrics: [.battery], style: .dense).first {
+            suite.expect(label == "BAT" && fraction == 0.25 && level == .normal,
+                         "a battery bar fills with the charge and is coloured by the battery's own warning")
+        } else {
+            suite.expect(false, "a battery given bars draws a bar")
+        }
+
+        defaults.set("ring", forKey: DefaultsKey.menuBarBatteryAppearance)
+        func ringImage(_ percent: Int) -> NSImage? {
+            let attributed = Renderer.attributed(for: snapshot(percent), metrics: [.battery])
+            return attributed.length > 0 ? (attributed.attribute(.attachment, at: 0, effectiveRange: nil) as? NSTextAttachment)?.image : nil
+        }
+        defaults.set(false, forKey: DefaultsKey.menuBarCombineTemperatures)
+        Renderer.overrideSegments = [.metricBlock(label: "BAT", value: "25%", minimumValue: "100%", style: .dense, pressure: nil)]
+        let valueOnly = Renderer.attributed(for: snapshot(25), metrics: [.battery])
+        let valueImage = (valueOnly.attribute(.attachment, at: 0, effectiveRange: nil) as? NSTextAttachment)?.image
+        Renderer.overrideSegments = nil
+        let normal = MenuBarUsageBarSupport.rgb(for: MenuBarUsageBarSupport.defaultNormalColor, fallback: "#000000")
+        let critical = MenuBarUsageBarSupport.rgb(for: MenuBarUsageBarSupport.defaultCriticalColor, fallback: "#000000")
+        func color(_ rgb: MenuBarUsageBarSupport.RGB) -> NSColor {
+            NSColor(srgbRed: CGFloat(rgb.red), green: CGFloat(rgb.green), blue: CGFloat(rgb.blue), alpha: 1)
+        }
+        if let calm = ringImage(25), let low = ringImage(10), let valueImage {
+            suite.expect(calm.size.height == valueImage.size.height && calm.size.width > valueImage.size.width + 14,
+                         "a ring sits beside the value block at the same height, widening the reading")
+            suite.expect(matchingPixels(calm, color: color(normal)) > 0 && matchingPixels(calm, color: color(critical)) == 0
+                            && matchingPixels(low, color: color(critical)) > 0,
+                         "the real drawing fills the ring in the gauge colours by the battery's warning")
+        } else {
+            suite.expect(false, "a battery ring produces an image attachment")
+        }
+        defaults.set(true, forKey: DefaultsKey.menuBarCombineTemperatures)
     }
 
     private static func snapshot(_ percent: Int? = 10, temperature: Double? = 35, plugged: Bool = false) -> SystemSnapshot {

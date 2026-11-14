@@ -10,12 +10,16 @@ struct SettingsSearchState: Equatable {
     }
 
     let hardware: Hardware
-    let bars, batteryRest, capsule, customSize, minimalMascot, groupsMinimizedWindows: Bool
+    /// A bar or a ring shows somewhere, and a component still shows its value
+    /// beside which a temperature can sit.
+    let gauges, combinesTemperatures: Bool
+    let batteryRest, capsule, customSize, minimalMascot, groupsMinimizedWindows: Bool
     private let switches: Set<String>
 
     init(defaults: UserDefaults, hardware: Hardware) {
         self.hardware = hardware
-        bars = defaults.string(forKey: DefaultsKey.menuBarMetricAppearance) == "bars"
+        gauges = MenuBarReadingStyleSupport.usesGauges(in: defaults)
+        combinesTemperatures = MenuBarReadingStyleSupport.offersCombinedTemperatures(in: defaults)
         batteryRest = defaults.string(forKey: DefaultsKey.notchIdleContent) == NotchIdleContent.battery.rawValue
         capsule = defaults.string(forKey: DefaultsKey.notchSilhouette) != NotchSilhouette.notch.rawValue
         customSize = defaults.string(forKey: DefaultsKey.notchSize) == NotchSize.custom.rawValue
@@ -380,7 +384,9 @@ enum SettingsDirectory {
                                        ]),
                 SettingsDirectoryItem(page: .monitor, title: s.tabMonitor, icon: "chart.line.uptrend.xyaxis",
                                        keywords: [s.menuBarSpacingLabel, s.menuBarHideIconToggle, barStyle.label,
-                                                  barStyle.bars, barStyle.values, s.monitorSeparateMenuBarMetrics,
+                                                  barStyle.bars, barStyle.values, barStyle.rings, barStyle.style,
+                                                  barStyle.sameAsUsageDisplay, "ring", "gauge",
+                                                  s.monitorSeparateMenuBarMetrics,
                                                   s.monitorIntervalLabel, s.temperatures, GraphScaleStrings.localized(language).title],
                                        featureKeywords: [
                                         (.monitorMemory, [s.monitorMemoryPressureDot, s.monitorMemoryMetricLabel]),
@@ -390,9 +396,9 @@ enum SettingsDirectory {
                                                         FeatureStrings.notchAgents(language).session,
                                                         FeatureStrings.notchAgents(language).weekly]),
                                        ], terms: [
-                                        .init([s.monitorCombineTemperatures], when: !state.bars),
+                                        .init([s.monitorCombineTemperatures], when: state.combinesTemperatures),
                                         .init([barStyle.customize, barStyle.normalColor, barStyle.mediumColor, barStyle.highColor,
-                                               barStyle.mediumFrom, barStyle.highFrom], when: state.bars),
+                                               barStyle.mediumFrom, barStyle.highFrom], when: state.gauges),
                                        ]),
             ]),
             (categories.windowsControls, [

@@ -1702,8 +1702,7 @@ def main():
     battery_body, next_case, _ = rest.partition("            case .batteryTime:\n")
     if not switch or not battery_case or not next_case:
         raise ValueError("Expected the battery branch in blockSegments")
-    for line in ["        let usesBars = appearance == .bars\n",
-                 "        var renderedCPU = false\n", "        var renderedGPU = false\n"]:
+    for line in ["        var renderedCPU = false\n", "        var renderedGPU = false\n"]:
         if line not in prefix:
             raise ValueError("Expected the unrelated activity state in blockSegments")
         prefix = prefix.replace(line, "")
@@ -1732,7 +1731,10 @@ def main():
                         "    private static func batteryBlockImage(", "    private static func blockImageCost(",
                         "    private static func dynamicTextAttributes(", "    static func nsColor(for warning:",
                         "    static func nsColor(for pressure:", "    private static func temperatureCompact(",
-                        "    private static func temperatureLabel(", "    private static func combinedComponentValue("])
+                        "    private static func temperatureLabel(", "    private static func combinedComponentValue(",
+                        "    private static func usageSegment(", "    private static func gaugeColorHex(",
+                        "    private static func ringBlockAttachment(", "    private static func ringBlockImage(",
+                        "    private static func usageBarColor("])
           + "}\n")
     metric_cases = "\n".join(line for line in declaration(metric_view, "enum MetricDetailKind:").splitlines()
                              if line.startswith("    case "))

@@ -695,21 +695,26 @@ final class StatusItemController {
     /// How the enabled metrics split into separate items. Static so the
     /// Settings preview draws the same split the bar does.
     static func metricStatusGroups(for metrics: [MenuBarMetric], strings: Strings) -> [MetricStatusGroup] {
-        guard MenuBarMetricAppearance.current.allowsCombinedTemperatures,
-              UserDefaults.standard.bool(forKey: DefaultsKey.menuBarCombineTemperatures) else {
-            return metrics.map {
-                MetricStatusGroup(id: $0.rawValue, metrics: [$0], focusMetric: $0, title: $0.title(strings))
-            }
-        }
-
         let enabled = Set(metrics)
         var emittedIDs = Set<String>()
         var groups: [MetricStatusGroup] = []
 
-        func appendComponentGroup(id: String,
+        func appendSingle(_ metric: MenuBarMetric) {
+            guard emittedIDs.insert(metric.rawValue).inserted else { return }
+            groups.append(MetricStatusGroup(id: metric.rawValue,
+                                            metrics: [metric],
+                                            focusMetric: metric,
+                                            title: metric.title(strings)))
+        }
+
+        // A temperature shares its component's item only while the
+        // component shows its value; a bar or a ring keeps them apart.
+        func appendComponentGroup(_ metric: MenuBarMetric,
+                                  id: String,
                                   primary: MenuBarMetric,
                                   temperature: MenuBarMetric,
                                   primaryTitle: String) {
+            guard primary.combinesTemperature() else { return appendSingle(metric) }
             guard emittedIDs.insert(id).inserted else { return }
             var groupedMetrics: [MenuBarMetric] = []
             if enabled.contains(primary) { groupedMetrics.append(primary) }
@@ -725,28 +730,26 @@ final class StatusItemController {
         for metric in metrics {
             switch metric {
             case .cpu, .cpuTemperature:
-                appendComponentGroup(id: "cpu",
+                appendComponentGroup(metric,
+                                     id: "cpu",
                                      primary: .cpu,
                                      temperature: .cpuTemperature,
                                      primaryTitle: strings.monitorShowCPU)
             case .gpu, .gpuTemperature:
-                appendComponentGroup(id: "gpu",
+                appendComponentGroup(metric,
+                                     id: "gpu",
                                      primary: .gpu,
                                      temperature: .gpuTemperature,
                                      primaryTitle: strings.monitorShowGPU)
             case .battery, .batteryTemperature:
-                appendComponentGroup(id: "battery",
+                appendComponentGroup(metric,
+                                     id: "battery",
                                      primary: .battery,
                                      temperature: .batteryTemperature,
                                      primaryTitle: strings.batteryLabel)
             case .memory, .network, .diskUsage, .diskActivity, .batteryTime, .peripheralBattery, .power,
                  .fanSpeed, .connectedDevices, .aiAgents:
-                let id = metric.rawValue
-                guard emittedIDs.insert(id).inserted else { continue }
-                groups.append(MetricStatusGroup(id: id,
-                                                metrics: [metric],
-                                                focusMetric: metric,
-                                                title: metric.title(strings)))
+                appendSingle(metric)
             }
         }
 
