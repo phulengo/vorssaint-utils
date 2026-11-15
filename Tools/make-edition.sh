@@ -136,12 +136,5 @@ mkdir -p dist
 rm -rf "dist/$NAME.app"
 ditto "$APP" "dist/$NAME.app"
 
-echo "▸ Making the disk image…"
-FOLDER="$WORK/disk"
-mkdir -p "$FOLDER"
-ditto "$APP" "$FOLDER/$NAME.app"
-ln -s /Applications "$FOLDER/Applications"
-OUT="dist/$NAME-$VERSION.dmg"
-rm -f "$OUT"
-hdiutil create -quiet -volname "$NAME" -srcfolder "$FOLDER" -fs HFS+ -format UDZO "$OUT"
-echo "✓ $OUT"
+# The official disk image's window: its icon, an arrow and Applications.
+DMG_APP_NAME="$NAME" DMG_APP="$APP" Tools/make-dmg.sh

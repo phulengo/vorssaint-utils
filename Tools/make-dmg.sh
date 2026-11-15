@@ -5,11 +5,13 @@
 # Packages the built app into a styled, distributable DMG
 # (dist/Vorssaint-<version>.dmg): a window with the app icon, an arrow and
 # the Applications folder for drag-and-drop install. Run ./build.sh first.
+# A renamed copy passes its name and bundle in DMG_APP_NAME and DMG_APP, as
+# Tools/make-edition.sh does.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-APP_NAME="Vorssaint"
-APP="build/stage/$APP_NAME.app"
+APP_NAME="${DMG_APP_NAME:-Vorssaint}"
+APP="${DMG_APP:-build/stage/Vorssaint.app}"
 VOLUME="$APP_NAME"
 STAGING=""
 WORK=""
@@ -34,10 +36,10 @@ xattr -cr "$APP"
 codesign --verify --deep --strict "$APP"
 
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Contents/Info.plist")"
-OUT="dist/Vorssaint-$VERSION.dmg"
+OUT="dist/$APP_NAME-$VERSION.dmg"
 
 echo "▸ Rendering installer background…"
-swift Tools/MakeDMGBackground.swift build/dmg-background.png
+swift Tools/MakeDMGBackground.swift build/dmg-background.png "$APP_NAME"
 
 echo "▸ Staging DMG contents…"
 STAGING="$(mktemp -d)"
