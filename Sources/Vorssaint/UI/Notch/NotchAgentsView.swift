@@ -114,10 +114,27 @@ struct NotchAgentsView: View {
                 HStack(spacing: NotchAgentSupport.spacing) {
                     ForEach(row) { tile in card(tile, now: now) }
                 }
-                .frame(height: NotchAgentSupport.height(of: row))
+                .frame(height: NotchAgentSupport.height(of: row) + extraLimitRows(row, now: now) * Self.limitRowHeight)
             }
         }
         .frame(maxWidth: .infinity, alignment: .top)
+    }
+
+    /// One limit row: its reading, the meter under it and the space before
+    /// the next.
+    private static let limitRowHeight: CGFloat = 31
+
+    /// The panel's limits cards show every allowance a model has of its
+    /// own and grow a row for each beyond the two a card has room for. The
+    /// island's page is sized to its cards, so there they keep two rows.
+    private func extraLimitRows(_ row: [NotchAgentTile], now: Date) -> CGFloat {
+        guard inPanel else { return 0 }
+        let counts = row.filter { $0.card == .limits }.map { tile -> Int in
+            // The same reading the card itself shows.
+            let limits = account(tile, now: now).map(\.limits) ?? tile.provider.flatMap { usage.snapshot.limits[$0] }
+            return AgentLimitSupport.cardWindows(limits?.windows ?? [], everyModel: true).count
+        }
+        return CGFloat(max(0, (counts.max() ?? 0) - 2))
     }
 
     @ViewBuilder private func card(_ tile: NotchAgentTile, now: Date) -> some View {
@@ -129,7 +146,7 @@ struct NotchAgentsView: View {
                 NotchAgentLimitsCard(provider: provider, snapshot: snapshot, now: now,
                                      display: NotchAgentLimitDisplay(rawValue: display) ?? .remaining, text: text,
                                      account: account(tile, now: now),
-                                     accountName: provider == .claude ? claudeAccountName : nil)
+                                     accountName: provider == .claude ? claudeAccountName : nil, everyModel: inPanel)
             }
         case .spend:
             NotchAgentSpendCard(snapshot: snapshot, providers: providers, period: shown, text: text)
@@ -268,6 +285,8 @@ private struct NotchAgentLimitsCard: View {
     let text: NotchAgentStrings
     var account: NotchAgentAccount? = nil
     var accountName: String? = nil
+    /// Whether the card has room for every model's own allowance.
+    var everyModel = false
     @Environment(\.locale) private var locale
 
     private var limits: AgentLimits? {
@@ -281,12 +300,9 @@ private struct NotchAgentLimitsCard: View {
         NotchAgentSupport.limitsAreStale(limits, provider: provider, account: account != nil, now: now)
     }
 
-    /// Two rows fit: the session and whichever longer window binds first.
     private var windows: [AgentLimitWindow] {
-        let all = (limits?.windows ?? []).map { AgentLimitSupport.current($0, at: now) }
-        let session = all.first { $0.kind == .session }
-        let longer = all.filter { $0.kind != .session }.max { $0.usedPercent < $1.usedPercent }
-        return [session, longer].compactMap { $0 }
+        AgentLimitSupport.cardWindows((limits?.windows ?? []).map { AgentLimitSupport.current($0, at: now) },
+                                      everyModel: everyModel)
     }
 
     var body: some View {

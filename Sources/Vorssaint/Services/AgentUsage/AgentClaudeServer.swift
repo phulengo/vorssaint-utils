@@ -139,26 +139,54 @@ enum AgentClaudeServer {
     static func limits(_ result: [String: Any], observed: Date) -> AgentLimits? {
         guard result["rate_limits_available"] as? Bool == true,
               let limits = result["rate_limits"] as? [String: Any] else { return nil }
-        let windows: [AgentLimitWindow] = [
+        var windows: [AgentLimitWindow] = [
             ("five_hour", AgentLimitWindow.Kind.session, 300, nil as String?),
             ("seven_day", .weekly, 10_080, nil),
             ("seven_day_opus", .weekly, 10_080, "Opus"),
             ("seven_day_sonnet", .weekly, 10_080, "Sonnet")].compactMap { key, kind, minutes, scope in
-                guard let window = limits[key] as? [String: Any],
-                      let percent = window["utilization"] as? NSNumber,
-                      CFGetTypeID(percent) != CFBooleanGetTypeID(), percent.doubleValue.isFinite else { return nil }
-                // An idle window has no renewal yet and keeps its percentage,
-                // as in the Claude app's history; one that renewed before the
-                // reading says nothing about the window now.
-                let resets = window["resets_at"].flatMap { $0 is NSNull ? nil : $0 }
-                let end = (resets as? String).flatMap(AgentTimestamp.parse)
-                guard resets == nil || end.map({ $0 > observed }) == true else { return nil }
                 let id = ["five_hour": "fh", "seven_day": "sd", "seven_day_opus": "so", "seven_day_sonnet": "sn"][key]!
-                return AgentLimitWindow(id: "claude.\(id)", kind: kind, minutes: minutes, scope: scope,
-                                        usedPercent: min(100, max(0, percent.doubleValue)), resetsAt: end)
+                return window(limits[key], id: "claude.\(id)", kind: kind, minutes: minutes, scope: scope, observed: observed)
             }
+        // A plan can keep a weekly allowance of its own for a model, as Max
+        // does for Fable. Claude Code lists those by the name /usage shows,
+        // not under a key of their own, and only for the models it shows.
+        for entry in (limits["model_scoped"] as? [Any] ?? []).prefix(8) {
+            guard let entry = entry as? [String: Any], let name = modelName(entry["display_name"]),
+                  !windows.contains(where: { $0.scope?.lowercased() == name.lowercased() }),
+                  let scoped = window(entry, id: "claude.model." + name.lowercased().replacingOccurrences(of: " ", with: "-"),
+                                      kind: .weekly, minutes: 10_080, scope: name, observed: observed) else { continue }
+            windows.append(scoped)
+        }
         guard !windows.isEmpty else { return nil }
         return AgentLimits(provider: .claude, windows: windows, observedAt: observed, source: .account)
+    }
+
+    /// One window of the reading: its percentage, without inventing one,
+    /// and when it renews.
+    private static func window(_ value: Any?, id: String, kind: AgentLimitWindow.Kind, minutes: Int,
+                               scope: String?, observed: Date) -> AgentLimitWindow? {
+        guard let window = value as? [String: Any],
+              let percent = window["utilization"] as? NSNumber,
+              CFGetTypeID(percent) != CFBooleanGetTypeID(), percent.doubleValue.isFinite else { return nil }
+        // An idle window has no renewal yet and keeps its percentage,
+        // as in the Claude app's history; one that renewed before the
+        // reading says nothing about the window now.
+        let resets = window["resets_at"].flatMap { $0 is NSNull ? nil : $0 }
+        let end = (resets as? String).flatMap(AgentTimestamp.parse)
+        guard resets == nil || end.map({ $0 > observed }) == true else { return nil }
+        return AgentLimitWindow(id: id, kind: kind, minutes: minutes, scope: scope,
+                                usedPercent: min(100, max(0, percent.doubleValue)), resetsAt: end)
+    }
+
+    /// The account's name for a model, as "Fable" or "Fable 5.2", kept to
+    /// letters, digits, spaces and dots, since it labels a row and names its alert.
+    private static func modelName(_ value: Any?) -> String? {
+        guard let text = value as? String else { return nil }
+        let words = text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        guard (1...40).contains(words.count),
+              words.unicodeScalars.allSatisfy({ CharacterSet.alphanumerics.contains($0) || $0 == " " || $0 == "." })
+        else { return nil }
+        return words
     }
 
     /// Expires each window without inventing zero usage after a reset. Remote

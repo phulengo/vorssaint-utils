@@ -233,12 +233,15 @@ enum AgentLogParser {
 
     // MARK: Shared values
 
-    /// The folder an agent ran in names the project. A worktree kept inside
-    /// the repository still belongs to that repository.
+    /// The repository an agent ran in names the project, or the folder when
+    /// it is in none. A worktree belongs to its repository wherever it is
+    /// kept, inside it or in a workspace folder of its own, as are folders
+    /// below the repository's top.
     static func projectName(_ path: String) -> String {
         var path = path
         if let range = path.range(of: "/.claude/worktrees/") { path = String(path[..<range.lowerBound]) }
         while path.count > 1, path.hasSuffix("/") { path.removeLast() }
+        if let repository = AgentProjectFolders.shared.repository(containing: path) { path = repository }
         return native((path as NSString).lastPathComponent)
     }
 
@@ -332,5 +335,77 @@ enum AgentTimestamp {
         let days = era * 146_097 + doe - 719_468
         let seconds = Double(days * 86_400 + hour * 3600 + minute * 60 + second - offset) + fraction
         return Date(timeIntervalSince1970: seconds)
+    }
+}
+
+/// Finds the repository a folder belongs to from Git's own marks on disk: a
+/// `.git` folder at a repository's top, or a `.git` file in a worktree that
+/// points into its repository's `.git/worktrees`. Only those small files are
+/// read, and each folder is looked up once.
+final class AgentProjectFolders: @unchecked Sendable {
+    static let shared = AgentProjectFolders()
+    private let lock = NSLock()
+    private var known: [String: String?] = [:]
+
+    /// The top folder of the main checkout of the repository `path` is in,
+    /// or nil when it is in none, or no longer on disk.
+    func repository(containing path: String) -> String? {
+        lock.lock()
+        if let found = known[path] { lock.unlock(); return found }
+        lock.unlock()
+        let found = Self.lookUp(path)
+        lock.lock()
+        if known.count > 4_096 { known.removeAll() }
+        known[path] = found
+        lock.unlock()
+        return found
+    }
+
+    static func lookUp(_ path: String, home: String = NSHomeDirectory()) -> String? {
+        guard path.hasPrefix("/") else { return nil }
+        let manager = FileManager.default
+        var folder = (path as NSString).standardizingPath
+        guard !isGuarded(folder, home: home) else { return nil }
+        // A home folder kept in Git for its settings is no project of its own.
+        while folder != "/", folder != home, !folder.isEmpty {
+            let mark = (folder as NSString).appendingPathComponent(".git")
+            var isFolder: ObjCBool = false
+            if manager.fileExists(atPath: mark, isDirectory: &isFolder) {
+                if isFolder.boolValue { return folder }
+                return mainCheckout(linkedFrom: mark, in: folder) ?? folder
+            }
+            folder = (folder as NSString).deletingLastPathComponent
+        }
+        return nil
+    }
+
+    /// Folders macOS guards with a privacy prompt, and other disks, which may
+    /// be network shares slow to answer: a project there keeps its own
+    /// folder's name rather than have Git's marks looked for.
+    static func isGuarded(_ path: String, home: String) -> Bool {
+        let guarded = ["Desktop", "Documents", "Downloads", "Library/Mobile Documents", "Library/CloudStorage"]
+            .map { (home as NSString).appendingPathComponent($0) } + ["/Volumes", "/Network", "/net"]
+        return guarded.contains { path == $0 || path.hasPrefix($0 + "/") }
+    }
+
+    /// A worktree's `.git` file reads `gitdir: <repository>/.git/worktrees/<name>`,
+    /// or `<repository>/worktrees/<name>` for a bare one, kept as `name.git`
+    /// or as a hidden folder such as `.bare` inside the project. A submodule's
+    /// points into `.git/modules` and stays a project of its own.
+    static func mainCheckout(linkedFrom mark: String, in folder: String) -> String? {
+        guard let handle = FileHandle(forReadingAtPath: mark) else { return nil }
+        defer { try? handle.close() }
+        guard let data = try? handle.read(upToCount: 4_096), let text = String(data: data, encoding: .utf8),
+              let line = text.split(whereSeparator: \.isNewline).first, line.hasPrefix("gitdir:") else { return nil }
+        var gitdir = line.dropFirst("gitdir:".count).trimmingCharacters(in: .whitespaces)
+        if !gitdir.hasPrefix("/") { gitdir = ((folder as NSString).appendingPathComponent(gitdir) as NSString).standardizingPath }
+        // Only the last two parts tell a worktree: `worktrees/<name>`.
+        let common = ((gitdir as NSString).standardizingPath as NSString).deletingLastPathComponent
+        guard (common as NSString).lastPathComponent == "worktrees" else { return nil }
+        let repository = (common as NSString).deletingLastPathComponent
+        guard !repository.hasSuffix("/.git/modules") else { return nil }
+        let name = (repository as NSString).lastPathComponent
+        if name.hasPrefix(".") { return (repository as NSString).deletingLastPathComponent }
+        return name.hasSuffix(".git") ? String(repository.dropLast(4)) : repository
     }
 }
