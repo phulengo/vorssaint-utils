@@ -5,8 +5,9 @@ import CoreGraphics
 import Foundation
 
 // The companion is a small friend who lives in the Dynamic Island: a colored
-// shape with two ink eyes and no mouth, a little robot, or a pebble: a cut
-// stone on two stubby feet with gem eyes and a crystal sprouting behind it. It rests beside
+// shape with two ink eyes and no mouth, a little robot, a pebble: a cut
+// stone on two stubby feet with gem eyes and a crystal sprouting behind it,
+// or Rocky, a puppet cut from a photo of a stone statue. It rests beside
 // the camera when the closed island has nothing else to show, passes by now
 // and then, and is the Command Bar's face when the bar comes out of the
 // island. The code calls it the mascot, because "companion" already names
@@ -14,6 +15,8 @@ import Foundation
 
 enum NotchMascotStyle: String, CaseIterable, Identifiable {
     case minimal, robot, pebble
+    /// Rocky: photographed stone parts that turn at their joints, as a puppet.
+    case rocky
     /// A picture or GIF of the person's own, moved by the same motions.
     case custom
 
@@ -439,6 +442,8 @@ enum NotchMascotGeometry {
             let parts = pebble(size: size)
             return [parts.feet, parts.crystal, parts.core]
                 .reduce(parts.body.boundingBoxOfPath) { $0.union($1.boundingBoxOfPath) }
+        case .rocky:
+            return NotchMascotPuppet.rocky.map { $0.placement(size: size, enclosed: look.enclosed).figure } ?? customFrame(size: size)
         case .minimal:
             return body(look.shape, size: size).boundingBoxOfPath
         case .custom:
@@ -511,27 +516,32 @@ enum NotchMascotGeometry {
         return Enclosure(glass: glass, bars: bars, base: base)
     }
 
-    static func pebble(size: CGFloat) -> Pebble {
-        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * size, y: y * size) }
-        func polygon(_ points: [(CGFloat, CGFloat)], rounding: CGFloat = 0) -> CGPath {
-            let corners = points.map { point($0.0, $0.1) }
-            let path = CGMutablePath()
-            guard rounding > 0 else {
-                path.addLines(between: corners)
-                path.closeSubpath()
-                return path
-            }
-            // Each corner is rounded between the middles of its two edges.
-            let middles = corners.indices.map { index -> CGPoint in
-                let next = corners[(index + 1) % corners.count]
-                return CGPoint(x: (corners[index].x + next.x) / 2, y: (corners[index].y + next.y) / 2)
-            }
-            path.move(to: middles[corners.count - 1])
-            for (index, corner) in corners.enumerated() {
-                path.addArc(tangent1End: corner, tangent2End: middles[index], radius: rounding * size)
-            }
+    /// A closed outline through `points`, in shares of `size`. With
+    /// `rounding`, each corner is rounded between the middles of its two
+    /// edges, by that share of the size.
+    static func polygon(_ points: [(CGFloat, CGFloat)], size: CGFloat, rounding: CGFloat = 0) -> CGPath {
+        let corners = points.map { CGPoint(x: $0.0 * size, y: $0.1 * size) }
+        let path = CGMutablePath()
+        guard rounding > 0 else {
+            path.addLines(between: corners)
             path.closeSubpath()
             return path
+        }
+        let middles = corners.indices.map { index -> CGPoint in
+            let next = corners[(index + 1) % corners.count]
+            return CGPoint(x: (corners[index].x + next.x) / 2, y: (corners[index].y + next.y) / 2)
+        }
+        path.move(to: middles[corners.count - 1])
+        for (index, corner) in corners.enumerated() {
+            path.addArc(tangent1End: corner, tangent2End: middles[index], radius: rounding * size)
+        }
+        path.closeSubpath()
+        return path
+    }
+
+    static func pebble(size: CGFloat) -> Pebble {
+        func polygon(_ points: [(CGFloat, CGFloat)], rounding: CGFloat = 0) -> CGPath {
+            Self.polygon(points, size: size, rounding: rounding)
         }
         let body = polygon([(0.31, 0.31), (0.58, 0.27), (0.79, 0.36), (0.90, 0.56), (0.86, 0.78),
                             (0.68, 0.90), (0.36, 0.91), (0.16, 0.82), (0.10, 0.60), (0.16, 0.42)], rounding: 0.06)
@@ -1307,9 +1317,10 @@ enum NotchMascotMotion {
 enum NotchMascotSupport {
     /// Turned on in Settings, the companion says hello almost at once.
     static let welcomeDelay: TimeInterval = 1.5
-    /// Music starting brings it out to bob along at most this often, so
-    /// pressing play again and again does not keep calling it out.
-    static let grooveInterval: TimeInterval = 600
+    /// Music starting brings it out to bob along, and Rocky to say so, at
+    /// most once an hour: sound coming and going while the person works,
+    /// as a video played and paused, is no reason to call it out.
+    static let grooveInterval: TimeInterval = 3_600
     /// It waits this long after the music starts, until the song's strip has
     /// settled, before it comes out over it.
     static let grooveDelay: TimeInterval = 1.2
@@ -1392,8 +1403,50 @@ enum NotchMascotSupport {
 
     /// Whether it hides in the island once nothing has happened for a
     /// while, and comes out only to visit or to react.
+    /// Rocky performing in the empty island stays out instead.
     static func hidesWhenIdle(in defaults: UserDefaults = .standard) -> Bool {
-        isEnabled(in: defaults) && defaults.bool(forKey: DefaultsKey.notchMascotHidesWhenIdle)
+        isEnabled(in: defaults) && defaults.bool(forKey: DefaultsKey.notchMascotHidesWhenIdle) && !performs(in: defaults)
+    }
+
+    /// Paused this long, an hour, the music has really stopped: Rocky sits
+    /// down to wait for it, and grooves when it comes back. A shorter pause,
+    /// as between clips in a feed or a video paused while the person works,
+    /// is no news to him.
+    static let musicWaitDelay: TimeInterval = 3_600
+
+    static func waitsForMusic(pausedFor: TimeInterval) -> Bool { pausedFor >= musicWaitDelay }
+
+    /// However long he waited, he grooves for music coming back no more
+    /// often than this.
+    static let resumeGrooveInterval: TimeInterval = 120
+
+    /// How big Rocky grows for a show out of the island, in points, and the
+    /// room under him for what he says.
+    static let showtimeSize: CGFloat = 150
+    static let showtimeCaptionRoom: CGFloat = 44
+
+    /// The show's window on `screen`: a square with room for his arms and
+    /// hops over the room for his lines, just under the strip whose foot is
+    /// at `stripBottom`, centred on `x` where he stood, and kept whole on
+    /// the screen.
+    static func showtimeFrame(size: CGFloat, under stripBottom: CGFloat, near x: CGFloat, screen: CGRect) -> CGRect {
+        let side = (size * 1.6).rounded(), height = side + showtimeCaptionRoom
+        var frame = CGRect(x: (x - side / 2).rounded(), y: (stripBottom - 4 - height).rounded(), width: side, height: height)
+        if !screen.isEmpty {
+            frame.origin.x = min(max(frame.minX, screen.minX + 8), screen.maxX - 8 - side)
+            frame.origin.y = max(frame.minY, screen.minY + 8)
+        }
+        return frame
+    }
+
+    /// With the pointer on Rocky as he performs, the closed island waits this
+    /// long before it opens on hover, so a click can reach him for an act.
+    static let performHoverDelay: TimeInterval = 0.8
+
+    /// Whether Rocky stays in the closed island while it has nothing else
+    /// to show, playing little acts now and then.
+    static func performs(in defaults: UserDefaults = .standard) -> Bool {
+        isEnabled(in: defaults) && look(in: defaults).style == .rocky && defaults.bool(forKey: DefaultsKey.notchMascotPerforms)
     }
 
     static func visitFrequency(in defaults: UserDefaults = .standard) -> NotchMascotVisitFrequency {
@@ -1515,4 +1568,12 @@ enum NotchMascotSupport {
                      cameraWidth: strip.compactActivityCameraGap, floats: false, bodyHeight: strip.stripBodyHeight,
                      side: side)
     }
+}
+
+/// Rocky performing in the closed island, as his view there registers him:
+/// the island asks whether the pointer or a click is on him, and has him
+/// play an act. While he is not performing there, nothing is on him.
+enum NotchMascotIslandStage {
+    static var covers: (CGPoint) -> Bool = { _ in false }
+    static var performNow: () -> Void = {}
 }

@@ -1799,6 +1799,11 @@ enum RepositoryFeatureTests {
             shippedNames.insert(file)
         }
         shippedNames.insert("CHANGELOG")
+        // Only a copy Tools/make-edition.sh packages carries settings of its own.
+        if let edition = try? String(contentsOfFile: "Tools/make-edition.sh", encoding: .utf8),
+           edition.contains("EditionSettings.plist") {
+            shippedNames.insert("EditionSettings")
+        }
         let absentResources = namedResources.filter { !shippedNames.contains($0) }.sorted()
         suite.expect(absentResources.isEmpty,
                "every file the app asks for by name is in the bundle (\(absentResources.joined(separator: ", ")))")

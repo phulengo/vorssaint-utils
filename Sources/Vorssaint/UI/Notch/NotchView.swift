@@ -754,6 +754,7 @@ struct NotchRestingStrip: View {
                                                                      side: service.mascotSide),
                                      rests: service.mascotAtRest, visit: service.mascotVisit,
                                      mood: service.mascotRestingMood, reaction: service.mascotReaction,
+                                     performance: service.mascotPerformance,
                                      yieldsToActivities: true)
                     .frame(width: geometry.collapsed.width, height: geometry.stripHeight)
                     // The window's own layer shows it while the island closes around it.

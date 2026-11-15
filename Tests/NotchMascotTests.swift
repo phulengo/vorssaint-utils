@@ -14,6 +14,7 @@ enum NotchMascotTests {
         outlineContracts(suite)
         trackContracts(suite)
         strollContracts(suite)
+        puppetContracts(suite)
         homecomingContracts(suite)
         cameoContracts(suite)
         farewellContracts(suite)
@@ -53,6 +54,8 @@ enum NotchMascotTests {
                         let parts = NotchMascotGeometry.pebble(size: size)
                         figure = [parts.feet, parts.crystal, parts.core]
                             .reduce(parts.body.boundingBoxOfPath) { $0.union($1.boundingBoxOfPath) }
+                    } else if style == .rocky {
+                        figure = NotchMascotGeometry.figureBounds(look, size: size)
                     } else {
                         figure = NotchMascotGeometry.body(shape, size: size).boundingBoxOfPath
                     }
@@ -313,7 +316,8 @@ enum NotchMascotTests {
                      "only a picture is kept, and the companion reads only its own folder's files")
         let dome = NotchMascotGeometry.enclosure(size: 20)
         let scale = NotchMascotGeometry.enclosedScale
-        for style in NotchMascotStyle.allCases {
+        // Rocky has his own ball instead, which his own contracts cover.
+        for style in NotchMascotStyle.allCases where style != .rocky {
             for shape in NotchMascotShape.allCases {
                 let look = NotchMascotLook(style: style, shape: shape, palette: .pearl, enclosed: true)
                 let figure = NotchMascotGeometry.figureBounds(look, size: 20)
@@ -345,6 +349,169 @@ enum NotchMascotTests {
         suite.expect(capsule.hidden == nil && capsule.rest == 38 && capsule.size <= 16 && capsule.baseline == 12
                      && capsule.farSpot > capsule.rest && capsule.farSpot + capsule.size / 2 <= 76,
                      "in a capsule it rests in the middle, with no camera to hide behind")
+    }
+
+    /// Rocky is a puppet of photographed stone: the rig the app ships, the
+    /// moves he plays with it, the ball he lives in and the lines he says.
+    private static func puppetContracts(_ suite: TestSuite) {
+        let folder = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "Resources/Companion/Rocky")
+        guard let rig = NotchMascotPuppet.load(from: folder) else {
+            suite.expect(false, "Rocky's rig loads from the app's resources")
+            return
+        }
+        let ids = Set(rig.parts.map(\.id))
+        suite.expect(rig.parts.count == 11 && ids.count == 11 && rig.root?.id == "body"
+                     && rig.parts.filter { $0.parent == nil }.count == 1
+                     && rig.parts.allSatisfy { $0.parent.map(ids.contains) ?? true }
+                     && NotchMascotPuppet.images(of: rig, in: folder).count == 11,
+                     "Rocky is his carapace and ten leg segments, each joined to a part he has and drawn from its own picture")
+        suite.expect(zip(rig.parts, rig.parts.dropFirst()).allSatisfy { $0.z < $1.z }
+                     && rig.parts.allSatisfy { $0.hull.count >= 3 && $0.pivot != nil } && rig.feet.count == 5
+                     && abs(rig.groundY - rig.height) < rig.height * 0.1,
+                     "his parts are drawn back to front, each turns about a joint, and he stands on five fists")
+        // Turning a part about its own joint leaves the joint where it was.
+        let bent = rig.transforms(NotchMascotPuppetPose(turns: ["FRU": -30, "FRL": -60]))
+        let elbow = rig.part("FRL")!.pivot!, shoulder = rig.part("FRU")!.pivot!
+        suite.expect(abs(shoulder.applying(bent["FRU"]!).x - shoulder.x) < 0.001
+                     && abs(elbow.applying(bent["FRL"]!).x - elbow.applying(bent["FRU"]!).x) < 0.001
+                     && abs(elbow.applying(bent["FRL"]!).y - elbow.applying(bent["FRU"]!).y) < 0.001
+                     && rig.part("FRL")!.hull.map { $0.applying(bent["FRL"]!).y }.min()! < rig.part("FRL")!.hull.map(\.y).min()!,
+                     "a raised fist turns at the shoulder and the elbow, and the forearm follows the upper arm")
+
+        let acts = NotchMascotPuppetMotion.acts(for: .show).enumerated().map { ("act \($0.offset)", $0.element.track) }
+            + NotchMascotPuppetMotion.acts(for: .waiting).enumerated().map { ("waiting act \($0.offset)", $0.element.track) }
+        let tracks = NotchMascotReaction.allCases.map { ("\($0)", NotchMascotPuppetMotion.track(for: $0)) }
+            + NotchMascotMood.allCases.map { ("\($0)", NotchMascotPuppetMotion.track(for: $0)) }
+            + [("stroll", NotchMascotPuppetMotion.stroll)] + acts
+        for (name, track) in tracks {
+            let times = track.keys.map(\.at)
+            suite.expect(times.first == 0 && times.last == 1 && zip(times, times.dropFirst()).allSatisfy { $0 < $1 }
+                         && track.duration > 0 && track.joints.isSubset(of: ids)
+                         && track.keys.allSatisfy { key in
+                             key.pose.turns.values.allSatisfy { abs($0) <= 90 }
+                                 && abs(key.pose.rot) <= 10 && abs(key.pose.dx) <= 12 && abs(key.pose.dy) <= 24 },
+                         "Rocky's \(name) move runs in order and turns only joints he has, never past what stone can")
+            suite.expect(track.loops ? track.pose(at: 0) == track.pose(at: 1) : track.keys.last?.pose == .rest,
+                         "his \(name) move loops without a jump, or ends back at rest")
+        }
+        suite.expect(NotchMascotReaction.allCases.allSatisfy { NotchMascotPuppetMotion.track(for: $0).duration == $0.length },
+                     "each of his reactions lasts as long as every companion's")
+        // Clicked, he leaps out under the island for a show, and is back within a few seconds.
+        let desk = CGRect(x: 0, y: 0, width: 1512, height: 982)
+        let showSize = NotchMascotSupport.showtimeSize
+        let middle = NotchMascotSupport.showtimeFrame(size: showSize, under: 950, near: 756, screen: desk)
+        let corner = NotchMascotSupport.showtimeFrame(size: showSize, under: 950, near: 4, screen: desk)
+        let wave = NotchMascotPuppetMotion.acts(for: .show).last
+        let shows: [[NotchMascotShowBeat]] = (0..<6).map { NotchMascotPuppetMotion.showtime(round: $0) }
+        let lengths: [TimeInterval] = shows.map { show in show.reduce(0.0) { $0 + max($1.act.track.duration, $1.line.readingTime) } }
+        let middles: [NotchMascotShowBeat] = shows.compactMap { $0.count == 3 ? $0[1] : nil }
+        var distinct: [NotchMascotPuppetTrack] = []
+        for beat in middles where !distinct.contains(beat.act.track) { distinct.append(beat.act.track) }
+        let placed = desk.contains(middle) && middle.maxY <= 950 && abs(middle.midX - 756) <= 1
+            && middle.width >= showSize * 1.4 && middle.height >= middle.width + NotchMascotSupport.showtimeCaptionRoom - 1
+            && desk.contains(corner)
+        let acted = middles.count == shows.count
+            && shows.allSatisfy { $0.first?.act == wave && $0.first?.line == .showHello && $0.last?.line == .showBye }
+            && middles.allSatisfy { $0.line == $0.act.showLine && $0.line != .showHello }
+            && lengths.allSatisfy { $0 <= 13 } && distinct.count > 2
+        suite.expect(placed && acted,
+                     "a show out of the island stays whole on screen under it: hello with a wave, a different act each time with its own line, and goodbye with a bow")
+        let show = NotchMascotPuppetMotion.acts(for: .show), waiting = NotchMascotPuppetMotion.acts(for: .waiting)
+        suite.expect(show.count >= 5 && waiting.count >= 3 && NotchMascotPuppetMotion.acts(for: .off).isEmpty
+                     && (show + waiting).allSatisfy { !$0.track.loops && (2.5...5).contains($0.track.duration) }
+                     && show.compactMap(\.line) == [.make] && waiting.allSatisfy { $0.line == nil }
+                     && NotchMascotPerformance.spacing.lowerBound >= 15
+                     && NotchMascotSupport.performHoverDelay > NotchSupport.defaultHoverDelay * 2
+                     && NotchMascotSupport.performHoverDelay <= 1
+                     && !NotchMascotSupport.waitsForMusic(pausedFor: 1_800) && NotchMascotSupport.waitsForMusic(pausedFor: 3_600)
+                     && NotchMascotSupport.grooveInterval >= 3_600
+                     && NotchMascotSupport.resumeGrooveInterval >= 60
+                     && NotchMascotSupport.resumeGrooveInterval < NotchMascotSupport.grooveInterval,
+                     "in the empty island he plays a short act now and then, quietly but for a hammering now and then, waits for paused music with acts of its own, the island waits a little longer over him for a click, and music has to stay paused an hour before he waits for it, and starting it calls him out at most once an hour")
+
+        // In his ball, whatever he does, his stone stays inside the glass.
+        let size: CGFloat = 40, radius = size * NotchMascotPuppet.ballRadius
+        let place = rig.placement(size: size, enclosed: true)
+        var farthest: CGFloat = 0
+        for (_, track) in tracks {
+            for step in 0...48 {
+                let placed = rig.transforms(track.pose(at: Double(step) / 48).damped(NotchMascotPuppet.ballDamping))
+                for part in rig.parts {
+                    guard let transform = placed[part.id] else { continue }
+                    for point in part.hull {
+                        let p = point.applying(transform)
+                        farthest = max(farthest, hypot(place.origin.x + p.x * place.scale - size / 2,
+                                                       place.origin.y + p.y * place.scale - size / 2))
+                    }
+                }
+            }
+        }
+        let feet = place.origin.y + rig.groundY * place.scale
+        suite.expect(farthest < radius * 0.95 && farthest > radius * 0.6 && feet > size / 2,
+                     "in his ball he is as big as fits, never touches the glass whatever he does, and stands on its lower panels")
+        let standing = rig.placement(size: size, enclosed: false)
+        suite.expect(CGRect(x: 0, y: 0, width: size, height: size).contains(standing.figure)
+                     && abs(standing.figure.midX - size / 2) < 0.5,
+                     "out of it he stands centred in his square")
+
+        let ball = NotchMascotGeometry.geodesicBall(size: size)
+        let square = CGRect(x: 0, y: 0, width: size, height: size)
+        suite.expect([ball.back, ball.front, ball.rim, ball.glint].allSatisfy { square.contains($0.boundingBoxOfPath) }
+                     && ball.panels.count == 3 && !ball.glint.isEmpty && !ball.back.isEmpty
+                     && ball.hubs.allSatisfy { hypot($0.x - size / 2, $0.y - size / 2) <= radius + 0.001 }
+                     && ball.rim.boundingBoxOfPath.width > radius * 1.6 && ball.rim.boundingBoxOfPath.height > radius * 1.8,
+                     "his ball is drawn whole in his square: struts behind and before him, three lit panels and a rim")
+
+        let recordings = (try? FileManager.default.contentsOfDirectory(atPath: folder.path))?
+            .filter { $0.hasSuffix(".mp3") } ?? []
+        let reachable = Set(NotchMascotReaction.allCases.map(NotchMascotLine.line(for:)))
+            .union(NotchMascotMoment.allCases.compactMap(\.line))
+            .union([NotchMascotVisit.Kind.lap, .pass, .home].flatMap(NotchMascotLine.lines(for:)))
+            .union([.sleep]).union(NotchMascotLine.showLines)
+        // Settings lists what each moment makes him say, dozing off and his show.
+        let listed = Set(NotchMascotMoment.allCases.flatMap(NotchMascotLine.lines(for:))).union([.sleep])
+            .union(NotchMascotLine.showLines)
+        suite.expect(Set(NotchMascotLine.allCases.map(\.file)) == Set(recordings) && reachable == Set(NotchMascotLine.allCases)
+                     && listed == reachable
+                     && Set(NotchMascotLine.allCases.map(\.text)).count == NotchMascotLine.allCases.count
+                     && NotchMascotLine.allCases.allSatisfy { (2.4...4.5).contains($0.readingTime) },
+                     "each of his lines is recorded in the app, has a moment to be said in, and stays up long enough to read")
+        var gate = NotchMascotLineGate()
+        let first = gate.line(for: .celebrate, at: 100)
+        let echo = gate.line(for: .celebrate, at: 100.5)
+        gate.cue(.amaze, for: .celebrate, until: 110)
+        let cued = gate.line(for: .celebrate, at: 102)
+        let after = gate.line(for: .celebrate, at: 104)
+        gate.cue(.energy, for: .yawn, until: 105)
+        let stale = gate.line(for: .yawn, at: 106)
+        // A download's cheer that never played leaves no line behind for the
+        // next cheer, asked for by something else.
+        var later = NotchMascotLineGate()
+        later.cue(.amaze, for: .celebrate, until: 140)
+        later.cue(nil, for: .celebrate, until: 140)
+        let replaced = later.line(for: .celebrate, at: 120)
+        suite.expect(first == .fist && echo == nil && cued == .amaze && after == .fist && stale == .watchdone
+                        && replaced == .fist,
+                     "a moment shown twice at once is said once, and a reaction says the line of what caused it while that is news, as the latest request tells it")
+        suite.expect(NotchMascotPuppetMotion.holdsStill(.idle, size: 30) && NotchMascotPuppetMotion.holdsStill(.sleepy, size: 30)
+                        && !NotchMascotPuppetMotion.holdsStill(.idle, size: NotchMascotSupport.showtimeSize)
+                        && !NotchMascotPuppetMotion.holdsStill(.searching, size: 30),
+                     "in the island he holds his resting pose still, where breathing would not show, and breathes where it does")
+        let stroll = NotchMascotLine.lines(for: .lap)
+        let spacing = NotchMascotLineGate.ambientSpacing
+        let soon = gate.ambient(stroll, at: 116)
+        let walking = gate.ambient(stroll, at: 106 + spacing)
+        let searching = gate.ambient(stroll, at: 106 + spacing * 2)
+        let none = gate.ambient(stroll, at: 106 + spacing * 3)
+        suite.expect(soon == nil && walking == .walk && searching == .search && none == nil
+                     && NotchMascotLineGate.ambientRepeat > spacing * 2
+                     && NotchMascotLine.lines(for: .pass).isEmpty,
+                     "his own lines on a stroll come only now and then, taking turns, and he keeps quiet crossing over what the island shows")
+        suite.expect((Defaults.registeredDefaults[DefaultsKey.notchMascotSubtitles] as? Bool) == true,
+                     "his subtitles show until the person turns them off")
+        suite.expect((Defaults.registeredDefaults[DefaultsKey.notchMascotVoice] as? Bool) == false,
+                     "he stays quiet until the person turns his voice on")
     }
 
     private static func strollContracts(_ suite: TestSuite) {
@@ -494,6 +661,17 @@ enum NotchMascotTests {
         suite.expect(NotchMascotSupport.hidesWhenIdle(in: defaults) && NotchMascotSupport.visits(in: defaults)
                      && NotchMascotSupport.reacts(in: defaults),
                      "hiding when idle, it still visits and reacts")
+        // Rocky performing in the empty island stays out of it instead.
+        defaults.set(NotchMascotStyle.rocky.rawValue, forKey: DefaultsKey.notchMascotStyle)
+        let rockyPerforms = NotchMascotSupport.performs(in: defaults) && !NotchMascotSupport.hidesWhenIdle(in: defaults)
+        defaults.set(false, forKey: DefaultsKey.notchMascotPerforms)
+        let rockyHides = !NotchMascotSupport.performs(in: defaults) && NotchMascotSupport.hidesWhenIdle(in: defaults)
+        defaults.set(true, forKey: DefaultsKey.notchMascotPerforms)
+        defaults.set(NotchMascotStyle.pebble.rawValue, forKey: DefaultsKey.notchMascotStyle)
+        suite.expect(rockyPerforms && rockyHides && !NotchMascotSupport.performs(in: defaults)
+                     && NotchMascotSupport.hidesWhenIdle(in: defaults)
+                     && Defaults.registeredDefaults[DefaultsKey.notchMascotPerforms] as? Bool == true,
+                     "Rocky performs in the empty island by default instead of hiding, and only Rocky does")
         defaults.set(false, forKey: DefaultsKey.notchMascotEnabled)
         suite.expect(!NotchMascotSupport.hidesWhenIdle(in: defaults), "switched off, it has nothing to hide from")
 

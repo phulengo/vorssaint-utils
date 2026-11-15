@@ -1519,7 +1519,7 @@ def main():
           + "".join(declaration(notch, prefix).replace("    private ", "    ", 1) for prefix in [
               "    private var hiddenUntilHover:", "    private var hiddenAtRestInFullscreen:",
               "    private var hoverOpeningEnabled:", "    private var watchesHiddenHover:", "    func hover(",
-              "    func shelfDragMoved(",
+              "    private func scheduleHoverOpening(", "    func shelfDragMoved(",
               "    private func syncHoverExitMonitoring(", "    private func removeHoverExitMonitors(",
               "    var showsCompactActivityPicker:",
               "    private func missionControlDidRestore()",

@@ -68,7 +68,9 @@ enum ShelfDropRoutingContract {
         var opened: [NotchModule] = []
         var reactions: [NotchMascotReaction] = []
         func refreshPresentation() {}
-        func reactMascot(_ reaction: NotchMascotReaction, patience: TimeInterval = 8) { reactions.append(reaction) }
+        func reactMascot(_ reaction: NotchMascotReaction, patience: TimeInterval = 8, line: NotchMascotLine? = nil) {
+            reactions.append(reaction)
+        }
         func open(_ module: NotchModule, pinned: Bool = false, takeFocus: Bool = true) {
             opened.append(module)
             if pinned { self.pinned = true }

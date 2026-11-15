@@ -374,6 +374,10 @@ final class NotchService: ObservableObject {
     private var mascotReactionGate = NotchMascotReactionGate()
     /// When music last brought it out, on the media clock.
     private var lastMascotGroove: CFTimeInterval = -.infinity
+    /// When the music paused while Rocky performs: a long enough pause has
+    /// him wait for it, and its return brings a groove.
+    private var mascotMusicPausedAt: CFTimeInterval?
+    private var mascotMusicWaitWork: DispatchWorkItem?
     /// Whether Keep Awake held the Mac up when the companion last looked,
     /// nil before it first did.
     private var mascotSawKeepAwake: Bool?
@@ -507,6 +511,15 @@ final class NotchService: ObservableObject {
 
     /// The face it keeps at rest: wide awake while Keep Awake holds the Mac up.
     var mascotRestingMood: NotchMascotMood { KeepAwakeManager.shared.isActive ? .alert : .idle }
+
+    /// What Rocky plays resting in the empty island: waiting for the music
+    /// once a song has stayed paused a while, his own little acts otherwise.
+    var mascotPerformance: NotchMascotPerformance {
+        guard mascotRestsInView, NotchMascotSupport.performs() else { return .off }
+        let paused = NotchMusicService.shared.playback.map { !$0.isPlaying } == true
+        let waited = mascotMusicPausedAt.map { NotchMascotSupport.waitsForMusic(pausedFor: CACurrentMediaTime() - $0) } == true
+        return paused && waited ? .waiting : .show
+    }
 
     /// Whether the closed island on `geometry` draws the companion: resting,
     /// or strolling through, where its wings fit beside the camera. A capsule
@@ -1576,6 +1589,42 @@ final class NotchService: ObservableObject {
         return true
     }
 
+    /// Opens the closed island, or lets it peek, once the pointer has stayed
+    /// on it for `delay` from `started`. On Rocky as he performs, it waits
+    /// longer, so a click can reach him for an act instead.
+    private func scheduleHoverOpening(after delay: TimeInterval, started: CFTimeInterval) {
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.hoverWork = nil
+            let waited = CACurrentMediaTime() - started
+            if waited < NotchMascotSupport.performHoverDelay, !self.expanded, !self.peeking,
+               NotchMascotIslandStage.covers(NSEvent.mouseLocation) {
+                self.scheduleHoverOpening(after: NotchMascotSupport.performHoverDelay - waited, started: started)
+                return
+            }
+            // An opening that is no longer eligible keeps any following:
+            // an emphasis or a picker may still show, and the next move
+            // decides whether it is still needed.
+            guard self.running, !self.suspended, self.inside, !self.hoverState.suppressed,
+                  !self.expanded, !self.peeking, !self.pinned, !self.heldDrag, !self.keepsWorkingSurface,
+                  !self.showsCompactActivityPicker,
+                  self.captureControls == nil, (self.notice == nil || self.hiddenUntilHover), !self.dragPlaceholder,
+                  self.hoverOpeningEnabled,
+                  self.windowHost?.blocksHoverReveal() == false,
+                  self.geometry.contains(NSEvent.mouseLocation, in: self.watchesHiddenHover ? self.geometry.collapsed : self.surfaceSize) else { return }
+            // Following the closed island ends as it opens or peeks.
+            self.removeHoverExitMonitors()
+            if UserDefaults.standard.bool(forKey: DefaultsKey.notchHoverExpands) {
+                self.open(takeFocus: false)
+            } else {
+                self.mutatePresentation(transitionContent: .reveal) { self.peeking = true }
+                self.provideHapticFeedback()
+            }
+        }
+        hoverWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+
     func hover(_ entered: Bool) {
         guard running, !suspended, !hiddenAtRestInFullscreen || watchesHiddenHover else { removeHoverExitMonitors(); return }
         let point = NSEvent.mouseLocation
@@ -1632,31 +1681,8 @@ final class NotchService: ObservableObject {
                   hoverOpeningEnabled else { return }
             if !hiddenInFullscreen, compactActivity != nil, compactActivityGeometry.compactActivityWingWidth > 0,
                !UserDefaults.standard.bool(forKey: DefaultsKey.notchHoverExpands) { return }
-            let work = DispatchWorkItem { [weak self] in
-                guard let self else { return }
-                self.hoverWork = nil
-                // An opening that is no longer eligible keeps any following:
-                // an emphasis or a picker may still show, and the next move
-                // decides whether it is still needed.
-                guard self.running, !self.suspended, self.inside, !self.hoverState.suppressed,
-                      !self.expanded, !self.peeking, !self.pinned, !self.heldDrag, !self.keepsWorkingSurface,
-                      !self.showsCompactActivityPicker,
-                      self.captureControls == nil, (self.notice == nil || self.hiddenUntilHover), !self.dragPlaceholder,
-                      self.hoverOpeningEnabled,
-                      self.windowHost?.blocksHoverReveal() == false,
-                      self.geometry.contains(NSEvent.mouseLocation, in: self.watchesHiddenHover ? self.geometry.collapsed : self.surfaceSize) else { return }
-                // Following the closed island ends as it opens or peeks.
-                self.removeHoverExitMonitors()
-                if UserDefaults.standard.bool(forKey: DefaultsKey.notchHoverExpands) {
-                    self.open(takeFocus: false)
-                } else {
-                    self.mutatePresentation(transitionContent: .reveal) { self.peeking = true }
-                    self.provideHapticFeedback()
-                }
-            }
-            hoverWork = work
             let delay = NotchSupport.sanitizedHoverDelay(UserDefaults.standard.double(forKey: DefaultsKey.notchHoverDelay))
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+            scheduleHoverOpening(after: delay, started: CACurrentMediaTime())
         } else if holdsNotification
                     || NotchSupport.closesOnPointerExit(expanded: expanded, peeking: peeking, openedByHover: openedByHover) {
             let work = DispatchWorkItem { [weak self] in
@@ -2331,7 +2357,7 @@ final class NotchService: ObservableObject {
             if !optimize { NotchFileToolsService.shared.hideMedia() }
             open(.files)
             // A little hop for the file it watched come in, once the island rests again.
-            reactMascot(.celebrate, patience: 30)
+            reactMascot(.celebrate, patience: 30, line: .amaze)
         }
         return accepted
     }
@@ -2787,6 +2813,8 @@ final class NotchService: ObservableObject {
                 if self.captureControls != nil { self.expandCaptureControls() }
                 // The capsule's button covers its music bars too, which play or pause there.
                 else if self.geometry.floats, self.musicStripShowsControl { self.toggleMusicStripSong() }
+                // A click on Rocky as he performs asks him for an act, and the island stays closed.
+                else if !self.expanded, NotchMascotIslandStage.covers(NSEvent.mouseLocation) { NotchMascotIslandStage.performNow() }
                 else if !self.expanded, self.compactActivity == .calendar {
                     self.openCountdownEvent()
                 } else { self.toggle() }
@@ -3646,6 +3674,9 @@ final class NotchService: ObservableObject {
                                         background: { AnyView(NotchWindowBackground(presentation: $0)) },
                                         quickAccess: { AnyView(NotchQuickAccessView(service: self, motion: $0, backdrop: $1)) })
             windowHost?.missionControlDidRestore = { [weak self] in self?.missionControlDidRestore() }
+            NotchMascotSpeech.shared.showLine = { [weak self] text, duration in
+                self?.windowHost?.showMascotLine(text, for: duration)
+            }
             windowHost?.setHoverHandler { [weak self] in self?.hover($0) }
             panel?.title = FeatureStrings.notch(L10n.shared.language).title
         }
@@ -4184,6 +4215,22 @@ final class NotchService: ObservableObject {
                 .removeDuplicates().dropFirst().filter { $0 }.receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in self?.mascotHearsMusic() }
                 .store(in: &subscriptions)
+            // Paused, Rocky waits for it in the empty island; the island
+            // draws him again for that, as it does for the music itself.
+            music.$playback.map { $0?.isPlaying }.removeDuplicates().dropFirst().receive(on: DispatchQueue.main)
+                .sink { [weak self] playing in
+                    guard let self else { return }
+                    self.mascotMusicWaitWork?.cancel(); self.mascotMusicWaitWork = nil
+                    guard NotchMascotSupport.performs() else { self.mascotMusicPausedAt = nil; return }
+                    if playing == false {
+                        // Only a pause that lasts has him sit down to wait.
+                        self.mascotMusicPausedAt = CACurrentMediaTime()
+                        let work = DispatchWorkItem { [weak self] in self?.objectWillChange.send() }
+                        self.mascotMusicWaitWork = work
+                        DispatchQueue.main.asyncAfter(deadline: .now() + NotchMascotSupport.musicWaitDelay + 0.1, execute: work)
+                    }
+                }
+                .store(in: &subscriptions)
             // A capsule names each new song for a moment: the song playing,
             // or the next one once the notice releases the song it held.
             music.$playback.map { $0?.track.title }.removeDuplicates().map { _ in () }
@@ -4232,7 +4279,7 @@ final class NotchService: ObservableObject {
                 self?.show(NotchNotice(event: .download,
                     title: FeatureStrings.notchFiles(L10n.shared.language).completed,
                     detail: item.name, symbol: "arrow.down.circle.fill", mascot: .celebrate))
-                self?.reactMascot(.celebrate)
+                self?.reactMascot(.celebrate, line: .amaze)
             }
             NotchDownloadService.shared.onFailure = { [weak self] in self?.reactMascot(.confused) }
         }
@@ -4515,7 +4562,7 @@ final class NotchService: ObservableObject {
                          detail: next.chargePercent.map { "\($0)%" } ?? "",
                          symbol: next.externalConnected ? "battery.100percent.bolt" : "battery.25percent",
                          mascot: reaction))
-        if let reaction { reactMascot(reaction) }
+        if let reaction { reactMascot(reaction, line: low ? .energy : nil) }
     }
 
     private func syncVisibleConsumers() {
@@ -5093,7 +5140,7 @@ extension NotchService {
         // The value it starts with is no news.
         guard let saw, saw != active, NotchMascotSupport.isEnabled() else { return }
         objectWillChange.send()
-        reactMascot(active ? .perk : .yawn)
+        reactMascot(active ? .perk : .yawn, line: active ? .rest : .watchdone)
     }
 
     /// An AI agent getting to work where the companion rests: it stays in its
@@ -5112,7 +5159,7 @@ extension NotchService {
         let now = CACurrentMediaTime()
         guard now - lastMascotAgentStart > NotchMascotSupport.agentStartInterval else { return }
         lastMascotAgentStart = now
-        reactMascot(.ready, patience: 1)
+        reactMascot(.ready, patience: 1, line: .fix)
     }
 
     /// The event the island counted down to begins: the companion bounces,
@@ -5128,7 +5175,13 @@ extension NotchService {
     /// out to bob along, if the music still plays, at most once in a while.
     fileprivate func mascotHearsMusic() {
         let now = CACurrentMediaTime()
-        guard NotchMascotSupport.reacts(), now - lastMascotGroove > NotchMascotSupport.grooveInterval else { return }
+        // Rocky waited through a real pause for it: he grooves as it comes
+        // back, sooner than usual but not with every clip in a feed.
+        let waited = NotchMascotSupport.performs()
+            && mascotMusicPausedAt.map { NotchMascotSupport.waitsForMusic(pausedFor: now - $0) } == true
+            && now - lastMascotGroove > NotchMascotSupport.resumeGrooveInterval
+        mascotMusicPausedAt = nil
+        guard NotchMascotSupport.reacts(), waited || now - lastMascotGroove > NotchMascotSupport.grooveInterval else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + NotchMascotSupport.grooveDelay) { [weak self] in
             guard NotchMusicService.shared.playback?.isPlaying == true else { return }
             self?.reactMascot(.groove, patience: 3)
@@ -5142,8 +5195,10 @@ extension NotchService {
     /// `delay` holds it back a moment, so a reaction asked for right after
     /// takes its place, as a command's own does the Command Bar's cheer.
     func reactMascot(_ reaction: NotchMascotReaction, patience: TimeInterval = NotchMascotReactionGate.patience,
-                     after delay: TimeInterval = 0) {
+                     after delay: TimeInterval = 0, line: NotchMascotLine? = nil) {
         guard NotchMascotSupport.reacts() else { return }
+        // Rocky says what the moment was, where other moments share its reaction.
+        NotchMascotSpeech.shared.cue(line, for: reaction, within: delay + patience + reaction.length + 2)
         // A notice on screen that shows the companion plays it there already.
         if notice?.mascot == reaction, noticeCanPresent {
             _ = mascotReactionGate.admits(reaction, at: CACurrentMediaTime())

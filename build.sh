@@ -286,6 +286,8 @@ if (( TEST )); then
         Sources/Vorssaint/Services/Notch/NotchWatchSupport.swift
         Sources/Vorssaint/Core/NotchMascotStrings.swift
         Sources/Vorssaint/Services/Notch/NotchMascotSupport.swift
+        Sources/Vorssaint/Services/Notch/NotchMascotPuppet.swift
+        Sources/Vorssaint/Services/Notch/NotchMascotLines.swift
         Sources/Vorssaint/Services/CommandBar/CommandBarDropletMotion.swift
         Sources/Vorssaint/Services/Notch/NotchFileToolsSupport.swift
         Sources/Vorssaint/Services/Notch/NotchDownloadSupport.swift
@@ -769,6 +771,10 @@ fi
 if [[ -d Resources/Images ]]; then
     mkdir -p "$STAGE/Contents/Resources/Images"
     cp Resources/Images/* "$STAGE/Contents/Resources/Images/"
+fi
+# The photographed companions: their layers, rig and recorded lines.
+if [[ -d Resources/Companion ]]; then
+    cp -R Resources/Companion "$STAGE/Contents/Resources/"
 fi
 xattr -c -r "$STAGE" 2>/dev/null || true
 

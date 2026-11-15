@@ -1009,6 +1009,9 @@ enum DefaultsKey {
     static let notchMascotPalette = "notchMascotPalette" // NotchMascotPalette.rawValue
     static let notchMascotEnclosed = "notchMascotEnclosed" // the companion sits inside a little glass dome
     static let notchMascotCustomImage = "notchMascotCustomImage" // file name of the custom companion's picture
+    static let notchMascotVoice = "notchMascotVoice" // Rocky says his lines aloud when he reacts
+    static let notchMascotSubtitles = "notchMascotSubtitles" // Rocky's lines show under the island as he says them
+    static let notchMascotPerforms = "notchMascotPerforms" // Rocky stays out and plays little acts while the island is empty
     static let notchMascotSide = "notchMascotSide" // NotchMascotSide.rawValue, beside the camera
     static let notchMascotVisitFrequency = "notchMascotVisitFrequency" // NotchMascotVisitFrequency.rawValue
     static let notchMascotHidesWhenIdle = "notchMascotHidesWhenIdle" // hops into the island after a quiet while
@@ -1627,6 +1630,9 @@ enum Defaults {
         DefaultsKey.notchMascotPalette: NotchMascotPalette.pearl.rawValue,
         DefaultsKey.notchMascotEnclosed: false,
         DefaultsKey.notchMascotCustomImage: "",
+        DefaultsKey.notchMascotVoice: false,
+        DefaultsKey.notchMascotSubtitles: true,
+        DefaultsKey.notchMascotPerforms: true,
         DefaultsKey.notchMascotSide: NotchMascotSide.left.rawValue,
         DefaultsKey.notchMascotVisitFrequency: NotchMascotVisitFrequency.normal.rawValue,
         DefaultsKey.notchMascotHidesWhenIdle: true,
