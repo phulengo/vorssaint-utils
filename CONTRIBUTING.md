@@ -25,13 +25,16 @@ A plain `./build.sh` builds the optimized variant used by CI; its health check i
 
 ### Packaging a copy for someone
 
-`Tools/make-edition.sh NAME ICON.png CLASSIC-ICON.png [SETTINGS.plist]` turns the
-app `./build.sh` built into a renamed copy with its own icon, writing
-`dist/NAME.app` and a DMG. The copy never checks for updates, since an official
-update would replace it with a different app. Given a settings backup, it starts
-from those settings on its first launch on each Mac. It is signed like a local
-build, not notarized, so macOS asks to confirm it in Privacy & Security the first
-time it opens. `Resources/Editions/Rocky` holds the art for a Rocky copy.
+`Tools/make-edition.sh NAME EDITION_FOLDER [SETTINGS.plist]` builds a renamed copy
+to give someone, writing `dist/NAME.app` and a DMG. It builds from a copy of the
+tree in which `Tools/rename-app.py` replaces the app's name in every language;
+copyright and license notices keep the original name, as the GPL asks. The edition
+folder holds the copy's icon art and, optionally, a silhouette for its menu bar and
+windows; `Resources/Editions/Rocky` is one. The copy never checks for updates, since
+an official update would replace it with a different app. Given a settings backup,
+it starts from those settings on its first launch on each Mac. It is signed like a
+local build, not notarized, so macOS asks to confirm it in Privacy & Security the
+first time it opens.
 
 ### Stable signing
 

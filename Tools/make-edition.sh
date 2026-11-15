@@ -2,40 +2,55 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Vorssaint
 
-# Packages the built app as a renamed copy to give someone outside the
-# official releases: its own name and icon, no update checks (an official
-# update would replace it with a different app), and, if given, the settings
-# it starts from on its first launch, as a backup from Settings → Advanced or
-# `--export-settings` writes them. Writes dist/<Name>.app and
-# dist/<Name>-<version>.dmg. Run ./build.sh first.
+# Packages a renamed copy of the app to give someone outside the official
+# releases. It is built from a copy of this tree in which the app's name, in
+# every language, reads NAME (Tools/rename-app.py; copyright and license
+# notices keep the original name), and it gets its own icon and marks. It
+# never checks for updates, since an official update would replace it with a
+# different app, and, if given, starts from a settings backup on its first
+# launch, as one from Settings → Advanced or `--export-settings` writes it.
+# Writes dist/<NAME>.app and dist/<NAME>-<version>.dmg.
 #
-#   Tools/make-edition.sh NAME ICON.png CLASSIC-ICON.png [SETTINGS.plist]
+#   Tools/make-edition.sh NAME EDITION_FOLDER [SETTINGS.plist]
 #
-# ICON.png is a 1024-pixel square the system rounds into the icon's shape;
-# CLASSIC-ICON.png is the same art already rounded, with the usual margin,
-# for macOS versions before adaptive icons.
+# EDITION_FOLDER holds icon.png, a 1024-pixel square the system rounds into
+# the icon's shape; icon-classic.png, the same art already rounded with the
+# usual margin, for macOS versions before adaptive icons; and optionally
+# mark.png, a silhouette for the menu bar and the app's own windows.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if (( $# < 3 )); then
-    echo "usage: Tools/make-edition.sh NAME ICON.png CLASSIC-ICON.png [SETTINGS.plist]" >&2
+if (( $# < 2 )); then
+    echo "usage: Tools/make-edition.sh NAME EDITION_FOLDER [SETTINGS.plist]" >&2
     exit 2
 fi
 NAME="$1"
-ICON="$2"
-CLASSIC="$3"
-SETTINGS="${4:-}"
-SOURCE="build/stage/Vorssaint.app"
-if [[ ! -d "$SOURCE" ]]; then
-    echo "✗ $SOURCE not found — run ./build.sh first" >&2
-    exit 1
-fi
+EDITION="$2"
+SETTINGS="${3:-}"
+ICON="$EDITION/icon.png"
+CLASSIC="$EDITION/icon-classic.png"
+MARK="$EDITION/mark.png"
 for file in "$ICON" "$CLASSIC" ${SETTINGS:+"$SETTINGS"}; do
     [[ -f "$file" ]] || { echo "✗ $file not found" >&2; exit 1; }
 done
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
+
+echo "▸ Building a copy named $NAME…"
+COPY="$WORK/source"
+mkdir -p "$COPY"
+rsync -a --exclude /build --exclude /dist --exclude /plans --exclude /.claude --exclude /.git ./ "$COPY/"
+python3 Tools/rename-app.py "$COPY" "$NAME"
+if ! (cd "$COPY" && ./build.sh) >"$WORK/build.log" 2>&1; then
+    tail -n 30 "$WORK/build.log" >&2
+    echo "✗ the renamed copy did not build" >&2
+    exit 1
+fi
+SOURCE="$COPY/build/stage/Vorssaint.app"
+"$SOURCE/Contents/MacOS/Vorssaint" --selftest >"$WORK/selftest.log" 2>&1 \
+    || { tail -n 20 "$WORK/selftest.log" >&2; echo "✗ the renamed copy failed its selftest" >&2; exit 1; }
+
 APP="$WORK/$NAME.app"
 ditto "$SOURCE" "$APP"
 xattr -cr "$APP"
@@ -99,6 +114,9 @@ if (( ! COMPILED )); then
     rm -f "$RESOURCES/Assets.car"
     /usr/libexec/PlistBuddy -c "Delete :CFBundleIconName" "$PLIST" 2>/dev/null || true
     echo "  adaptive icon skipped; the classic icon is used"
+fi
+if [[ -f "$MARK" ]]; then
+    swift Tools/MakeEditionMarks.swift "$MARK" "$RESOURCES" >/dev/null
 fi
 
 if [[ -n "$SETTINGS" ]]; then
