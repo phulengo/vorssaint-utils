@@ -994,6 +994,31 @@ enum MixerFeatureTests {
                 && !MixerRoutingSupport.needsPersistentFinderRow(showFinder: false,
                                                                  hasFinderRow: false),
                "Finder is never duplicated and stays absent when hidden")
+        let open: Set<String> = ["com.apple.FaceTime"]
+        suite.expect(MixerRoutingSupport.callApp(forDaemon: "com.apple.avconferenced", isOpen: open.contains) == "com.apple.FaceTime"
+                        && MixerRoutingSupport.callApp(forDaemon: "com.apple.avconferenced",
+                                                       isOpen: ["com.apple.mobilephone"].contains) == "com.apple.mobilephone"
+                        && MixerRoutingSupport.callApp(forDaemon: "com.apple.avconferenced", isOpen: { _ in false }) == nil
+                        && MixerRoutingSupport.callApp(forDaemon: "com.apple.coreaudiod", isOpen: { _ in true }) == nil
+                        && MixerRoutingSupport.callApp(forDaemon: nil, isOpen: { _ in true }) == nil,
+               "a FaceTime or Phone call's voice, played by avconferenced, belongs to the call app that is open; no other daemon is billed to an app")
+        let hdpn = UInt32(0x6864_706e), ispk = UInt32(0x6973_706b)
+        suite.expect(MixerRoutingSupport.isCall(daemonBundleIdentifier: "com.apple.avconferenced", playing: true, recording: true)
+                        && !MixerRoutingSupport.isCall(daemonBundleIdentifier: "com.apple.avconferenced", playing: true, recording: false)
+                        && !MixerRoutingSupport.isCall(daemonBundleIdentifier: "com.apple.CoreSpeech", playing: true, recording: true),
+               "a call is the call daemon playing and recording at once; dictation or a ringtone is not")
+        suite.expect(MixerRoutingSupport.callOutput(transportType: kAudioDeviceTransportTypeBluetooth, dataSource: nil, records: true) == .headphones
+                        && MixerRoutingSupport.callOutput(transportType: kAudioDeviceTransportTypeBuiltIn, dataSource: hdpn, records: false) == .headphones
+                        && MixerRoutingSupport.callOutput(transportType: kAudioDeviceTransportTypeBuiltIn, dataSource: ispk, records: false) == .speakers
+                        && MixerRoutingSupport.callOutput(transportType: kAudioDeviceTransportTypeUSB, dataSource: nil, records: true) == .headphones
+                        && MixerRoutingSupport.callOutput(transportType: kAudioDeviceTransportTypeUSB, dataSource: nil, records: false) == .speakers
+                        && MixerRoutingSupport.callOutput(transportType: kAudioDeviceTransportTypeHDMI, dataSource: nil, records: false) == .speakers,
+               "a call plays in headphones over Bluetooth, the built-in jack or a USB headset, and out loud otherwise")
+        suite.expect(AppLanguage.allCases.allSatisfy {
+                        let text = FeatureStrings.mixer($0)
+                        return !text.callSpeakers.isEmpty && !text.callHeadphones.isEmpty && text.callSpeakers != text.callHeadphones
+                            && !text.earlierApps.isEmpty && !text.laterApps.isEmpty && text.earlierApps != text.laterApps
+                     }, "the call notes are written in every language")
         suite.expect(MixerRoutingSupport.bypassesProcessTap(bundleIdentifier: "us.zoom.xos", name: "zoom.us"),
                "Zoom is kept out of process-tap audio routing")
         suite.expect(MixerRoutingSupport.bypassesProcessTap(bundleIdentifier: "us.zoom.ZoomAutoUpdater", name: "Zoom"),

@@ -299,8 +299,14 @@ struct NotchRail<Item: Identifiable, Content: View>: View {
     var leastSpacing: CGFloat? = nil
     var rowSpacing: CGFloat = 8
     var scrollTarget: Item.ID? = nil
+    /// Labels for arrows that turn a scrolling rail a page at a time, for a
+    /// mouse, whose wheel the controls in it may keep for themselves. Nil
+    /// keeps the rail to scrolling alone.
+    var pageLabels: (back: String, forward: String)? = nil
     @ViewBuilder let content: (Item) -> Content
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The leftmost column in view, by its first item's index.
+    @State private var position: Int?
 
     private var columns: Int { NotchLayout.railColumns(count: items.count, rows: rows) }
     private var starts: [Int] { Array(stride(from: 0, to: items.count, by: max(1, rows))) }
@@ -332,10 +338,14 @@ struct NotchRail<Item: Identifiable, Content: View>: View {
                     LazyHStack(alignment: .top, spacing: spacing) {
                         ForEach(starts, id: \.self) { start in column(start).frame(width: itemWidth).id(start) }
                     }
+                    .scrollTargetLayout()
                     .contentShape(Rectangle())
                 }
+                .scrollPosition(id: $position, anchor: .leading)
                 .scrollIndicators(.never)
                 .notchScrollEdgeFade(.horizontal)
+                .overlay(alignment: .leading) { pageArrow(forward: false) }
+                .overlay(alignment: .trailing) { pageArrow(forward: true) }
                 .onAppear {
                     if let targetColumn { proxy.scrollTo(targetColumn, anchor: .center) }
                 }
@@ -345,6 +355,34 @@ struct NotchRail<Item: Identifiable, Content: View>: View {
                         proxy.scrollTo(target, anchor: .center)
                     }
                 }
+            }
+        }
+    }
+
+    /// The arrow that turns the rail a page, shown while columns are hidden
+    /// that way.
+    @ViewBuilder private func pageArrow(forward: Bool) -> some View {
+        if let pageLabels {
+            let visible = NotchLayout.railVisibleColumns(itemWidth: itemWidth, spacing: spacing, width: width)
+            let first = starts.firstIndex(of: position ?? 0) ?? 0
+            let target = NotchLayout.railPage(from: first, forward: forward, visible: visible, columns: starts.count)
+            if target != first {
+                let label = forward ? pageLabels.forward : pageLabels.back
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.22)) { position = starts[target] }
+                } label: {
+                    Image(systemName: forward ? "chevron.right" : "chevron.left")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .frame(width: 26, height: 52)
+                        .background(Color.black.opacity(0.72), in: Capsule())
+                        .overlay(Capsule().strokeBorder(.white.opacity(0.14)))
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .help(label)
+                .accessibilityLabel(label)
+                .padding(.horizontal, 2)
             }
         }
     }

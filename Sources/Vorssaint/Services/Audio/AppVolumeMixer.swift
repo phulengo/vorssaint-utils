@@ -105,6 +105,9 @@ final class AppVolumeMixer: ObservableObject {
     /// Apps kept out of the list (issue #300), including the Finder when its
     /// own toggle hides it, so the panel can offer to bring any of them back.
     @Published private(set) var hiddenApps: [MixerHiddenApp] = []
+    /// A FaceTime or Phone call under way, and where it plays: macOS turns
+    /// other apps down meanwhile, which the panel says.
+    @Published private(set) var call: MixerCall?
 
     private var engines: [String: any GainEngine] = [:]
     /// Arbitrates the engine builds running off-main: it suppresses duplicate
@@ -1596,6 +1599,7 @@ final class AppVolumeMixer: ObservableObject {
         let apps: [MixerApp]?
         let processObjects: [AudioObjectID]
         let lowered: LoweredOutputState
+        var call: MixerCall? = nil
     }
 
     /// Kicks off one refresh. Reading the audio HAL happens on `halQueue`;
@@ -1704,6 +1708,7 @@ final class AppVolumeMixer: ObservableObject {
         if snapshot.outputDevices != outputDevices {
             outputDevices = snapshot.outputDevices
         }
+        if call != snapshot.call { call = snapshot.call }
         subscribeToOutputControls(of: snapshot.defaultDeviceID)
         applyOutputControls(volume: snapshot.systemOutputVolume, muted: snapshot.systemOutputMuted)
 
@@ -1784,6 +1789,7 @@ final class AppVolumeMixer: ObservableObject {
         var groups: [pid_t: [AudioObjectID]] = [:]
         var playing: Set<pid_t> = []
         var bypassed: Set<pid_t> = []
+        var callActive = false
         var bundleHints: [pid_t: String] = [:]
         let processObjects = audioProcessObjects()
         for object in processObjects {
@@ -1793,7 +1799,14 @@ final class AppVolumeMixer: ObservableObject {
             // Show every regular app that holds an audio connection, not only
             // the ones making sound this instant, so apps are adjustable before
             // they play and stay put between sounds.
-            guard let app = ResponsibleProcess.regularAppOwner(of: pid) else { continue }
+            if !callActive {
+                var output: UInt32 = 0, input: UInt32 = 0
+                _ = Self.read(object, kAudioProcessPropertyIsRunningOutput, &output)
+                _ = Self.read(object, kAudioProcessPropertyIsRunningInput, &input)
+                callActive = MixerRoutingSupport.isCall(daemonBundleIdentifier: Self.processBundleIdentifier(of: object),
+                                                        playing: output != 0, recording: input != 0)
+            }
+            guard let app = ResponsibleProcess.regularAppOwner(of: pid) ?? Self.callAppOwner(of: object) else { continue }
             let owner = app.processIdentifier
             let name = ResponsibleProcess.displayName(pid: owner, fallback: app.localizedName ?? "pid \(owner)")
             // Bypassed apps still get a row — hiding them read
@@ -1902,7 +1915,21 @@ final class AppVolumeMixer: ObservableObject {
                                systemOutputMuted: systemOutputMuted,
                                apps: next,
                                processObjects: processObjects,
-                               lowered: lowered)
+                               lowered: lowered,
+                               call: callActive ? defaultDevice.map { Self.callOutput(of: $0.audioObjectID) } ?? .speakers : nil)
+    }
+
+    /// Where a call on `device` plays: headphones or out loud.
+    private static func callOutput(of device: AudioObjectID) -> MixerCall {
+        var transport: UInt32 = 0, source: UInt32 = 0
+        _ = read(device, kAudioDevicePropertyTransportType, &transport)
+        let hasSource = read(device, kAudioDevicePropertyDataSource, &source, scope: kAudioObjectPropertyScopeOutput)
+        var address = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyStreams,
+                                                 mScope: kAudioObjectPropertyScopeInput,
+                                                 mElement: kAudioObjectPropertyElementMain)
+        var size: UInt32 = 0
+        let records = AudioObjectGetPropertyDataSize(device, &address, 0, nil, &size) == noErr && size > 0
+        return MixerRoutingSupport.callOutput(transportType: transport, dataSource: hasSource ? source : nil, records: records)
     }
 
     /// Runs in the HAL snapshot after rows with the same identity have been
@@ -2468,6 +2495,15 @@ final class AppVolumeMixer: ObservableObject {
     /// The bundle id the audio HAL itself reports for a process object. Used
     /// only to fill in an identity the running-application lookup could not
     /// provide, never to override it.
+    /// The call app a call daemon plays for, when one is open: a FaceTime
+    /// call's voice comes from avconferenced, not from FaceTime.
+    private static func callAppOwner(of object: AudioObjectID) -> NSRunningApplication? {
+        let running = { (bundle: String) in NSRunningApplication.runningApplications(withBundleIdentifier: bundle).first }
+        guard let app = MixerRoutingSupport.callApp(forDaemon: processBundleIdentifier(of: object),
+                                                    isOpen: { running($0) != nil }) else { return nil }
+        return running(app)
+    }
+
     private static func processBundleIdentifier(of object: AudioObjectID) -> String? {
         guard #available(macOS 14.4, *) else { return nil }
         var bundleRef: CFString = "" as CFString

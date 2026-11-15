@@ -63,7 +63,23 @@ struct NotchMixerView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // The output and the options sit in the island's top row, beside the
         // camera where they fit, so the faders take the whole page.
-        .notchBand(leading: { NotchOutputDeviceMenu(inBand: true) }, trailing: {
+        .notchBand(leading: {
+            HStack(spacing: 10) {
+                NotchOutputDeviceMenu(inBand: true)
+                // During a call macOS turns other apps down; say so, rather
+                // than let their sliders seem broken.
+                if let call = mixer.call {
+                    let text = FeatureStrings.mixer(l10n.language)
+                    let note = call == .speakers ? text.callSpeakers : text.callHeadphones
+                    Label(note, systemImage: "phone.fill")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.55))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .help(note)
+                }
+            }
+        }, trailing: {
             NotchIconButton(symbol: showingOptions ? "xmark" : "slider.horizontal.3",
                             title: showingOptions ? l10n.s.menuClose : l10n.s.keepAwakeOptions,
                             selected: showingOptions, action: toggleOptions)
@@ -98,8 +114,10 @@ struct NotchMixerView: View {
         } else {
             let apps = apps
             let ids = apps.compactMap(\.persistenceID)
+            let text = FeatureStrings.mixer(l10n.language)
             NotchRail(items: apps, rows: 1, itemWidth: Self.columnWidth,
-                      width: size.width - leadingWidth - 21) { app in
+                      width: size.width - leadingWidth - 21,
+                      pageLabels: (text.earlierApps, text.laterApps)) { app in
                 NotchAppFader(app: app, height: faderHeight, editingVolumeID: $editingVolumeID,
                               isPinned: arrangement.isPinned(app.persistenceID),
                               togglePin: { updateArrangement { $0.togglePin(app.persistenceID ?? "") } },

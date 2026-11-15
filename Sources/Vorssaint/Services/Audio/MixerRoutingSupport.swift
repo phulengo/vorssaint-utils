@@ -162,6 +162,11 @@ struct MixerRefreshCoordinator {
     }
 }
 
+/// A call under way, by where its sound plays.
+enum MixerCall: Equatable {
+    case headphones, speakers
+}
+
 enum MixerRoutingSupport {
     static func observationNeeds(isAvailable: (AppFeature) -> Bool)
         -> (devices: Bool, processes: Bool) {
@@ -777,6 +782,49 @@ enum MixerRoutingSupport {
 
     static func needsPersistentFinderRow(showFinder: Bool, hasFinderRow: Bool) -> Bool {
         showFinder && !hasFinderRow
+    }
+
+    /// A call plays through a system daemon, not the app on screen: FaceTime's
+    /// calls, and those the Phone app takes from an iPhone, come out of
+    /// avconferenced, while the app itself plays nothing. The daemon's sound
+    /// belongs to whichever of those apps is open, so that app's row controls
+    /// the caller's voice. Only this daemon: other system sounds stay untouched.
+    static let callDaemonApps: [String: [String]] = [
+        "com.apple.avconferenced": ["com.apple.FaceTime", "com.apple.mobilephone"],
+    ]
+
+    /// Whether a call is under way: a call daemon both playing and recording.
+    static func isCall(daemonBundleIdentifier: String?, playing: Bool, recording: Bool) -> Bool {
+        guard let bundle = daemonBundleIdentifier?.lowercased(), callDaemonApps[bundle] != nil else { return false }
+        return playing && recording
+    }
+
+    /// Where a call's sound goes. In headphones it cannot reach the
+    /// microphone; through speakers it can, which is why macOS turns other
+    /// apps down then. Bluetooth, the built-in jack and a USB headset, one
+    /// that also records, are headphones; everything else plays out loud.
+    static func callOutput(transportType: UInt32, dataSource: UInt32?, records: Bool) -> MixerCall {
+        switch transportType {
+        case kAudioDeviceTransportTypeBluetooth, kAudioDeviceTransportTypeBluetoothLE:
+            return .headphones
+        case kAudioDeviceTransportTypeBuiltIn:
+            return dataSource == fourCharacterCode("hdpn") ? .headphones : .speakers
+        case kAudioDeviceTransportTypeUSB:
+            return records ? .headphones : .speakers
+        default:
+            return .speakers
+        }
+    }
+
+    private static func fourCharacterCode(_ text: String) -> UInt32 {
+        text.utf8.reduce(0) { $0 << 8 | UInt32($1) }
+    }
+
+    /// The app a call daemon's audio is billed to, the first of its apps that
+    /// is open; nil for any other process, or with none of them open.
+    static func callApp(forDaemon bundleIdentifier: String?, isOpen: (String) -> Bool) -> String? {
+        guard let bundle = bundleIdentifier?.lowercased(), let apps = callDaemonApps[bundle] else { return nil }
+        return apps.first(where: isOpen)
     }
 
     /// Replaying a call app's audio under our process defeats its screen-share

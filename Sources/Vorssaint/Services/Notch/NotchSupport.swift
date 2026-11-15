@@ -514,6 +514,19 @@ enum NotchLayout {
         (max(0, count) + max(1, rows) - 1) / max(1, rows)
     }
 
+    /// How many whole columns a scrolling rail shows at once.
+    static func railVisibleColumns(itemWidth: CGFloat, spacing: CGFloat, width: CGFloat) -> Int {
+        max(1, Int((width + spacing) / max(1, itemWidth + spacing)))
+    }
+
+    /// The column a rail's arrow turns to from `first`, the leftmost one in
+    /// view: a whole view's worth further, stopping where the last column
+    /// comes in at the right edge, or back at the start.
+    static func railPage(from first: Int, forward: Bool, visible: Int, columns: Int) -> Int {
+        let last = max(0, columns - max(1, visible))
+        return min(last, max(0, first + (forward ? 1 : -1) * max(1, visible)))
+    }
+
     static func railFits(columns: Int, itemWidth: CGFloat, spacing: CGFloat, width: CGFloat) -> Bool {
         CGFloat(columns) * itemWidth + CGFloat(max(0, columns - 1)) * spacing <= width
     }
