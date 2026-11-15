@@ -58,12 +58,16 @@ enum UpdateServiceSupport {
         let major: Int
         let minor: Int
         let patch: Int
+        /// A fourth number, which a renamed copy counts its own releases
+        /// with on top of the app's version: 3.4.4.2 follows 3.4.4.1. Zero
+        /// for the app's own three-number versions.
+        let revision: Int
         let prerelease: [PrereleaseIdentifier]
 
         var isPrerelease: Bool { !prerelease.isEmpty }
 
         var description: String {
-            let core = "\(major).\(minor).\(patch)"
+            let core = revision > 0 ? "\(major).\(minor).\(patch).\(revision)" : "\(major).\(minor).\(patch)"
             if prerelease.isEmpty { return core }
             return "\(core)-\(prerelease.map(\.description).joined(separator: "."))"
         }
@@ -83,6 +87,7 @@ enum UpdateServiceSupport {
             self.major = coreNumbers.indices.contains(0) ? coreNumbers[0] : 0
             self.minor = coreNumbers.indices.contains(1) ? coreNumbers[1] : 0
             self.patch = coreNumbers.indices.contains(2) ? coreNumbers[2] : 0
+            self.revision = coreNumbers.indices.contains(3) ? coreNumbers[3] : 0
 
             if parts.count > 1 {
                 let prereleasePart = parts.dropFirst().joined(separator: "-")
@@ -95,10 +100,11 @@ enum UpdateServiceSupport {
             }
         }
 
-        init(major: Int, minor: Int, patch: Int, prerelease: [PrereleaseIdentifier] = []) {
+        init(major: Int, minor: Int, patch: Int, revision: Int = 0, prerelease: [PrereleaseIdentifier] = []) {
             self.major = major
             self.minor = minor
             self.patch = patch
+            self.revision = revision
             self.prerelease = prerelease
         }
 
@@ -106,6 +112,7 @@ enum UpdateServiceSupport {
             if lhs.major != rhs.major { return lhs.major < rhs.major }
             if lhs.minor != rhs.minor { return lhs.minor < rhs.minor }
             if lhs.patch != rhs.patch { return lhs.patch < rhs.patch }
+            if lhs.revision != rhs.revision { return lhs.revision < rhs.revision }
 
             // When major, minor, and patch are equal, a pre-release version has lower
             // precedence than a normal (release) version.

@@ -967,6 +967,26 @@ enum UpdateFeatureTests {
                                                                  volumeIsReadOnly: { _ in false }),
                "apps on a writable external volume stay updatable in place")
         let installerScript = UpdateInstallerSupport.installerScript()
+        // A renamed copy counts its own releases with a fourth number and
+        // takes only updates signed with its own certificate.
+        let signer = String(repeating: "ab", count: 20)
+        let pinnedScript = UpdateInstallerSupport.installerScript(signer: signer)
+        suite.expect(UpdateServiceSupport.isNewer("3.4.4.2", than: "3.4.4.1")
+                        && UpdateServiceSupport.isNewer("3.4.4.1", than: "3.4.4")
+                        && UpdateServiceSupport.isNewer("3.4.5", than: "3.4.4.9")
+                        && !UpdateServiceSupport.isNewer("3.4.4", than: "3.4.4.1")
+                        && !UpdateServiceSupport.isNewer("3.4.4.0", than: "3.4.4")
+                        && UpdateServiceSupport.SemanticVersion(raw: "3.4.4.2")?.description == "3.4.4.2"
+                        && UpdateServiceSupport.SemanticVersion(raw: "3.4.4")?.description == "3.4.4",
+                     "a fourth version number orders a renamed copy's own releases and leaves three-number versions as they were")
+        suite.expect(pinnedScript.contains("certificate leaf = H\"\(signer)\"") && !pinnedScript.contains("3D485NHW29")
+                        && pinnedScript.contains("GATEKEEPER_OK=1")
+                        && installerScript.contains("3D485NHW29") && installerScript.contains("GATEKEEPER_OK=0")
+                        && UpdateInstallerSupport.installerScript(signer: "not-a-hash'; rm -rf /") == installerScript
+                        && UpdateInstallerSupport.elevatedInstallCommand(appPath: "/A.app", dmgPath: "/u.dmg", pid: 1,
+                                                                         resultPath: "/r", uid: 501, expectedVersion: "1",
+                                                                         signer: signer).contains(signer),
+                     "a renamed copy's installer pins its own certificate in place of the Developer ID, and anything but a hash keeps the official check")
         for step in ["fail-dmg-verify", "fail-tempdir", "fail-mount", "fail-no-app-in-dmg",
                      "fail-copy", "fail-version", "fail-verify", "fail-swap", "note ok"] {
             suite.expect(installerScript.contains(step),

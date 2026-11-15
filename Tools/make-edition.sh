@@ -13,6 +13,12 @@
 #
 #   Tools/make-edition.sh NAME EDITION_FOLDER [SETTINGS.plist]
 #
+# With EDITION_UPDATES=owner/repository it updates itself from that GitHub
+# repository's releases instead: each must be signed with the certificate
+# this copy is, and carries the next EDITION_REVISION, the fourth number of
+# its version (3.4.4.1, 3.4.4.2, ...). Publish the DMG as a release tagged
+# with that version, without the settings, which only a first install needs.
+#
 # EDITION_FOLDER holds icon.png, a 1024-pixel square the system rounds into
 # the icon's shape; icon-classic.png, the same art already rounded with the
 # usual margin, for macOS versions before adaptive icons; and optionally
@@ -48,6 +54,12 @@ if ! (cd "$COPY" && ./build.sh) >"$WORK/build.log" 2>&1; then
     exit 1
 fi
 SOURCE="$COPY/build/stage/Vorssaint.app"
+UPDATES="${EDITION_UPDATES:-}"
+REVISION="${EDITION_REVISION:-}"
+if [[ -n "$UPDATES" && ! "$REVISION" =~ ^[1-9][0-9]*$ ]]; then
+    echo "✗ EDITION_UPDATES needs EDITION_REVISION, a whole number above the last release's" >&2
+    exit 1
+fi
 "$SOURCE/Contents/MacOS/Vorssaint" --selftest >"$WORK/selftest.log" 2>&1 \
     || { tail -n 20 "$WORK/selftest.log" >&2; echo "✗ the renamed copy failed its selftest" >&2; exit 1; }
 
@@ -61,7 +73,23 @@ echo "▸ Naming it $NAME…"
 /usr/libexec/PlistBuddy -c "Set :CFBundleName $NAME" "$PLIST"
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $NAME" "$PLIST"
 /usr/libexec/PlistBuddy -c "Delete :VorssaintUpdatesDisabled" "$PLIST" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Add :VorssaintUpdatesDisabled bool true" "$PLIST"
+IDENTITY="$(codesign -dvv "$SOURCE" 2>&1 | sed -n 's/^Authority=//p' | head -n 1)"
+if [[ -n "$UPDATES" ]]; then
+    # Updates come from its own releases, signed with this copy's certificate.
+    # A self-signed certificate is its own root: the requirement names it so.
+    SIGNER="$(codesign -d -r- "$SOURCE" 2>&1 | sed -nE 's/.*certificate (leaf|root) = H"([0-9a-f]{40})".*/\2/p' | head -n 1)"
+    if [[ -z "$IDENTITY" || -z "$SIGNER" ]]; then
+        echo "✗ updates need a signing certificate that stays the same; run Tools/setup-signing.sh" >&2
+        exit 1
+    fi
+    BASE="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$PLIST")"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $BASE.$REVISION" "$PLIST"
+    /usr/libexec/PlistBuddy -c "Add :VorssaintUpdateRepository string $UPDATES" "$PLIST"
+    /usr/libexec/PlistBuddy -c "Add :VorssaintUpdateSigner string $SIGNER" "$PLIST"
+    echo "  version $BASE.$REVISION, updates from $UPDATES"
+else
+    /usr/libexec/PlistBuddy -c "Add :VorssaintUpdatesDisabled bool true" "$PLIST"
+fi
 
 echo "▸ Drawing its icon…"
 ICONSET="$WORK/AppIcon.iconset"
@@ -126,7 +154,6 @@ if [[ -n "$SETTINGS" ]]; then
 fi
 
 echo "▸ Signing…"
-IDENTITY="$(codesign -dvv "$SOURCE" 2>&1 | sed -n 's/^Authority=//p' | head -n 1)"
 codesign --force --strip-disallowed-xattrs --preserve-metadata=entitlements,requirements,flags \
     --sign "${IDENTITY:--}" "$APP"
 codesign --verify --deep --strict "$APP"
@@ -138,3 +165,8 @@ ditto "$APP" "dist/$NAME.app"
 
 # The official disk image's window: its icon, an arrow and Applications.
 DMG_APP_NAME="$NAME" DMG_APP="$APP" Tools/make-dmg.sh
+if [[ -n "$UPDATES" ]]; then
+    # The installer checks the disk image's signer before it opens it.
+    codesign --force --sign "$IDENTITY" "dist/$NAME-$VERSION.dmg"
+    codesign --verify --strict "dist/$NAME-$VERSION.dmg"
+fi
