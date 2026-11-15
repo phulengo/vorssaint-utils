@@ -8,7 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 - Dynamic Island can play an album’s animated cover from Apple Music in place of the still cover, both closed and open. Turn on Animated covers from Apple Music in the music settings. It’s off by default, and most albums don’t have one.
-- Choose your own GIF to replace the music bars in the closed Dynamic Island. It plays with the song and holds still while it’s paused. Every GIF you add stays in a collection to pick again or delete, and you can set its size and the strip’s side and top-and-bottom padding; the strip widens to fit.
+- Choose your own GIF to replace the music bars in the closed Dynamic Island. It plays with the song and holds still while it’s paused. Every GIF you add stays in a collection to pick again or delete, and you can set its size and the strip’s side and top-and-bottom padding; the strip widens to fit. Opened, the island’s Now Playing shows the GIF as large as the cover, across from it.
 - A new Pebble companion: a cut stone with gem eyes and a glowing crystal, with every reaction of the other companions. Any companion can also sit in a little glass dome.
 - Claude account has an Automatic choice that follows the account Claude Code wrote to last, such as one CCS switched to, so the live session, its model and the projects are those of the work under way.
 - The Custom companion shows a picture or GIF of your own and moves it with every reaction of the other companions. A still photo has its subject lifted off its background, and a GIF plays its own frames.
