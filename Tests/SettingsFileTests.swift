@@ -165,7 +165,36 @@ enum SettingsFileTests {
             let danglingTarget = try manager.destinationOfSymbolicLink(atPath: link.path)
             suite.expect(danglingTarget == target.path && !manager.fileExists(atPath: target.path),
                          "an external deletion remains a deletion")
+            try edition(suite, root: root, defaults: defaults)
         } catch { suite.expect(false, "settings file fixture failed: \(error)") }
+    }
+
+    /// A copy packaged with someone's settings starts from them once on a Mac:
+    /// a later change stays, a mode such as a selftest takes none, and a
+    /// plain build, which carries none, changes nothing.
+    private static func edition(_ suite: TestSuite, root: URL, defaults: UserDefaults) throws {
+        let carried = root.appendingPathComponent("EditionSettings.plist")
+        defaults.set("light", forKey: DefaultsKey.appearance)
+        defaults.set(true, forKey: DefaultsKey.notchMascotVoice)
+        suite.expect(Backup.write(to: carried, from: defaults), "a packaged copy's settings are an ordinary backup")
+        defaults.set("dark", forKey: DefaultsKey.appearance)
+        defaults.set(false, forKey: DefaultsKey.notchMascotVoice)
+        defaults.removeObject(forKey: DefaultsKey.editionSettingsApplied)
+        let plain = Backup.applyEditionSettingsAtFirstLaunch(arguments: ["Vorssaint"], url: nil, defaults: defaults)
+        let probe = Backup.applyEditionSettingsAtFirstLaunch(arguments: ["Vorssaint", "--selftest"], url: carried,
+                                                             defaults: defaults)
+        suite.expect(!plain && !probe && defaults.string(forKey: DefaultsKey.appearance) == "dark",
+                     "a plain build and a selftest leave the settings alone")
+        let first = Backup.applyEditionSettingsAtFirstLaunch(arguments: ["Vorssaint"], url: carried, defaults: defaults)
+        suite.expect(first && defaults.string(forKey: DefaultsKey.appearance) == "light"
+                        && defaults.bool(forKey: DefaultsKey.notchMascotVoice)
+                        && defaults.bool(forKey: DefaultsKey.editionSettingsApplied),
+                     "the first launch starts from the settings the copy carries")
+        defaults.set("dark", forKey: DefaultsKey.appearance)
+        let again = Backup.applyEditionSettingsAtFirstLaunch(arguments: ["Vorssaint"], url: carried, defaults: defaults)
+        suite.expect(!again && defaults.string(forKey: DefaultsKey.appearance) == "dark"
+                        && !SettingsBackupSupport.exportKeys().contains(DefaultsKey.editionSettingsApplied),
+                     "later launches keep what was changed since, and the mark never travels in a backup")
     }
 
     private static func exerciseProfiles(at target: URL, defaults: UserDefaults,

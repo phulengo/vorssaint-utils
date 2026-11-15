@@ -11,6 +11,9 @@ if let command = SettingsBackupSupport.command(in: CommandLine.arguments) {
 
 SuperKeyMappingGuard.runIfRequestedAndExit()
 Defaults.register()
+// A copy packaged with someone's settings starts from them, before this Mac's
+// own declarative file has its say.
+SettingsBackup.applyEditionSettingsAtFirstLaunch()
 let configuredFeatureKeys = SettingsBackup.applyConfigFileAtLaunch()
 NotchControlItem.keyboardLightIsSupported = { BrightnessService.keyboardLightIsSupported }
 MouseAccelerationGuard.runIfRequestedAndExit()

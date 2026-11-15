@@ -23,6 +23,16 @@ It has its own preferences and permissions and does not replace the official app
 A plain `./build.sh` builds the optimized variant used by CI; its health check is
 `./build/Vorssaint --selftest`.
 
+### Packaging a copy for someone
+
+`Tools/make-edition.sh NAME ICON.png CLASSIC-ICON.png [SETTINGS.plist]` turns the
+app `./build.sh` built into a renamed copy with its own icon, writing
+`dist/NAME.app` and a DMG. The copy never checks for updates, since an official
+update would replace it with a different app. Given a settings backup, it starts
+from those settings on its first launch on each Mac. It is signed like a local
+build, not notarized, so macOS asks to confirm it in Privacy & Security the first
+time it opens. `Resources/Editions/Rocky` holds the art for a Rocky copy.
+
 ### Stable signing
 
 Developer and install builds automatically try to create a stable local signing

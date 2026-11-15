@@ -741,7 +741,9 @@ struct AboutSettings: View {
                 aboutContent
             }
 
-            UpdatesView()
+            if !AppInfo.updatesDisabled {
+                UpdatesView()
+            }
         }
         .formStyle(.grouped)
     }

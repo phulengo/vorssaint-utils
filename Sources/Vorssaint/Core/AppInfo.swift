@@ -25,6 +25,13 @@ enum AppInfo {
         (Bundle.main.bundleIdentifier ?? "").hasSuffix(".dev")
     }
 
+    /// A copy packaged apart from the official releases, as one renamed for a
+    /// friend, sets `VorssaintUpdatesDisabled` in its Info.plist: an official
+    /// update would replace it with a different app, so it never looks for one.
+    static var updatesDisabled: Bool {
+        Bundle.main.object(forInfoDictionaryKey: "VorssaintUpdatesDisabled") as? Bool == true
+    }
+
     /// True when the current version is a pre-release (e.g. 3.3.4-beta.1 or 3.3.4-rc.1).
     static var isBeta: Bool {
         if isDeveloperBuild && UserDefaults.standard.bool(forKey: DefaultsKey.simulateBetaUI) {

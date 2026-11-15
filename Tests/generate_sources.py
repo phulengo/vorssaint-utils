@@ -104,7 +104,8 @@ def main():
           + "".join(declaration(backup, prefix) for prefix in [
               "    static func write(to ", "    static func readSettings(at ",
               "    static func apply(settings:", "    static var configFileURL:",
-              "    static func applyConfigFileAtLaunch(", "    static func anotherInstanceIsRunning("])
+              "    static func applyConfigFileAtLaunch(", "    static func anotherInstanceIsRunning(",
+              "    static var editionSettingsURL:", "    static func applyEditionSettingsAtFirstLaunch("])
           + "}\n}\n")
     slider_area = "Sources/Vorssaint/UI/SliderScrollArea.swift"
     slider_control = "Sources/Vorssaint/UI/Notch/NotchLevelSlider.swift"
