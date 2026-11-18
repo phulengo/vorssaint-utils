@@ -11,6 +11,30 @@ struct NotchMascotStrings {
     let style: String
     let minimal: String
     let robot: String
+    /// A cut stone with gem eyes and a crystal behind it.
+    let pebble: String
+    /// Rocky, the stone puppet from a photo.
+    let rocky: String
+    /// Whether Rocky says his lines aloud, and what that means.
+    let voice: String
+    let voiceHint: String
+    /// Whether his lines show under the island, and what each moment makes him say.
+    let subtitles: String
+    let subtitlesHint: String
+    let linesTitle: String
+    let dozing: String
+    /// Clicked in the island, his show out of it.
+    let showtime: String
+    /// Rocky staying out in the empty island to play little acts.
+    let performs: String
+    let performsHint: String
+    /// The switch that puts the companion in a little glass dome.
+    let enclosure: String
+    /// The style that shows a picture or GIF of the person's own.
+    let custom: String
+    let chooseImage: String
+    let customHint: String
+    let imageRefused: String
     let shape: String
     let ball: String
     let egg: String
@@ -68,7 +92,13 @@ struct NotchMascotStrings {
     let keywords: String
 
     func style(_ style: NotchMascotStyle) -> String {
-        style == .robot ? robot : minimal
+        switch style {
+        case .minimal: return minimal
+        case .robot: return robot
+        case .pebble: return pebble
+        case .rocky: return rocky
+        case .custom: return custom
+        }
     }
 
     func shape(_ shape: NotchMascotShape) -> String {
@@ -123,7 +153,7 @@ struct NotchMascotStrings {
 
     /// What a search finds its page by, besides its name.
     var searchKeywords: [String] {
-        [hint, visits, reactions, hidesWhenIdle, appearance, style, robot, color, behavior,
+        [hint, visits, reactions, hidesWhenIdle, appearance, style, robot, pebble, rocky, voice, subtitles, linesTitle, showtime, performs, enclosure, custom, color, behavior,
          commandBar, keywords]
     }
 
@@ -144,7 +174,11 @@ extension FeatureStrings {
             hint: "A little friend who lives in the Dynamic Island. It rests there when nothing else is showing, and comes out over music and activities to say hello and react to what happens.",
             visits: "Appear now and then",
             visitsHint: "Every few minutes it passes through the island with a short animation.",
-            style: "Style", minimal: "Minimal", robot: "Robot",
+            style: "Style", minimal: "Minimal", robot: "Robot", pebble: "Pebble", rocky: "Rocky", voice: "Rocky’s voice", voiceHint: "He says a line when he reacts: his chords first, then the translation.", subtitles: "Rocky’s subtitles", subtitlesHint: "His lines show under the island as he says them.", linesTitle: "What Rocky says, and when", dozing: "Dozing off", showtime: "Clicked: a show",
+            performs: "Perform when the island is empty", performsHint: "Instead of hiding, he stays and plays a little act now and then: tapping a rhythm, stretching, hammering, a dance. With the music paused, he waits for it, and dances when it’s back.", enclosure: "Glass dome",
+            custom: "Custom", chooseImage: "Choose picture…",
+            customHint: "Use a picture or GIF of your own. It hops, sways and reacts like the other companions, and a GIF also plays its own frames.",
+            imageRefused: "Choose a picture or GIF of up to 32 MB.",
             shape: "Shape", ball: "Ball", egg: "Egg", squircle: "Rounded square", pill: "Pill",
             color: "Color", pearl: "Pearl", mint: "Mint", peach: "Peach", lilac: "Lilac", lemon: "Lemon", rose: "Rose",
             commandBar: "Command Bar in the island",
@@ -171,7 +205,11 @@ extension FeatureStrings {
             hint: "Um amiguinho que mora no Dynamic Island. Descansa ali quando não há mais nada aparecendo e sai por cima de músicas e atividades para dar oi e reagir ao que acontece.",
             visits: "Aparecer de vez em quando",
             visitsHint: "A cada poucos minutos ele passa pela ilha com uma animação curta.",
-            style: "Estilo", minimal: "Minimalista", robot: "Robô",
+            style: "Estilo", minimal: "Minimalista", robot: "Robô", pebble: "Pedrinha", rocky: "Rocky", voice: "Voz do Rocky", voiceHint: "Ele diz uma frase quando reage: primeiro seus acordes, depois a tradução.", subtitles: "Legendas do Rocky", subtitlesHint: "As falas dele aparecem sob a ilha enquanto ele as diz.", linesTitle: "O que o Rocky diz, e quando", dozing: "Cochilando", showtime: "Clicado: um show",
+            performs: "Apresentar-se com a ilha vazia", performsHint: "Em vez de se esconder, ele fica e faz um pequeno número de vez em quando: batuca, se espreguiça, martela, dança. Com a música pausada, ele espera e dança quando ela volta.", enclosure: "Cúpula de vidro",
+            custom: "Personalizado", chooseImage: "Escolher imagem…",
+            customHint: "Use uma imagem ou GIF seu. Ela pula, balança e reage como os outros companheiros, e um GIF também mostra seus próprios quadros.",
+            imageRefused: "Escolha uma imagem ou GIF de até 32 MB.",
             shape: "Forma", ball: "Bolinha", egg: "Ovo", squircle: "Quadrado arredondado", pill: "Pílula",
             color: "Cor", pearl: "Pérola", mint: "Menta", peach: "Pêssego", lilac: "Lilás", lemon: "Limão", rose: "Rosa",
             commandBar: "Barra de comando na ilha",
@@ -198,7 +236,11 @@ extension FeatureStrings {
             hint: "Un amiguito que vive en el Dynamic Island. Descansa allí cuando no se muestra nada más y sale sobre la música y las actividades para saludar y reaccionar a lo que pasa.",
             visits: "Aparecer de vez en cuando",
             visitsHint: "Cada pocos minutos pasa por la isla con una animación corta.",
-            style: "Estilo", minimal: "Minimalista", robot: "Robot",
+            style: "Estilo", minimal: "Minimalista", robot: "Robot", pebble: "Piedrita", rocky: "Rocky", voice: "Voz de Rocky", voiceHint: "Dice una frase cuando reacciona: primero sus acordes, luego la traducción.", subtitles: "Subtítulos de Rocky", subtitlesHint: "Sus frases aparecen bajo la isla mientras las dice.", linesTitle: "Qué dice Rocky, y cuándo", dozing: "Quedándose dormido", showtime: "Al hacer clic: un show",
+            performs: "Actuar con la isla vacía", performsHint: "En lugar de esconderse, se queda y hace un pequeño número de vez en cuando: marca un ritmo, se estira, martillea, baila. Con la música en pausa, la espera y baila cuando vuelve.", enclosure: "Cúpula de cristal",
+            custom: "Personalizado", chooseImage: "Elegir imagen…",
+            customHint: "Usa una imagen o un GIF propio. Salta, se balancea y reacciona como los demás compañeros, y un GIF también reproduce sus propios fotogramas.",
+            imageRefused: "Elige una imagen o un GIF de hasta 32 MB.",
             shape: "Forma", ball: "Bolita", egg: "Huevo", squircle: "Cuadrado redondeado", pill: "Píldora",
             color: "Color", pearl: "Perla", mint: "Menta", peach: "Melocotón", lilac: "Lila", lemon: "Limón", rose: "Rosa",
             commandBar: "Barra de comandos en la isla",
@@ -225,7 +267,11 @@ extension FeatureStrings {
             hint: "Malý kamarát, ktorý býva v Dynamic Island. Odpočíva tam, keď sa nič iné nezobrazuje, a ponad hudbu a aktivity sa ukáže, aby pozdravil a zareagoval na to, čo sa deje.",
             visits: "Občas sa ukázať",
             visitsHint: "Každých pár minút prejde ostrovom s krátkou animáciou.",
-            style: "Štýl", minimal: "Minimalistický", robot: "Robot",
+            style: "Štýl", minimal: "Minimalistický", robot: "Robot", pebble: "Kamienok", rocky: "Rocky", voice: "Rockyho hlas", voiceHint: "Keď zareaguje, povie vetu: najprv svoje akordy, potom preklad.", subtitles: "Rockyho titulky", subtitlesHint: "Jeho vety sa zobrazia pod ostrovom, keď ich hovorí.", linesTitle: "Čo Rocky hovorí a kedy", dozing: "Driemanie", showtime: "Po kliknutí: predstavenie",
+            performs: "Vystupovať, keď je ostrov prázdny", performsHint: "Namiesto skrývania zostane a občas niečo predvedie: vyťukáva rytmus, naťahuje sa, kladivkuje, tancuje. Keď je hudba pozastavená, čaká na ňu a keď sa vráti, zatancuje.", enclosure: "Sklenená kupola",
+            custom: "Vlastný", chooseImage: "Vybrať obrázok…",
+            customHint: "Použite vlastný obrázok alebo GIF. Skáče, kolíše sa a reaguje ako ostatní spoločníci a GIF navyše prehráva svoje snímky.",
+            imageRefused: "Vyberte obrázok alebo GIF s veľkosťou najviac 32 MB.",
             shape: "Tvar", ball: "Guľôčka", egg: "Vajíčko", squircle: "Zaoblený štvorec", pill: "Pilulka",
             color: "Farba", pearl: "Perleťová", mint: "Mätová", peach: "Broskyňová", lilac: "Orgovánová", lemon: "Citrónová", rose: "Ružová",
             commandBar: "Príkazová lišta na ostrove",
@@ -252,7 +298,11 @@ extension FeatureStrings {
             hint: "Ein kleiner Freund, der im Dynamic Island wohnt. Er ruht dort, wenn sonst nichts angezeigt wird, und kommt über Musik und Aktivitäten hervor, um Hallo zu sagen und auf das Geschehen zu reagieren.",
             visits: "Ab und zu vorbeischauen",
             visitsHint: "Alle paar Minuten läuft er mit einer kurzen Animation durch die Insel.",
-            style: "Stil", minimal: "Minimal", robot: "Roboter",
+            style: "Stil", minimal: "Minimal", robot: "Roboter", pebble: "Kiesel", rocky: "Rocky", voice: "Rockys Stimme", voiceHint: "Er sagt einen Satz, wenn er reagiert: zuerst seine Akkorde, dann die Übersetzung.", subtitles: "Rockys Untertitel", subtitlesHint: "Seine Sätze erscheinen unter der Insel, während er sie sagt.", linesTitle: "Was Rocky sagt, und wann", dozing: "Eindösen", showtime: "Angeklickt: eine Show",
+            performs: "Bei leerer Insel auftreten", performsHint: "Statt sich zu verstecken, bleibt er und zeigt ab und zu eine kleine Nummer: Er klopft einen Rhythmus, streckt sich, hämmert, tanzt. Ist die Musik pausiert, wartet er und tanzt, wenn sie weiterläuft.", enclosure: "Glaskuppel",
+            custom: "Eigenes Bild", chooseImage: "Bild auswählen…",
+            customHint: "Nutze ein eigenes Bild oder GIF. Es hüpft, wippt und reagiert wie die anderen Begleiter, und ein GIF spielt zusätzlich seine eigenen Bilder ab.",
+            imageRefused: "Wähle ein Bild oder GIF mit höchstens 32 MB.",
             shape: "Form", ball: "Kugel", egg: "Ei", squircle: "Abgerundetes Quadrat", pill: "Pille",
             color: "Farbe", pearl: "Perle", mint: "Minze", peach: "Pfirsich", lilac: "Flieder", lemon: "Zitrone", rose: "Rosa",
             commandBar: "Befehlsleiste in der Insel",
@@ -279,7 +329,11 @@ extension FeatureStrings {
             hint: "Un petit ami qui vit dans le Dynamic Island. Il s’y repose quand rien d’autre n’est affiché, et sort par-dessus la musique et les activités pour dire bonjour et réagir à ce qui se passe.",
             visits: "Passer de temps en temps",
             visitsHint: "Toutes les quelques minutes, il traverse l’île avec une courte animation.",
-            style: "Style", minimal: "Minimaliste", robot: "Robot",
+            style: "Style", minimal: "Minimaliste", robot: "Robot", pebble: "Galet", rocky: "Rocky", voice: "Voix de Rocky", voiceHint: "Il dit une phrase quand il réagit : d’abord ses accords, puis la traduction.", subtitles: "Sous-titres de Rocky", subtitlesHint: "Ses répliques s’affichent sous l’îlot pendant qu’il les dit.", linesTitle: "Ce que dit Rocky, et quand", dozing: "Assoupissement", showtime: "Au clic : un spectacle",
+            performs: "Jouer quand l’îlot est vide", performsHint: "Au lieu de se cacher, il reste et fait de temps en temps un petit numéro : il tape un rythme, s’étire, martèle, danse. Musique en pause, il l’attend et danse à son retour.", enclosure: "Dôme de verre",
+            custom: "Personnalisé", chooseImage: "Choisir une image…",
+            customHint: "Utilisez votre propre image ou GIF. Elle saute, se balance et réagit comme les autres compagnons, et un GIF joue aussi ses propres images.",
+            imageRefused: "Choisissez une image ou un GIF de 32 Mo maximum.",
             shape: "Forme", ball: "Boule", egg: "Œuf", squircle: "Carré arrondi", pill: "Pilule",
             color: "Couleur", pearl: "Perle", mint: "Menthe", peach: "Pêche", lilac: "Lilas", lemon: "Citron", rose: "Rose",
             commandBar: "Barre de commande dans l’île",
@@ -306,7 +360,11 @@ extension FeatureStrings {
             hint: "Un piccolo amico che vive nel Dynamic Island. Riposa lì quando non viene mostrato nient’altro ed esce sopra musica e attività per salutare e reagire a ciò che succede.",
             visits: "Comparire ogni tanto",
             visitsHint: "Ogni pochi minuti attraversa l’isola con una breve animazione.",
-            style: "Stile", minimal: "Minimale", robot: "Robot",
+            style: "Stile", minimal: "Minimale", robot: "Robot", pebble: "Sassolino", rocky: "Rocky", voice: "Voce di Rocky", voiceHint: "Dice una frase quando reagisce: prima i suoi accordi, poi la traduzione.", subtitles: "Sottotitoli di Rocky", subtitlesHint: "Le sue battute compaiono sotto l’isola mentre le dice.", linesTitle: "Cosa dice Rocky, e quando", dozing: "Appisolarsi", showtime: "Al clic: uno spettacolo",
+            performs: "Esibirsi con l’isola vuota", performsHint: "Invece di nascondersi, resta e ogni tanto fa un piccolo numero: batte un ritmo, si stiracchia, martella, balla. Con la musica in pausa la aspetta, e balla quando riparte.", enclosure: "Cupola di vetro",
+            custom: "Personalizzato", chooseImage: "Scegli immagine…",
+            customHint: "Usa un’immagine o una GIF tua. Salta, ondeggia e reagisce come gli altri compagni, e una GIF riproduce anche i propri fotogrammi.",
+            imageRefused: "Scegli un’immagine o una GIF fino a 32 MB.",
             shape: "Forma", ball: "Pallina", egg: "Uovo", squircle: "Quadrato arrotondato", pill: "Pillola",
             color: "Colore", pearl: "Perla", mint: "Menta", peach: "Pesca", lilac: "Lilla", lemon: "Limone", rose: "Rosa",
             commandBar: "Barra dei comandi nell’isola",
@@ -333,7 +391,11 @@ extension FeatureStrings {
             hint: "Маленький друг, который живёт в Dynamic Island. Он отдыхает там, когда больше ничего не показано, и выходит поверх музыки и активностей, чтобы поздороваться и отреагировать на происходящее.",
             visits: "Появляться время от времени",
             visitsHint: "Раз в несколько минут он пробегает по острову с короткой анимацией.",
-            style: "Стиль", minimal: "Минимализм", robot: "Робот",
+            style: "Стиль", minimal: "Минимализм", robot: "Робот", pebble: "Камешек", rocky: "Рокки", voice: "Голос Рокки", voiceHint: "Когда он реагирует, он говорит фразу: сначала свои аккорды, потом перевод.", subtitles: "Субтитры Рокки", subtitlesHint: "Его фразы появляются под островом, пока он их говорит.", linesTitle: "Что и когда говорит Рокки", dozing: "Засыпает", showtime: "По клику: шоу",
+            performs: "Выступать, когда остров пуст", performsHint: "Вместо того чтобы прятаться, он остаётся и время от времени показывает номер: отбивает ритм, потягивается, стучит молотком, танцует. Когда музыка на паузе, он ждёт её и танцует, когда она вернётся.", enclosure: "Стеклянный купол",
+            custom: "Свой", chooseImage: "Выбрать картинку…",
+            customHint: "Используйте свою картинку или GIF. Она прыгает, покачивается и реагирует, как другие компаньоны, а GIF ещё и проигрывает свои кадры.",
+            imageRefused: "Выберите картинку или GIF размером до 32 МБ.",
             shape: "Форма", ball: "Шарик", egg: "Яйцо", squircle: "Скруглённый квадрат", pill: "Пилюля",
             color: "Цвет", pearl: "Жемчуг", mint: "Мята", peach: "Персик", lilac: "Сирень", lemon: "Лимон", rose: "Роза",
             commandBar: "Командная панель на острове",
@@ -360,7 +422,11 @@ extension FeatureStrings {
             hint: "Dynamic Island’da yaşayan küçük bir dost. Başka bir şey görünmediğinde orada dinlenir, merhaba demek ve olanlara tepki vermek için müziğin ve etkinliklerin üzerine çıkar.",
             visits: "Arada bir görün",
             visitsHint: "Birkaç dakikada bir kısa bir animasyonla adadan geçer.",
-            style: "Stil", minimal: "Sade", robot: "Robot",
+            style: "Stil", minimal: "Sade", robot: "Robot", pebble: "Çakıl", rocky: "Rocky", voice: "Rocky’nin sesi", voiceHint: "Tepki verdiğinde bir cümle söyler: önce kendi akorları, sonra çeviri.", subtitles: "Rocky’nin altyazıları", subtitlesHint: "Söyledikçe sözleri adanın altında görünür.", linesTitle: "Rocky ne zaman ne der", dozing: "Uyuklarken", showtime: "Tıklanınca: gösteri",
+            performs: "Ada boşken gösteri yap", performsHint: "Saklanmak yerine kalır ve arada küçük bir gösteri yapar: ritim tutar, gerinir, çekiç sallar, dans eder. Müzik duraklatıldığında onu bekler, geri gelince dans eder.", enclosure: "Cam kubbe",
+            custom: "Özel", chooseImage: "Resim Seç…",
+            customHint: "Kendi resminizi veya GIF’inizi kullanın. Diğer arkadaşlar gibi zıplar, sallanır ve tepki verir; GIF ayrıca kendi karelerini oynatır.",
+            imageRefused: "En fazla 32 MB boyutunda bir resim veya GIF seçin.",
             shape: "Şekil", ball: "Top", egg: "Yumurta", squircle: "Yuvarlak kare", pill: "Hap",
             color: "Renk", pearl: "İnci", mint: "Nane", peach: "Şeftali", lilac: "Leylak", lemon: "Limon", rose: "Gül",
             commandBar: "Komut çubuğu adada",
@@ -387,7 +453,11 @@ extension FeatureStrings {
             hint: "Dynamic Island に住む小さな友だちです。ほかに何も表示されていないときはそこで休み、音楽やアクティビティの上にも出てきて、あいさつしたり出来事に反応したりします。",
             visits: "ときどき現れる",
             visitsHint: "数分ごとに、短いアニメーションでアイランドを通り抜けます。",
-            style: "スタイル", minimal: "ミニマル", robot: "ロボット",
+            style: "スタイル", minimal: "ミニマル", robot: "ロボット", pebble: "小石", rocky: "ロッキー", voice: "ロッキーの声", voiceHint: "反応するときにひとこと話します。まず彼の和音、続いて翻訳です。", subtitles: "ロッキーの字幕", subtitlesHint: "話しているあいだ、セリフがアイランドの下に表示されます。", linesTitle: "ロッキーがいつ何を言うか", dozing: "うとうと", showtime: "クリックでショー",
+            performs: "アイランドが空のときに演じる", performsHint: "隠れる代わりにそこにとどまり、ときどき小さな芸を見せます。リズムを刻む、伸びをする、トンカチを打つ、踊る。音楽が一時停止中は待っていて、再生されると踊ります。", enclosure: "ガラスドーム",
+            custom: "カスタム", chooseImage: "画像を選択…",
+            customHint: "自分の画像やGIFを使います。ほかのコンパニオンと同じように跳ねたり揺れたり反応したりし、GIFは自分のフレームも再生します。",
+            imageRefused: "32 MB以下の画像またはGIFを選択してください。",
             shape: "形", ball: "まる", egg: "たまご", squircle: "角丸の四角", pill: "カプセル",
             color: "色", pearl: "パール", mint: "ミント", peach: "ピーチ", lilac: "ライラック", lemon: "レモン", rose: "ローズ",
             commandBar: "アイランドのコマンドバー",
@@ -414,7 +484,11 @@ extension FeatureStrings {
             hint: "Dynamic Island에 사는 작은 친구입니다. 다른 것이 표시되지 않을 때는 그곳에서 쉬고, 음악과 활동 위로도 나와 인사하고 일어난 일에 반응합니다.",
             visits: "가끔 나타나기",
             visitsHint: "몇 분마다 짧은 애니메이션으로 아일랜드를 지나갑니다.",
-            style: "스타일", minimal: "미니멀", robot: "로봇",
+            style: "스타일", minimal: "미니멀", robot: "로봇", pebble: "조약돌", rocky: "록키", voice: "록키의 목소리", voiceHint: "반응할 때 한마디 합니다. 먼저 그의 화음, 이어서 번역이 나옵니다.", subtitles: "록키의 자막", subtitlesHint: "말하는 동안 대사가 아일랜드 아래에 표시됩니다.", linesTitle: "록키가 언제 무슨 말을 하는지", dozing: "졸 때", showtime: "클릭하면 쇼",
+            performs: "아일랜드가 비었을 때 공연", performsHint: "숨는 대신 머물며 가끔 작은 재주를 보여 줍니다. 박자 맞추기, 기지개, 망치질, 춤. 음악이 일시 정지되면 기다렸다가 다시 재생되면 춤을 춥니다.", enclosure: "유리 돔",
+            custom: "사용자 지정", chooseImage: "이미지 선택…",
+            customHint: "직접 고른 이미지나 GIF를 사용합니다. 다른 컴패니언처럼 뛰고 흔들리고 반응하며, GIF는 자체 프레임도 재생합니다.",
+            imageRefused: "32MB 이하의 이미지나 GIF를 선택하세요.",
             shape: "모양", ball: "공", egg: "달걀", squircle: "둥근 사각형", pill: "알약",
             color: "색상", pearl: "펄", mint: "민트", peach: "피치", lilac: "라일락", lemon: "레몬", rose: "로즈",
             commandBar: "아일랜드의 명령 막대",
@@ -441,7 +515,11 @@ extension FeatureStrings {
             hint: "住在Dynamic Island里的小伙伴。没有其他内容显示时，它就在那里休息，也会出现在音乐和活动上方打招呼，并对发生的事做出反应。",
             visits: "偶尔出现",
             visitsHint: "每隔几分钟，它会以简短的动画从岛上经过。",
-            style: "风格", minimal: "极简", robot: "机器人",
+            style: "风格", minimal: "极简", robot: "机器人", pebble: "小石子", rocky: "Rocky", voice: "Rocky 的声音", voiceHint: "它做出反应时会说一句话：先是它的和弦，然后是翻译。", subtitles: "Rocky 的字幕", subtitlesHint: "它说话时，台词会显示在岛下方。", linesTitle: "Rocky 什么时候说什么", dozing: "打瞌睡", showtime: "点击后：表演",
+            performs: "岛空着时表演", performsHint: "它不会躲起来，而是留下来时不时表演一段：打节拍、伸懒腰、敲锤子、跳舞。音乐暂停时，它会等着，音乐回来就跳舞。", enclosure: "玻璃罩",
+            custom: "自定义", chooseImage: "选择图片…",
+            customHint: "使用你自己的图片或 GIF。它会像其他伙伴一样跳动、摇摆和做出反应，GIF 还会播放自己的帧。",
+            imageRefused: "请选择不超过 32 MB 的图片或 GIF。",
             shape: "形状", ball: "圆球", egg: "鸡蛋", squircle: "圆角方形", pill: "药丸",
             color: "颜色", pearl: "珍珠", mint: "薄荷", peach: "蜜桃", lilac: "丁香", lemon: "柠檬", rose: "玫瑰",
             commandBar: "在岛中使用命令栏",
@@ -468,7 +546,11 @@ extension FeatureStrings {
             hint: "住在Dynamic Island裡的小夥伴。沒有其他內容顯示時，它就在那裡休息，也會出現在音樂和活動上方打招呼，並對發生的事做出反應。",
             visits: "偶爾出現",
             visitsHint: "每隔幾分鐘，它會以簡短的動畫從動態島經過。",
-            style: "風格", minimal: "極簡", robot: "機器人",
+            style: "風格", minimal: "極簡", robot: "機器人", pebble: "小石頭", rocky: "Rocky", voice: "Rocky 的聲音", voiceHint: "它做出反應時會說一句話：先是它的和弦，然後是翻譯。", subtitles: "Rocky 的字幕", subtitlesHint: "它說話時，台詞會顯示在動態島下方。", linesTitle: "Rocky 什麼時候說什麼", dozing: "打瞌睡", showtime: "點擊後：表演",
+            performs: "動態島空著時表演", performsHint: "它不會躲起來，而是留下來不時表演一段：打節拍、伸懶腰、敲鎚子、跳舞。音樂暫停時，它會等著，音樂回來就跳舞。", enclosure: "玻璃罩",
+            custom: "自訂", chooseImage: "選擇圖片…",
+            customHint: "使用你自己的圖片或 GIF。它會像其他夥伴一樣跳動、搖擺並做出反應，GIF 還會播放自己的影格。",
+            imageRefused: "請選擇不超過 32 MB 的圖片或 GIF。",
             shape: "形狀", ball: "圓球", egg: "雞蛋", squircle: "圓角方形", pill: "藥丸",
             color: "顏色", pearl: "珍珠", mint: "薄荷", peach: "蜜桃", lilac: "丁香", lemon: "檸檬", rose: "玫瑰",
             commandBar: "在動態島中使用指令列",
@@ -495,7 +577,11 @@ extension FeatureStrings {
             hint: "住在Dynamic Island裡的小夥伴。沒有其他內容顯示時，它就在那裡休息，也會出現在音樂和活動上方打招呼，並對發生的事作出反應。",
             visits: "間中出現",
             visitsHint: "每隔幾分鐘，它會以簡短的動畫從動態島經過。",
-            style: "風格", minimal: "極簡", robot: "機械人",
+            style: "風格", minimal: "極簡", robot: "機械人", pebble: "小石頭", rocky: "Rocky", voice: "Rocky 的聲音", voiceHint: "它作出反應時會說一句話：先是它的和弦，然後是翻譯。", subtitles: "Rocky 的字幕", subtitlesHint: "它說話時，台詞會顯示在動態島下方。", linesTitle: "Rocky 什麼時候說什麼", dozing: "打瞌睡", showtime: "點擊後：表演",
+            performs: "動態島空著時表演", performsHint: "它不會躲起來，而是留下來不時表演一段：打節拍、伸懶腰、敲鎚子、跳舞。音樂暫停時，它會等著，音樂回來就跳舞。", enclosure: "玻璃罩",
+            custom: "自訂", chooseImage: "選擇圖片…",
+            customHint: "使用你自己的圖片或 GIF。它會像其他夥伴一樣跳動、搖擺並作出反應，GIF 亦會播放自己的影格。",
+            imageRefused: "請選擇不超過 32 MB 的圖片或 GIF。",
             shape: "形狀", ball: "圓球", egg: "雞蛋", squircle: "圓角方形", pill: "藥丸",
             color: "顏色", pearl: "珍珠", mint: "薄荷", peach: "蜜桃", lilac: "丁香", lemon: "檸檬", rose: "玫瑰",
             commandBar: "在動態島中使用指令列",
@@ -522,7 +608,11 @@ extension FeatureStrings {
             hint: "Маленький друг, який живе в Dynamic Island. Він відпочиває там, коли більше нічого не показано, і виходить поверх музики й активностей, щоб привітатися та відреагувати на те, що відбувається.",
             visits: "З’являтися час від часу",
             visitsHint: "Раз на кілька хвилин він пробігає острівцем із короткою анімацією.",
-            style: "Стиль", minimal: "Мінімалізм", robot: "Робот",
+            style: "Стиль", minimal: "Мінімалізм", robot: "Робот", pebble: "Камінчик", rocky: "Роккі", voice: "Голос Роккі", voiceHint: "Коли він реагує, то каже фразу: спершу свої акорди, потім переклад.", subtitles: "Субтитри Роккі", subtitlesHint: "Його фрази з’являються під островом, поки він їх каже.", linesTitle: "Що й коли каже Роккі", dozing: "Засинає", showtime: "Після кліку: шоу",
+            performs: "Виступати, коли острів порожній", performsHint: "Замість ховатися, він лишається й час від часу показує номер: вибиває ритм, потягується, стукає молотком, танцює. Коли музику призупинено, він чекає і танцює, коли вона повертається.", enclosure: "Скляний купол",
+            custom: "Власний", chooseImage: "Вибрати зображення…",
+            customHint: "Використовуйте власне зображення або GIF. Воно стрибає, похитується й реагує, як інші компаньйони, а GIF ще й відтворює свої кадри.",
+            imageRefused: "Виберіть зображення або GIF розміром до 32 МБ.",
             shape: "Форма", ball: "Кулька", egg: "Яйце", squircle: "Заокруглений квадрат", pill: "Пігулка",
             color: "Колір", pearl: "Перлина", mint: "М’ята", peach: "Персик", lilac: "Бузок", lemon: "Лимон", rose: "Троянда",
             commandBar: "Панель команд в острівці",

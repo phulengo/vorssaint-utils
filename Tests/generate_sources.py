@@ -104,7 +104,8 @@ def main():
           + "".join(declaration(backup, prefix) for prefix in [
               "    static func write(to ", "    static func readSettings(at ",
               "    static func apply(settings:", "    static var configFileURL:",
-              "    static func applyConfigFileAtLaunch(", "    static func anotherInstanceIsRunning("])
+              "    static func applyConfigFileAtLaunch(", "    static func anotherInstanceIsRunning(",
+              "    static var editionSettingsURL:", "    static func applyEditionSettingsAtFirstLaunch("])
           + "}\n}\n")
     slider_area = "Sources/Vorssaint/UI/SliderScrollArea.swift"
     slider_control = "Sources/Vorssaint/UI/Notch/NotchLevelSlider.swift"
@@ -1519,7 +1520,7 @@ def main():
           + "".join(declaration(notch, prefix).replace("    private ", "    ", 1) for prefix in [
               "    private var hiddenUntilHover:", "    private var hiddenAtRestInFullscreen:",
               "    private var hoverOpeningEnabled:", "    private var watchesHiddenHover:", "    func hover(",
-              "    func shelfDragMoved(",
+              "    private func scheduleHoverOpening(", "    func shelfDragMoved(",
               "    private func syncHoverExitMonitoring(", "    private func removeHoverExitMonitors(",
               "    var showsCompactActivityPicker:",
               "    private func missionControlDidRestore()",
@@ -1702,8 +1703,7 @@ def main():
     battery_body, next_case, _ = rest.partition("            case .batteryTime:\n")
     if not switch or not battery_case or not next_case:
         raise ValueError("Expected the battery branch in blockSegments")
-    for line in ["        let usesBars = appearance == .bars\n",
-                 "        var renderedCPU = false\n", "        var renderedGPU = false\n"]:
+    for line in ["        var renderedCPU = false\n", "        var renderedGPU = false\n"]:
         if line not in prefix:
             raise ValueError("Expected the unrelated activity state in blockSegments")
         prefix = prefix.replace(line, "")
@@ -1732,7 +1732,10 @@ def main():
                         "    private static func batteryBlockImage(", "    private static func blockImageCost(",
                         "    private static func dynamicTextAttributes(", "    static func nsColor(for warning:",
                         "    static func nsColor(for pressure:", "    private static func temperatureCompact(",
-                        "    private static func temperatureLabel(", "    private static func combinedComponentValue("])
+                        "    private static func temperatureLabel(", "    private static func combinedComponentValue(",
+                        "    private static func usageSegment(", "    private static func gaugeColorHex(",
+                        "    private static func ringBlockAttachment(", "    private static func ringBlockImage(",
+                        "    private static func usageBarColor("])
           + "}\n")
     metric_cases = "\n".join(line for line in declaration(metric_view, "enum MetricDetailKind:").splitlines()
                              if line.startswith("    case "))
@@ -2076,6 +2079,10 @@ def main():
     menu_panel = "Sources/Vorssaint/UI/MenuPanel/MenuPanelView.swift"
     write("MenuPanelSectionGates.swift", "import Foundation\n\nextension MenuPanelSectionGateContract {\n"
           + declaration("Sources/Vorssaint/UI/MenuPanel/PanelLayout.swift", "enum PanelSectionID:")
+          + "enum PanelLayout {\n"
+          + declaration("Sources/Vorssaint/UI/MenuPanel/PanelLayout.swift", "    static func order(saved raw: String)",
+                        scope="enum PanelLayout {")
+          + "}\n"
           + "".join(declaration(menu_panel, prefix).replace("private enum", "enum", 1)
                     for prefix in ["private enum UtilityPanelItem:", "private enum ControlPanelItem:",
                                    "private enum ControlCategory:"])

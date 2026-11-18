@@ -237,10 +237,16 @@ enum SettingsFeatureTests {
         }
         let colors = FeatureStrings.menuBarAppearance(.enUS)
         for bars in [false, true, false] {
+            // The battery keeps its value until given a style of its own.
             defaults.set(bars ? "bars" : "values", forKey: DefaultsKey.menuBarMetricAppearance)
+            defaults.set(bars ? "ring" : "", forKey: DefaultsKey.menuBarBatteryAppearance)
             verify(colors.normalColor, opens: monitor, commandID: "settings.monitor", shown: bars)
             verify(Strings.enUS.monitorCombineTemperatures, opens: monitor, commandID: "settings.monitor", shown: !bars)
         }
+        defaults.set("ring", forKey: DefaultsKey.menuBarAIAgentsAppearance)
+        verify(colors.normalColor, opens: monitor, commandID: "settings.monitor")
+        verify(Strings.enUS.monitorCombineTemperatures, opens: monitor, commandID: "settings.monitor")
+        defaults.set("", forKey: DefaultsKey.menuBarAIAgentsAppearance)
 
         let monitorAlerts = FeatureSettingsDestination(.monitor, sectionAnchor: .monitorAlerts)
         let alertID = "settings.setting.monitorAlerts"

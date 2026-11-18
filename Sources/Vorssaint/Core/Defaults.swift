@@ -51,6 +51,7 @@ enum DefaultsKey {
     static let showCountdown = "showCountdownInMenuBar"
     static let statusItemPlacementGeneration = "statusItemPlacementGeneration"
     static let hasOnboarded = "hasOnboarded"
+    static let editionSettingsApplied = "editionSettingsApplied" // a packaged copy started from the settings it carries, once on this Mac
     static let sleepDisabledFlag = "vorssDisabledSleep"   // internal guard for pmset disablesleep
     static let dimmedDisplaySavedBrightness = "vorssDimmedDisplaySavedBrightness" // internal guard for closed-lid screen dimming recovery
     static let scrollInverterEnabled = "scrollInverterEnabled"
@@ -393,6 +394,7 @@ enum DefaultsKey {
     static let panelShowControls = "panelShowControls"
     static let panelShowToggles = "panelShowToggles"
     static let panelShowWallpaper = "panelShowWallpaper"
+    static let panelShowAgents = "panelShowAgents"
     // Quick toggles tab: per-action visibility (the order lives in panelToggleOrder).
     static let panelToggleDarkMode = "panelToggleDarkMode"
     static let panelToggleKeyboardLight = "panelToggleKeyboardLight"
@@ -424,9 +426,19 @@ enum DefaultsKey {
     static let menuBarConnectedDevices = "menuBarConnectedDevices"
     static let menuBarPower = "menuBarPower"
     static let menuBarFanSpeed = "menuBarFanSpeed"
+    static let menuBarAIAgents = "menuBarAIAgents" // the chosen agent's session and weekly limits
+    static let menuBarAIAgentsProvider = "menuBarAIAgentsProvider" // AgentProvider.rawValue: claude | codex
     static let menuBarPreset = "menuBarPreset"           // dense
     static let menuBarMetricSpacing = "menuBarMetricSpacing" // standard | compact
-    static let menuBarMetricAppearance = "menuBarMetricAppearance" // values | bars
+    static let menuBarMetricAppearance = "menuBarMetricAppearance" // values | bars | ring
+    // One reading's own style: values | bars | ring, or empty for its default
+    // (the Usage display choice, or values for battery).
+    static let menuBarCPUAppearance = "menuBarCPUAppearance"
+    static let menuBarGPUAppearance = "menuBarGPUAppearance"
+    static let menuBarMemoryAppearance = "menuBarMemoryAppearance"
+    static let menuBarDiskUsageAppearance = "menuBarDiskUsageAppearance"
+    static let menuBarBatteryAppearance = "menuBarBatteryAppearance"
+    static let menuBarAIAgentsAppearance = "menuBarAIAgentsAppearance"
     static let menuBarUsageBarNormalColor = "menuBarUsageBarNormalColor" // #RRGGBB
     static let menuBarUsageBarElevatedColor = "menuBarUsageBarElevatedColor" // #RRGGBB
     static let menuBarUsageBarCriticalColor = "menuBarUsageBarCriticalColor" // #RRGGBB
@@ -900,6 +912,11 @@ enum DefaultsKey {
     static let notchLyricsOnline = "notchLyricsOnline"
     static let notchBrowserCovers = "notchBrowserCovers"
     static let notchLiveEqualizer = "notchLiveEqualizer"
+    static let notchMotionCovers = "notchMotionCovers" // animated album art from Apple Music
+    static let notchMusicBarsGIF = "notchMusicBarsGIF" // file name of the chosen GIF in the collection, "" for the bars
+    static let notchMusicGIFSize = "notchMusicGIFSize" // points
+    static let notchMusicSidePadding = "notchMusicSidePadding" // extra points at both ends of the music strip
+    static let notchMusicVerticalPadding = "notchMusicVerticalPadding" // extra points above and below
     static let notchQueueEnabled = "notchQueueEnabled"
     static let notchDownloadsEnabled = "notchDownloadsEnabled"
     static let notchDownloadsFolderBookmark = "notchDownloadsFolderBookmark"
@@ -991,6 +1008,11 @@ enum DefaultsKey {
     static let notchMascotStyle = "notchMascotStyle" // NotchMascotStyle.rawValue
     static let notchMascotShape = "notchMascotShape" // NotchMascotShape.rawValue
     static let notchMascotPalette = "notchMascotPalette" // NotchMascotPalette.rawValue
+    static let notchMascotEnclosed = "notchMascotEnclosed" // the companion sits inside a little glass dome
+    static let notchMascotCustomImage = "notchMascotCustomImage" // file name of the custom companion's picture
+    static let notchMascotVoice = "notchMascotVoice" // Rocky says his lines aloud when he reacts
+    static let notchMascotSubtitles = "notchMascotSubtitles" // Rocky's lines show under the island as he says them
+    static let notchMascotPerforms = "notchMascotPerforms" // Rocky stays out and plays little acts while the island is empty
     static let notchMascotSide = "notchMascotSide" // NotchMascotSide.rawValue, beside the camera
     static let notchMascotVisitFrequency = "notchMascotVisitFrequency" // NotchMascotVisitFrequency.rawValue
     static let notchMascotHidesWhenIdle = "notchMascotHidesWhenIdle" // hops into the island after a quiet while
@@ -1219,13 +1241,14 @@ enum Defaults {
     static let allowedMouseClickDebounceWindowRange = 5...100
     static let allowedMenuBarPresets = ["dense"]
     static let allowedMenuBarMetricSpacings = ["standard", "compact"]
-    static let allowedMenuBarMetricAppearances = ["values", "bars"]
+    static let allowedMenuBarMetricAppearances = ["values", "bars", "ring"]
     static let defaultMenuBarMetricOrder = [
         "cpu", "cpuTemperature",
         "gpu", "gpuTemperature",
         "memory",
         "battery", "batteryTime", "batteryTemperature", "peripheralBattery",
         "network", "diskUsage", "diskActivity", "connectedDevices", "power", "fanSpeed",
+        "aiAgents",
     ]
     static let allowedMenuBarLabelStyles = ["compact", "classic"]
     static let allowedMenuBarMemoryStyles = ["dot", "percent", "both"]
@@ -1549,6 +1572,11 @@ enum Defaults {
         DefaultsKey.notchLyricsOnline: false,
         DefaultsKey.notchBrowserCovers: false,
         DefaultsKey.notchLiveEqualizer: false,
+        DefaultsKey.notchMotionCovers: false,
+        DefaultsKey.notchMusicBarsGIF: "",
+        DefaultsKey.notchMusicGIFSize: NotchMusicStripFit.defaultGIFSide,
+        DefaultsKey.notchMusicSidePadding: 0.0,
+        DefaultsKey.notchMusicVerticalPadding: 0.0,
         DefaultsKey.notchQueueEnabled: true,
         DefaultsKey.notchDownloadsEnabled: true,
         DefaultsKey.notchWatchEnabled: true,
@@ -1601,6 +1629,11 @@ enum Defaults {
         DefaultsKey.notchMascotStyle: NotchMascotStyle.minimal.rawValue,
         DefaultsKey.notchMascotShape: NotchMascotShape.ball.rawValue,
         DefaultsKey.notchMascotPalette: NotchMascotPalette.pearl.rawValue,
+        DefaultsKey.notchMascotEnclosed: false,
+        DefaultsKey.notchMascotCustomImage: "",
+        DefaultsKey.notchMascotVoice: false,
+        DefaultsKey.notchMascotSubtitles: true,
+        DefaultsKey.notchMascotPerforms: true,
         DefaultsKey.notchMascotSide: NotchMascotSide.left.rawValue,
         DefaultsKey.notchMascotVisitFrequency: NotchMascotVisitFrequency.normal.rawValue,
         DefaultsKey.notchMascotHidesWhenIdle: true,
@@ -1678,6 +1711,7 @@ enum Defaults {
         DefaultsKey.panelShowControls: true,
         DefaultsKey.panelShowToggles: true,
         DefaultsKey.panelShowWallpaper: true,
+        DefaultsKey.panelShowAgents: true,
         DefaultsKey.panelToggleDarkMode: true,
         DefaultsKey.panelToggleKeyboardLight: true,
         DefaultsKey.panelToggleMicMute: true,
@@ -1703,9 +1737,17 @@ enum Defaults {
         DefaultsKey.menuBarPeripheralBattery: false,
         DefaultsKey.menuBarConnectedDevices: false,
         DefaultsKey.menuBarFanSpeed: false,
+        DefaultsKey.menuBarAIAgents: false,
+        DefaultsKey.menuBarAIAgentsProvider: "claude",
         DefaultsKey.menuBarPreset: "dense",
         DefaultsKey.menuBarMetricSpacing: "compact",  // owner's call: compact by default in 3.1.8
         DefaultsKey.menuBarMetricAppearance: "values",
+        DefaultsKey.menuBarCPUAppearance: "",
+        DefaultsKey.menuBarGPUAppearance: "",
+        DefaultsKey.menuBarMemoryAppearance: "",
+        DefaultsKey.menuBarDiskUsageAppearance: "",
+        DefaultsKey.menuBarBatteryAppearance: "",
+        DefaultsKey.menuBarAIAgentsAppearance: "",
         DefaultsKey.menuBarUsageBarNormalColor: "#64D2FF",
         DefaultsKey.menuBarUsageBarElevatedColor: "#FFD60A",
         DefaultsKey.menuBarUsageBarCriticalColor: "#FF453A",
@@ -2628,6 +2670,11 @@ enum Defaults {
 
     static func sanitizedMenuBarMetricAppearance(_ appearance: String) -> String {
         allowedMenuBarMetricAppearances.contains(appearance) ? appearance : "values"
+    }
+
+    /// A reading's own style, or empty while it keeps its default.
+    static func sanitizedMenuBarReadingAppearance(_ appearance: String) -> String {
+        allowedMenuBarMetricAppearances.contains(appearance) ? appearance : ""
     }
 
     static func sanitizedMenuBarMetricOrder(_ raw: String) -> [String] {

@@ -777,6 +777,16 @@ enum NotchTests {
                                             spacing: spacing, least: NotchLayout.shortcutLeastSpacing, width: content.width)
         suite.expect(content.width == CGFloat(304) && rows == 2 && narrowGap == CGFloat(0),
                      "at the narrowest width eight tiles sit in two rows of four with their gaps closed")
+        // The mixer's arrows turn its rail a view at a time, never past either end.
+        let inView = NotchLayout.railVisibleColumns(itemWidth: 96, spacing: 8, width: 420)
+        suite.expect(inView == 4
+                        && NotchLayout.railPage(from: 0, forward: true, visible: inView, columns: 10) == 4
+                        && NotchLayout.railPage(from: 4, forward: true, visible: inView, columns: 10) == 6
+                        && NotchLayout.railPage(from: 6, forward: true, visible: inView, columns: 10) == 6
+                        && NotchLayout.railPage(from: 6, forward: false, visible: inView, columns: 10) == 2
+                        && NotchLayout.railPage(from: 2, forward: false, visible: inView, columns: 10) == 0
+                        && NotchLayout.railPage(from: 0, forward: true, visible: inView, columns: 3) == 0,
+                     "a rail's arrows turn it a whole view, stopping with its last column at the right edge or back at the start")
         // The island and its Layout preview hand the rail the same least gap.
         for path in ["Sources/Vorssaint/UI/Notch/NotchControlsView.swift", "Sources/Vorssaint/UI/Settings/NotchLayoutEditor.swift"] {
             let source = (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""

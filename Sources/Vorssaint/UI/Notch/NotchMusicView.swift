@@ -11,6 +11,7 @@ struct NotchMusicView: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var features = FeatureRuntime.shared
     @ObservedObject private var shuffle = NotchShuffleService.shared
+    @ObservedObject private var barsGIF = NotchBarsGIF.shared
     @AppStorage(DefaultsKey.notchLyricsEnabled) private var lyricsEnabled = true
     @AppStorage(DefaultsKey.notchQueueEnabled) private var queueEnabled = true
     @AppStorage(DefaultsKey.notchMusicShowVolume) private var showVolume = false
@@ -134,10 +135,11 @@ struct NotchMusicView: View {
     /// row the song's toggles and the way to the sections take the corner
     /// above the bars; a camera's row too narrow for that way leaves it
     /// beside the bars.
-    private func head<Artwork: View, Titles: View, Accessory: View, Corner: View>(
+    private func head<Artwork: View, Titles: View, Accessory: View, Corner: View, Trailing: View>(
         corner showsCorner: Bool = false,
         @ViewBuilder artwork: () -> Artwork, @ViewBuilder titles: () -> Titles,
-        @ViewBuilder accessory: () -> Accessory, @ViewBuilder corner: () -> Corner = { EmptyView() }) -> some View {
+        @ViewBuilder accessory: () -> Accessory, @ViewBuilder corner: () -> Corner = { EmptyView() },
+        @ViewBuilder trailing: () -> Trailing = { EmptyView() }) -> some View {
         HStack(alignment: .bottom, spacing: 14) {
             artwork()
             titles()
@@ -150,6 +152,7 @@ struct NotchMusicView: View {
                 HStack(spacing: 8) { accessory() }.frame(maxHeight: .infinity)
             }
             .frame(height: NotchLayout.musicArtworkSize)
+            trailing()
         }
         .frame(height: NotchLayout.musicHeadHeight(band: bandHeight), alignment: .bottom)
     }
@@ -268,7 +271,8 @@ struct NotchMusicView: View {
         VStack(spacing: 0) {
             head(corner: !band.besideCamera && (showsLyrics || showsQueue || band.pageSectionsButton)) {
                 Button { RadialNowPlayingApplication.open(playback.track) } label: {
-                    NotchArtwork(image: service.artwork, size: NotchLayout.musicArtworkSize, source: playback.track)
+                    NotchArtwork(image: service.artwork, size: NotchLayout.musicArtworkSize, source: playback.track,
+                                 animated: true)
                         .scaleEffect(playback.isPlaying || reduceMotion ? 1 : 0.94)
                         .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: playback.isPlaying)
                 }
@@ -294,12 +298,23 @@ struct NotchMusicView: View {
                 }
                 // Quiet beside the song, as the timeline's times are. The
                 // bars rest flat while paused, so the title keeps its width.
-                NotchLiveEqualizerBars(isPlaying: playback.isPlaying, bars: 4, barWidth: 2.5, height: 15,
-                                       tint: .white.opacity(0.5))
+                // The person's GIF takes their place, at the cover's size.
+                if barsGIF.data == nil {
+                    NotchLiveEqualizerBars(isPlaying: playback.isPlaying, bars: 4, barWidth: 2.5, height: 15,
+                                           tint: .white.opacity(0.5))
+                }
                 if band.besideCamera { sectionsButton }
             } corner: {
                 extraButtons
                 sectionsButton
+            } trailing: {
+                // The GIF that plays in place of the closed island's bars,
+                // as large as the cover across from it, playing with the song.
+                if let gif = barsGIF.data {
+                    NotchBarsGIFView(data: gif, animates: playback.isPlaying && !reduceMotion)
+                        .frame(width: NotchLayout.musicArtworkSize, height: NotchLayout.musicArtworkSize)
+                        .accessibilityHidden(true)
+                }
             }
             NotchMusicTimeline(playback: playback, service: service, tint: accent, timesBeside: true)
                 .padding(.top, NotchLayout.musicHeadSpacing)
@@ -757,7 +772,8 @@ struct NotchMusicControlsView: View {
                 if isIdle, NotchPreferredPlayer.open() { return }
                 notch.select(.music)
             } label: {
-                NotchArtwork(image: music.artwork, size: max(40, height - 24), source: music.playback?.track)
+                NotchArtwork(image: music.artwork, size: max(40, height - 24), source: music.playback?.track,
+                             animated: true)
             }
             .buttonStyle(NotchButtonStyle(cornerRadius: 16))
             .accessibilityLabel(idleOpens ? openTitle : text.mediaNowPlaying)

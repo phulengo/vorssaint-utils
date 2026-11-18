@@ -5,14 +5,20 @@ import CoreGraphics
 import Foundation
 
 // The companion is a small friend who lives in the Dynamic Island: a colored
-// shape with two ink eyes and no mouth, or a little robot. It rests beside
+// shape with two ink eyes and no mouth, a little robot, a pebble: a cut
+// stone on two stubby feet with gem eyes and a crystal sprouting behind it,
+// or Rocky, a puppet cut from a photo of a stone statue. It rests beside
 // the camera when the closed island has nothing else to show, passes by now
 // and then, and is the Command Bar's face when the bar comes out of the
 // island. The code calls it the mascot, because "companion" already names
 // the second activity sharing the closed island.
 
 enum NotchMascotStyle: String, CaseIterable, Identifiable {
-    case minimal, robot
+    case minimal, robot, pebble
+    /// Rocky: photographed stone parts that turn at their joints, as a puppet.
+    case rocky
+    /// A picture or GIF of the person's own, moved by the same motions.
+    case custom
 
     var id: String { rawValue }
 }
@@ -37,6 +43,18 @@ struct NotchMascotColor: Equatable {
     /// The robot's face plate, where its lit eyes sit.
     static let visor = NotchMascotColor(red: 0.09, green: 0.09, blue: 0.11)
     static let shine = NotchMascotColor(red: 1, green: 1, blue: 1, alpha: 0.55)
+    /// The pebble's lit and shaded faces, and the stone its colour is mixed into.
+    static let pebbleLight = NotchMascotColor(red: 1, green: 1, blue: 1, alpha: 0.24)
+    static let pebbleShade = NotchMascotColor(red: 0, green: 0, blue: 0, alpha: 0.26)
+    static let stone = NotchMascotColor(red: 0.62, green: 0.60, blue: 0.58)
+    static let darkStone = NotchMascotColor(red: 0.24, green: 0.23, blue: 0.24)
+
+    /// `amount` of the way from this colour to `other`.
+    func mixed(with other: NotchMascotColor, _ amount: CGFloat) -> NotchMascotColor {
+        let share = min(1, max(0, amount))
+        return NotchMascotColor(red: red + (other.red - red) * share, green: green + (other.green - green) * share,
+                                blue: blue + (other.blue - blue) * share, alpha: alpha + (other.alpha - alpha) * share)
+    }
 }
 
 /// The colors it comes in, in the order of the rainbow after white, so the
@@ -77,6 +95,11 @@ struct NotchMascotLook: Equatable {
     var style: NotchMascotStyle
     var shape: NotchMascotShape
     var palette: NotchMascotPalette
+    /// Inside a little glass dome with bars, which stays put while the
+    /// companion hops and reacts inside it.
+    var enclosed = false
+    /// The custom style's picture, by its file name in the app's own folder.
+    var customImage = ""
 
     static let standard = NotchMascotLook(style: .minimal, shape: .ball, palette: .pearl)
 }
@@ -316,6 +339,12 @@ struct NotchMascotFaceLayout: Equatable {
 
 extension NotchMascotLook {
     var face: NotchMascotFaceLayout {
+        if style == .pebble {
+            return NotchMascotFaceLayout(leftEye: CGPoint(x: 0.38, y: 0.60), rightEye: CGPoint(x: 0.62, y: 0.60),
+                                         eyeSize: CGSize(width: 0.085, height: 0.15),
+                                         shineCenter: CGPoint(x: 0.34, y: 0.38), shineRadii: CGSize(width: 0.08, height: 0.04),
+                                         shineAngle: -0.3)
+        }
         if style == .robot {
             return NotchMascotFaceLayout(leftEye: CGPoint(x: 0.36, y: 0.63), rightEye: CGPoint(x: 0.64, y: 0.63),
                                          eyeSize: CGSize(width: 0.085, height: 0.16),
@@ -399,15 +428,141 @@ enum NotchMascotGeometry {
     /// robot's antenna, so a body placed by its box would sit a little low
     /// wherever it is meant to be centred.
     static func figureOffset(_ look: NotchMascotLook) -> CGFloat {
-        let bounds: CGRect
-        if look.style == .robot {
-            let parts = robot(size: 1)
-            bounds = [parts.ears, parts.antenna, parts.bulb]
+        return figureBounds(look, size: 1).midY - 0.5
+    }
+
+    /// Everything the look draws, in its square of `size` points.
+    static func figureBounds(_ look: NotchMascotLook, size: CGFloat) -> CGRect {
+        switch look.style {
+        case .robot:
+            let parts = robot(size: size)
+            return [parts.ears, parts.antenna, parts.bulb]
                 .reduce(parts.head.boundingBoxOfPath) { $0.union($1.boundingBoxOfPath) }
-        } else {
-            bounds = body(look.shape, size: 1).boundingBoxOfPath
+        case .pebble:
+            let parts = pebble(size: size)
+            return [parts.feet, parts.crystal, parts.core]
+                .reduce(parts.body.boundingBoxOfPath) { $0.union($1.boundingBoxOfPath) }
+        case .rocky:
+            return NotchMascotPuppet.rocky.map { $0.placement(size: size, enclosed: look.enclosed).figure } ?? customFrame(size: size)
+        case .minimal:
+            return body(look.shape, size: size).boundingBoxOfPath
+        case .custom:
+            return customFrame(size: size)
         }
-        return bounds.midY - 0.5
+    }
+
+    /// Where a custom picture is drawn, fitted inside with its own proportions.
+    static func customFrame(size: CGFloat) -> CGRect {
+        CGRect(x: 0.04 * size, y: 0.04 * size, width: 0.92 * size, height: 0.92 * size)
+    }
+
+    /// The pebble's stone, its feet, the crystal behind it and the crystal's
+    /// glowing core, with the cut faces that light and shade the stone.
+    struct Pebble {
+        let body: CGPath
+        let feet: CGPath
+        let crystal: CGPath
+        let core: CGPath
+        /// The stone's upper face, catching the light.
+        let lit: CGPath
+        /// The faces turned away from the light, low and to the right.
+        let shaded: CGPath
+    }
+
+    /// How much smaller the companion is drawn inside its dome, and the
+    /// share of its square where the dome's base begins, which it stands on.
+    static let enclosedScale: CGFloat = 0.72
+    static let enclosedFloor: CGFloat = 0.87
+
+    /// How far the companion moves, once shrunk about its square's middle,
+    /// to stand centred on the dome's base, whatever its own shape.
+    static func enclosedOffset(_ look: NotchMascotLook, size: CGFloat) -> CGPoint {
+        let figure = figureBounds(look, size: size)
+        let middle = size / 2
+        return CGPoint(x: -(figure.midX - middle) * enclosedScale,
+                       y: enclosedFloor * size - middle - (figure.maxY - middle) * enclosedScale)
+    }
+
+    /// The dome around an enclosed companion: its glass, the bars over it and
+    /// the base it stands on.
+    struct Enclosure {
+        let glass: CGPath
+        let bars: CGPath
+        let base: CGPath
+    }
+
+    static func enclosure(size: CGFloat) -> Enclosure {
+        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * size, y: y * size) }
+        // A dome: a half circle over straight sides, down to the base.
+        let left: CGFloat = 0.10, right: CGFloat = 0.90, shoulder: CGFloat = 0.44, floor: CGFloat = 0.88
+        let radius = (right - left) / 2
+        let glass = CGMutablePath()
+        glass.move(to: point(left, floor))
+        glass.addLine(to: point(left, shoulder))
+        glass.addArc(center: point(0.5, shoulder), radius: radius * size, startAngle: .pi, endAngle: 0, clockwise: false)
+        glass.addLine(to: point(right, floor))
+        glass.closeSubpath()
+        let bars = CGMutablePath()
+        for x in [0.30, 0.50, 0.70] as [CGFloat] {
+            // Each bar follows the dome down from where it meets the curve.
+            let top = shoulder - (radius * radius - (x - 0.5) * (x - 0.5)).squareRoot()
+            bars.move(to: point(x, top))
+            bars.addLine(to: point(x, floor))
+        }
+        bars.move(to: point(left, 0.66))
+        bars.addLine(to: point(right, 0.66))
+        let base = CGPath(roundedRect: CGRect(x: 0.04 * size, y: 0.86 * size, width: 0.92 * size, height: 0.10 * size),
+                          cornerWidth: 0.04 * size, cornerHeight: 0.04 * size, transform: nil)
+        return Enclosure(glass: glass, bars: bars, base: base)
+    }
+
+    /// A closed outline through `points`, in shares of `size`. With
+    /// `rounding`, each corner is rounded between the middles of its two
+    /// edges, by that share of the size.
+    static func polygon(_ points: [(CGFloat, CGFloat)], size: CGFloat, rounding: CGFloat = 0) -> CGPath {
+        let corners = points.map { CGPoint(x: $0.0 * size, y: $0.1 * size) }
+        let path = CGMutablePath()
+        guard rounding > 0 else {
+            path.addLines(between: corners)
+            path.closeSubpath()
+            return path
+        }
+        let middles = corners.indices.map { index -> CGPoint in
+            let next = corners[(index + 1) % corners.count]
+            return CGPoint(x: (corners[index].x + next.x) / 2, y: (corners[index].y + next.y) / 2)
+        }
+        path.move(to: middles[corners.count - 1])
+        for (index, corner) in corners.enumerated() {
+            path.addArc(tangent1End: corner, tangent2End: middles[index], radius: rounding * size)
+        }
+        path.closeSubpath()
+        return path
+    }
+
+    static func pebble(size: CGFloat) -> Pebble {
+        func polygon(_ points: [(CGFloat, CGFloat)], rounding: CGFloat = 0) -> CGPath {
+            Self.polygon(points, size: size, rounding: rounding)
+        }
+        let body = polygon([(0.31, 0.31), (0.58, 0.27), (0.79, 0.36), (0.90, 0.56), (0.86, 0.78),
+                            (0.68, 0.90), (0.36, 0.91), (0.16, 0.82), (0.10, 0.60), (0.16, 0.42)], rounding: 0.06)
+        let feet = CGMutablePath()
+        feet.addRoundedRect(in: CGRect(x: 0.25 * size, y: 0.84 * size, width: 0.17 * size, height: 0.11 * size),
+                            cornerWidth: 0.05 * size, cornerHeight: 0.05 * size)
+        feet.addRoundedRect(in: CGRect(x: 0.58 * size, y: 0.84 * size, width: 0.17 * size, height: 0.11 * size),
+                            cornerWidth: 0.05 * size, cornerHeight: 0.05 * size)
+        let crystal = CGMutablePath()
+        crystal.addPath(polygon([(0.50, 0.05), (0.57, 0.17), (0.555, 0.33), (0.445, 0.33), (0.43, 0.17)]))
+        crystal.addPath(polygon([(0.33, 0.15), (0.43, 0.25), (0.44, 0.34), (0.34, 0.34), (0.31, 0.24)]))
+        crystal.addPath(polygon([(0.68, 0.12), (0.69, 0.24), (0.66, 0.34), (0.56, 0.34), (0.58, 0.24)]))
+        let lit = polygon([(0.31, 0.31), (0.58, 0.27), (0.79, 0.36), (0.62, 0.46), (0.30, 0.47), (0.16, 0.42)])
+            .intersection(body)
+        let shaded = polygon([(0.79, 0.36), (0.92, 0.56), (0.88, 0.80), (0.70, 0.93), (0.40, 0.93),
+                              (0.56, 0.78), (0.70, 0.62)])
+            .intersection(body)
+        return Pebble(body: body, feet: feet, crystal: crystal,
+                      core: CGPath(ellipseIn: CGRect(x: 0.465 * size, y: 0.15 * size, width: 0.07 * size, height: 0.07 * size),
+                                   transform: nil),
+                      lit: lit, shaded: shaded)
     }
 
     static func robot(size: CGFloat) -> Robot {
@@ -1162,9 +1317,10 @@ enum NotchMascotMotion {
 enum NotchMascotSupport {
     /// Turned on in Settings, the companion says hello almost at once.
     static let welcomeDelay: TimeInterval = 1.5
-    /// Music starting brings it out to bob along at most this often, so
-    /// pressing play again and again does not keep calling it out.
-    static let grooveInterval: TimeInterval = 600
+    /// Music starting brings it out to bob along, and Rocky to say so, at
+    /// most once an hour: sound coming and going while the person works,
+    /// as a video played and paused, is no reason to call it out.
+    static let grooveInterval: TimeInterval = 3_600
     /// It waits this long after the music starts, until the song's strip has
     /// settled, before it comes out over it.
     static let grooveDelay: TimeInterval = 1.2
@@ -1247,8 +1403,50 @@ enum NotchMascotSupport {
 
     /// Whether it hides in the island once nothing has happened for a
     /// while, and comes out only to visit or to react.
+    /// Rocky performing in the empty island stays out instead.
     static func hidesWhenIdle(in defaults: UserDefaults = .standard) -> Bool {
-        isEnabled(in: defaults) && defaults.bool(forKey: DefaultsKey.notchMascotHidesWhenIdle)
+        isEnabled(in: defaults) && defaults.bool(forKey: DefaultsKey.notchMascotHidesWhenIdle) && !performs(in: defaults)
+    }
+
+    /// Paused this long, an hour, the music has really stopped: Rocky sits
+    /// down to wait for it, and grooves when it comes back. A shorter pause,
+    /// as between clips in a feed or a video paused while the person works,
+    /// is no news to him.
+    static let musicWaitDelay: TimeInterval = 3_600
+
+    static func waitsForMusic(pausedFor: TimeInterval) -> Bool { pausedFor >= musicWaitDelay }
+
+    /// However long he waited, he grooves for music coming back no more
+    /// often than this.
+    static let resumeGrooveInterval: TimeInterval = 120
+
+    /// How big Rocky grows for a show out of the island, in points, and the
+    /// room under him for what he says.
+    static let showtimeSize: CGFloat = 150
+    static let showtimeCaptionRoom: CGFloat = 44
+
+    /// The show's window on `screen`: a square with room for his arms and
+    /// hops over the room for his lines, just under the strip whose foot is
+    /// at `stripBottom`, centred on `x` where he stood, and kept whole on
+    /// the screen.
+    static func showtimeFrame(size: CGFloat, under stripBottom: CGFloat, near x: CGFloat, screen: CGRect) -> CGRect {
+        let side = (size * 1.6).rounded(), height = side + showtimeCaptionRoom
+        var frame = CGRect(x: (x - side / 2).rounded(), y: (stripBottom - 4 - height).rounded(), width: side, height: height)
+        if !screen.isEmpty {
+            frame.origin.x = min(max(frame.minX, screen.minX + 8), screen.maxX - 8 - side)
+            frame.origin.y = max(frame.minY, screen.minY + 8)
+        }
+        return frame
+    }
+
+    /// With the pointer on Rocky as he performs, the closed island waits this
+    /// long before it opens on hover, so a click can reach him for an act.
+    static let performHoverDelay: TimeInterval = 0.8
+
+    /// Whether Rocky stays in the closed island while it has nothing else
+    /// to show, playing little acts now and then.
+    static func performs(in defaults: UserDefaults = .standard) -> Bool {
+        isEnabled(in: defaults) && look(in: defaults).style == .rocky && defaults.bool(forKey: DefaultsKey.notchMascotPerforms)
     }
 
     static func visitFrequency(in defaults: UserDefaults = .standard) -> NotchMascotVisitFrequency {
@@ -1263,7 +1461,9 @@ enum NotchMascotSupport {
         NotchMascotLook(
             style: NotchMascotStyle(rawValue: defaults.string(forKey: DefaultsKey.notchMascotStyle) ?? "") ?? .minimal,
             shape: NotchMascotShape(rawValue: defaults.string(forKey: DefaultsKey.notchMascotShape) ?? "") ?? .ball,
-            palette: NotchMascotPalette(rawValue: defaults.string(forKey: DefaultsKey.notchMascotPalette) ?? "") ?? .pearl)
+            palette: NotchMascotPalette(rawValue: defaults.string(forKey: DefaultsKey.notchMascotPalette) ?? "") ?? .pearl,
+            enclosed: defaults.bool(forKey: DefaultsKey.notchMascotEnclosed),
+            customImage: defaults.string(forKey: DefaultsKey.notchMascotCustomImage) ?? "")
     }
 
     /// How the Command Bar comes out of the island, or nil when it opens in
@@ -1368,4 +1568,12 @@ enum NotchMascotSupport {
                      cameraWidth: strip.compactActivityCameraGap, floats: false, bodyHeight: strip.stripBodyHeight,
                      side: side)
     }
+}
+
+/// Rocky performing in the closed island, as his view there registers him:
+/// the island asks whether the pointer or a click is on him, and has him
+/// play an act. While he is not performing there, nothing is on him.
+enum NotchMascotIslandStage {
+    static var covers: (CGPoint) -> Bool = { _ in false }
+    static var performNow: () -> Void = {}
 }

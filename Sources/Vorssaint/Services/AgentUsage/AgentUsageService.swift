@@ -104,6 +104,12 @@ final class AgentUsageService: ObservableObject {
     private var claudeIdentity: ClaudeAccountProfile.Identity?
     private var readerClaudeProfile = ClaudeAccountProfile()
     private var claudeProfileModified: Date?
+    /// Under the automatic choice, the account Claude Code was last found
+    /// writing to, looked for again every few minutes off the main thread.
+    private var followedClaudeProfile: ClaudeAccountProfile?
+    private var lastFollowCheck = Date.distantPast
+    private var followLookupPending = false
+    private let followQueue = DispatchQueue(label: "Vorssaint.AgentUsage.ClaudeFollow", qos: .utility)
     private var claudeAppModified: Date?
     private var claudeAppSamples: [AgentClaudeAppUsage.Sample] = []
     private var claudeAccountLimits: AgentLimits?
@@ -125,7 +131,29 @@ final class AgentUsageService: ObservableObject {
         CodexProfileLimitsService.shared.synchronize()
         guard NotchAgentSupport.isEnabled() else { stop(); return }
         let wanted = NotchAgentSupport.providers()
-        let profile = ClaudeAccountProfile.selected()
+        if !ClaudeAccountProfile.followsActivity() {
+            // Chosen again later, the automatic choice looks afresh.
+            followedClaudeProfile = nil
+        } else if followedClaudeProfile == nil {
+            // Every session log's date is looked at, off the main thread;
+            // reading starts once the account in use is known.
+            guard !followLookupPending else { return }
+            followLookupPending = true
+            lastFollowCheck = Date()
+            let home = self.home
+            followQueue.async { [weak self] in
+                let found = ClaudeAccountProfile.mostRecentlyUsed(home: home)
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.followLookupPending = false
+                    guard ClaudeAccountProfile.followsActivity() else { return }
+                    self.followedClaudeProfile = found
+                    self.syncWithPreferences()
+                }
+            }
+            return
+        }
+        let profile = ClaudeAccountProfile.selected(followed: followedClaudeProfile)
         let showingPage = pageVisible
         // An agent turned off is no longer read at all, and one turned on is
         // read from its start: both take a fresh reading, which would not
@@ -276,6 +304,27 @@ final class AgentUsageService: ObservableObject {
     }
 
     // MARK: Reading
+
+    /// Switches to the account Claude Code moved to, as when CCS changes
+    /// account, under the automatic choice.
+    private func followClaudeAccount(now: Date = Date()) {
+        guard ClaudeAccountProfile.followsActivity(), now.timeIntervalSince(lastFollowCheck) >= 120 else { return }
+        lastFollowCheck = now
+        let home = self.home
+        let followed = followedClaudeProfile
+        followQueue.async { [weak self] in
+            let found = ClaudeAccountProfile.mostRecentlyUsed(home: home)
+            // Another folder of the account already followed counts the same
+            // sessions: moving to it would only read them all again.
+            let same = followed.map { found.isSameAccount(as: $0, home: home) } == true
+            DispatchQueue.main.async {
+                guard let self, ClaudeAccountProfile.followsActivity(), !same,
+                      found != self.followedClaudeProfile else { return }
+                self.followedClaudeProfile = found
+                self.syncWithPreferences()
+            }
+        }
+    }
 
     private func startTimer() {
         let timer = Timer(timeInterval: Self.tick, repeats: true) { [weak self] _ in self?.tickTimer() }
@@ -577,6 +626,7 @@ final class AgentUsageService: ObservableObject {
 
     private func tickTimer() {
         guard running else { return }
+        followClaudeAccount()
         syncPrices()
         refreshClaudeLimits()
         queue.async { [self] in

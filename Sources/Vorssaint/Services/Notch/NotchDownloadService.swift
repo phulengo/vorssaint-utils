@@ -37,6 +37,10 @@ final class NotchDownloadService: ObservableObject {
     var onFailure: (() -> Void)?
 
     private var folder: URL?
+    /// Whether macOS has had its answer on letting the app see the Downloads
+    /// folder, watched until another is chosen.
+    private enum DownloadsAccess { case unasked, asking, answered }
+    private var downloadsAccess = DownloadsAccess.unasked
     private var securityScope = false
     private var directorySource: DispatchSourceFileSystemObject?
     private var fileSources: [URL: DispatchSourceFileSystemObject] = [:]
@@ -68,8 +72,30 @@ final class NotchDownloadService: ObservableObject {
               NotchSupport.modules().contains(.downloads) else { stop(); return }
         guard folder == nil else { return }
         guard let bookmark = UserDefaults.standard.data(forKey: DefaultsKey.notchDownloadsFolderBookmark) else {
-            folderName = nil
-            folderUnavailable = false
+            // No folder chosen yet: the one browsers save to unless told
+            // otherwise, which macOS asks the person to let the app see.
+            guard let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
+                folderName = nil
+                folderUnavailable = false
+                return
+            }
+            switch downloadsAccess {
+            case .answered:
+                start(downloads)
+            case .asking:
+                break
+            case .unasked:
+                // The first look in waits until the person answers macOS, so
+                // it is taken off the main thread and the island carries on.
+                downloadsAccess = .asking
+                queue.async { [weak self] in
+                    _ = try? FileManager.default.contentsOfDirectory(atPath: downloads.path)
+                    DispatchQueue.main.async {
+                        self?.downloadsAccess = .answered
+                        self?.syncWithPreferences()
+                    }
+                }
+            }
             return
         }
         var stale = false

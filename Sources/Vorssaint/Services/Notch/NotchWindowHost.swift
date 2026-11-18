@@ -54,6 +54,8 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
     private var relocationGeneration = 0
     private var restoresKeyAfterRelocation = false
     private var settledActions: [() -> Void] = []
+    /// The companion's line under the island, made the first time one is said.
+    private var caption: NotchMascotCaption?
     private(set) var targetSize: CGSize
     private(set) var resizeCount = 0
     private(set) var concealedFrameChanges = 0
@@ -155,6 +157,20 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
 
     func reactMascotBridge(_ event: NotchMascotReactionEvent, lift: CGFloat) {
         canvas.reactMascotBridge(event, lift: lift)
+    }
+
+    /// Hangs the companion's line under the island as it is now, for
+    /// `duration`, while the island is on screen.
+    func showMascotLine(_ text: String, for duration: TimeInterval) {
+        guard panel.isVisible, !concealedForMissionControl, !hidesWhenSettled, !relocationHidden else { return }
+        let caption = self.caption ?? NotchMascotCaption()
+        if self.caption == nil {
+            self.caption = caption
+            overlaySpace?.add(caption.window)
+        }
+        caption.show(text, under: pixelAligned(currentGeometry.frame(for: targetSize)), level: panel.level,
+                     behavior: panel.collectionBehavior, duration: duration,
+                     reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
     }
 
     /// A newer move takes over a pending arrival. An attached dialog outranks
@@ -349,6 +365,7 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         targetSize = size
         currentGeometry = geometry
         resizeCount += 1
+        caption?.follow(pixelAligned(geometry.frame(for: size)), reduceMotion: !canAnimate)
         guard canAnimate, sameScreen || revealing, let previousPath else {
             settle()
             return
@@ -847,6 +864,8 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
     }
 
     func close() {
+        caption?.hide(reduceMotion: true)
+        caption?.window.orderOut(nil)
         missionControlTimer?.invalidate()
         missionControlTimer = nil
         panel.visibilityDidChange = nil

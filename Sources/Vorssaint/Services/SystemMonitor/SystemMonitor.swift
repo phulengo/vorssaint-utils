@@ -69,6 +69,10 @@ struct SystemSnapshot {
     // Connected USB Devices
     var connectedDevices: [ConnectedUSBDevice] = []
 
+    /// The AI reading pinned to the menu bar. Never sampled here: whoever
+    /// draws the menu bar fills it in from the AI section's own reading.
+    var agentReading: AgentMenuBarReading?
+
     // History (oldest → newest) for the graphs
     var cpuHistory: [Double] = []          // 0...1
     var gpuHistory: [Double] = []          // 0...1

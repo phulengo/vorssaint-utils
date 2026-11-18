@@ -23,6 +23,33 @@ It has its own preferences and permissions and does not replace the official app
 A plain `./build.sh` builds the optimized variant used by CI; its health check is
 `./build/Vorssaint --selftest`.
 
+### Packaging a copy for someone
+
+`Tools/make-edition.sh NAME EDITION_FOLDER [SETTINGS.plist]` builds a renamed copy
+to give someone, writing `dist/NAME.app` and a DMG. It builds from a copy of the
+tree in which `Tools/rename-app.py` replaces the app's name in every language;
+copyright and license notices keep the original name, as the GPL asks. The edition
+folder holds the copy's icon art and, optionally, a silhouette for its menu bar and
+windows; `Resources/Editions/Rocky` is one. The copy never checks for updates, since
+an official update would replace it with a different app. Given a settings backup,
+it starts from those settings on its first launch on each Mac. It is signed like a
+local build, not notarized, so macOS asks to confirm it in Privacy & Security the
+first time it opens.
+
+To let a copy update itself, build it with `EDITION_UPDATES=owner/repository` and
+`EDITION_REVISION=N`. Its version gains a fourth number, such as `3.4.4.1`, and it then
+takes only releases of that repository that are newer and signed with the same
+certificate. The copy pins that certificate in place of the official Developer ID,
+so keep the signing identity: a copy signed with another one cannot update the
+installed copies. To ship an update, build the next revision without the settings,
+which only a first install needs, and publish its DMG as a release tagged with the
+version:
+
+```sh
+EDITION_UPDATES=owner/repository EDITION_REVISION=2 Tools/make-edition.sh Rocky Resources/Editions/Rocky
+gh release create v3.4.4.2 dist/Rocky-3.4.4.2.dmg --repo owner/repository --title "Rocky 3.4.4.2"
+```
+
 ### Stable signing
 
 Developer and install builds automatically try to create a stable local signing

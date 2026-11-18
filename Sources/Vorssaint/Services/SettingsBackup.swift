@@ -227,6 +227,27 @@ enum SettingsBackup {
             isDeveloperBuild: AppInfo.isDeveloperBuild)
     }
 
+    /// The settings a copy packaged for someone carries, as one renamed for a
+    /// friend: a settings backup in its resources. A plain build has none.
+    static var editionSettingsURL: URL? {
+        Bundle.main.url(forResource: "EditionSettings", withExtension: "plist")
+    }
+
+    /// The first plain launch of such a copy on a Mac starts from the settings
+    /// it carries, as an import would, and never again, so what is changed
+    /// afterwards stays. True when they were applied now.
+    @discardableResult
+    static func applyEditionSettingsAtFirstLaunch(arguments: [String] = CommandLine.arguments,
+                                                  url: URL? = editionSettingsURL,
+                                                  defaults: UserDefaults = .standard) -> Bool {
+        guard let url, SettingsBackupSupport.appliesConfigFile(arguments: arguments),
+              !defaults.bool(forKey: DefaultsKey.editionSettingsApplied),
+              let settings = readSettings(at: url) else { return false }
+        apply(settings: settings, in: defaults)
+        defaults.set(true, forKey: DefaultsKey.editionSettingsApplied)
+        return true
+    }
+
     /// A normal app launch overlays the declared keys after migrating local
     /// settings, so a migration cannot copy a declaration into an omitted key.
     /// The plist is owned by the user or their dotfiles manager.

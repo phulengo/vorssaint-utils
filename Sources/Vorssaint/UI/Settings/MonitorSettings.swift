@@ -17,6 +17,13 @@ struct MonitorSettings: View {
     @AppStorage(DefaultsKey.menuBarSeparateMetrics) private var separateMetrics = false
     @AppStorage(DefaultsKey.menuBarMetricSpacing) private var metricSpacing = "standard"
     @AppStorage(DefaultsKey.menuBarMetricAppearance) private var metricAppearance = "values"
+    // Each reading's own style decides which options below apply.
+    @AppStorage(DefaultsKey.menuBarCPUAppearance) private var cpuAppearance = ""
+    @AppStorage(DefaultsKey.menuBarGPUAppearance) private var gpuAppearance = ""
+    @AppStorage(DefaultsKey.menuBarMemoryAppearance) private var memoryAppearance = ""
+    @AppStorage(DefaultsKey.menuBarDiskUsageAppearance) private var diskUsageAppearance = ""
+    @AppStorage(DefaultsKey.menuBarBatteryAppearance) private var batteryAppearance = ""
+    @AppStorage(DefaultsKey.menuBarAIAgentsAppearance) private var aiAgentsAppearance = ""
     @AppStorage(DefaultsKey.menuBarHideIconWithMetrics) private var hideIconWithMetrics = false
     @AppStorage(DefaultsKey.monitorInterval) private var interval = 2
     @AppStorage(DefaultsKey.monitorGraphScale) private var graphScale = true
@@ -118,21 +125,31 @@ struct MonitorSettings: View {
         }
     }
 
+    /// Read again whenever a reading's own style changes, since each decides
+    /// which of the options below apply.
+    private var readingStyles: (gauges: Bool, combines: Bool) {
+        let _ = [metricAppearance, cpuAppearance, gpuAppearance, memoryAppearance, diskUsageAppearance,
+                 batteryAppearance, aiAgentsAppearance]
+        return (MenuBarMetric.usesGauges(), MenuBarMetric.offersCombinedTemperatures())
+    }
+
     private var menuBarStyleCard: some View {
-        SettingsCard(title: appearanceStrings.label) {
+        let styles = readingStyles
+        return SettingsCard(title: appearanceStrings.label) {
             HStack(spacing: 10) {
-                MenuBarStyleChoice(appearance: .values, title: appearanceStrings.values,
-                                   selected: appearance == .values) { metricAppearance = "values" }
-                MenuBarStyleChoice(appearance: .bars, title: appearanceStrings.bars,
-                                   selected: appearance == .bars) { metricAppearance = "bars" }
+                ForEach(MenuBarMetricAppearance.allCases, id: \.self) { choice in
+                    MenuBarStyleChoice(appearance: choice, title: appearanceStrings.title(choice),
+                                       selected: appearance == choice) { metricAppearance = choice.rawValue }
+                }
             }
             Text(appearanceStrings.caption)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            if appearance == .bars {
+            if styles.gauges {
                 MenuBarUsageBarSettings(strings: appearanceStrings)
-            } else {
+            }
+            if styles.combines {
                 SettingsRow(symbol: "thermometer.medium", title: l10n.s.monitorCombineTemperatures,
                             caption: l10n.s.monitorCombineTemperaturesCaption) {
                     Toggle(l10n.s.monitorCombineTemperatures, isOn: $combineTemperatures).labelsHidden()
@@ -153,7 +170,7 @@ struct MonitorSettings: View {
                 Toggle(l10n.s.menuBarHideIconToggle, isOn: $hideIconWithMetrics).labelsHidden()
             }
             SettingsRow(symbol: "rectangle.split.3x1", title: l10n.s.monitorSeparateMenuBarMetrics,
-                        caption: appearance.allowsCombinedTemperatures
+                        caption: styles.combines
                             ? l10n.s.monitorSeparateMenuBarMetricsCaption : nil) {
                 Toggle(l10n.s.monitorSeparateMenuBarMetrics, isOn: $separateMetrics).labelsHidden()
             }
@@ -261,7 +278,7 @@ struct MonitorSettings: View {
     }
 }
 
-/// Values or bars, each drawn the way the menu bar would draw a CPU reading.
+/// Values, bars or rings, each drawn the way the menu bar would draw a CPU reading.
 private struct MenuBarStyleChoice: View {
     let appearance: MenuBarMetricAppearance
     let title: String
@@ -309,7 +326,24 @@ private struct MenuBarStyleChoice: View {
                 bar(label: "CPU", fraction: 0.42)
                 bar(label: "RAM", fraction: 0.61)
             }
+        case .ring:
+            HStack(spacing: 8) {
+                ring(fraction: 0.42)
+                block(label: "CPU", value: "42%")
+            }
         }
+    }
+
+    private func ring(fraction: CGFloat) -> some View {
+        ZStack {
+            Circle().stroke(Color.white.opacity(0.22), lineWidth: 2.2)
+            Circle()
+                .trim(from: 0, to: fraction)
+                .stroke(Color(red: 0.39, green: 0.82, blue: 1.0),
+                        style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+        }
+        .frame(width: 12.8, height: 12.8)
     }
 
     private func block(label: String, value: String) -> some View {
@@ -394,10 +428,16 @@ private struct MenuBarMetricTile: View {
     @AppStorage(DefaultsKey.menuBarMemoryStyle) private var memoryStyle = "percent"
     @AppStorage(DefaultsKey.menuBarNetworkUploadFirst) private var uploadFirst = false
     @AppStorage(DiskMenuBarStyle.defaultsKey) private var diskStyle = DiskMenuBarStyle.percent
+    @AppStorage(DefaultsKey.menuBarAIAgentsProvider) private var agentProvider = AgentProvider.claude.rawValue
+    @AppStorage(DefaultsKey.menuBarMetricAppearance) private var usageDisplay = "values"
+    /// The reading's own style. A reading without one only reads the Usage
+    /// display key here, never writes it, and shows no style choice.
+    @AppStorage private var ownAppearance: String
 
     init(metric: MenuBarMetric) {
         self.metric = metric
         _shown = AppStorage(wrappedValue: false, metric.defaultsKey)
+        _ownAppearance = AppStorage(wrappedValue: "", metric.appearanceKey ?? DefaultsKey.menuBarMetricAppearance)
     }
 
     var body: some View {
@@ -405,9 +445,36 @@ private struct MenuBarMetricTile: View {
                      options: options, optionsSummary: optionsSummary)
     }
 
+    private var appearanceStrings: MenuBarAppearanceStrings { FeatureStrings.menuBarAppearance(l10n.language) }
+
+    /// How the reading draws now, its own style or the one it follows.
+    private var drawnAppearance: MenuBarMetricAppearance {
+        MenuBarReadingStyleSupport.appearance(own: metric.appearanceKey == nil ? nil : ownAppearance,
+                                              followsUsageDisplay: metric.followsUsageDisplay,
+                                              usageDisplay: usageDisplay)
+    }
+
+    /// Values, bars or a ring for this reading alone. A usage reading can
+    /// also keep following the Usage display choice.
+    private var stylePicker: some View {
+        let strings = appearanceStrings
+        let selection = Binding<String>(get: {
+            let own = Defaults.sanitizedMenuBarReadingAppearance(ownAppearance)
+            return own.isEmpty && !metric.followsUsageDisplay ? MenuBarMetricAppearance.values.rawValue : own
+        }, set: { ownAppearance = $0 })
+        return Picker(strings.style, selection: selection) {
+            if metric.followsUsageDisplay {
+                Text(strings.sameAsUsageDisplay).tag("")
+            }
+            ForEach(MenuBarMetricAppearance.allCases, id: \.self) { Text(strings.title($0)).tag($0.rawValue) }
+        }
+        .pickerStyle(.menu)
+    }
+
     /// What the reading's option makes the menu bar show, in its own terms.
     private var optionsSummary: String {
         switch metric {
+        case .cpu, .gpu, .battery: return appearanceStrings.title(drawnAppearance)
         case .memory:
             return Defaults.sanitizedMenuBarMemoryStyle(memoryStyle) != "percent"
                 ? l10n.s.monitorMemoryPressureDot : FeatureStrings.mouseClickDebounce(l10n.language).moreOptions
@@ -418,30 +485,55 @@ private struct MenuBarMetricTile: View {
             case DiskMenuBarStyle.used: return l10n.s.diskMenuBarUsedSpace
             default: return l10n.s.diskMenuBarUsedPercentage
             }
+        case .aiAgents: return AgentMenuBarSupport.provider(stored: agentProvider).displayName
         default: return ""
         }
     }
 
     private var options: AnyView? {
         switch metric {
+        case .cpu, .gpu, .battery:
+            return AnyView(stylePicker)
         case .memory:
-            return AnyView(MonitorTokenOption(
-                symbol: "circle.fill",
-                title: l10n.s.monitorMemoryPressureDot,
-                tint: PanelMetricColor.green(for: colorScheme),
-                isOn: Binding(get: { Defaults.sanitizedMenuBarMemoryStyle(memoryStyle) != "percent" },
-                              set: { memoryStyle = $0 ? "both" : "percent" })))
+            return AnyView(VStack(alignment: .leading, spacing: 8) {
+                MonitorTokenOption(
+                    symbol: "circle.fill",
+                    title: l10n.s.monitorMemoryPressureDot,
+                    tint: PanelMetricColor.green(for: colorScheme),
+                    isOn: Binding(get: { Defaults.sanitizedMenuBarMemoryStyle(memoryStyle) != "percent" },
+                                  set: { memoryStyle = $0 ? "both" : "percent" }))
+                stylePicker
+            })
         case .network:
             return AnyView(MonitorTokenOption(symbol: "arrow.up.arrow.down",
                                                  title: l10n.s.monitorNetworkUploadFirst,
                                                  isOn: $uploadFirst))
         case .diskUsage:
-            return AnyView(Picker(l10n.s.diskMenuBarStyleLabel, selection: $diskStyle) {
-                Text(l10n.s.diskMenuBarUsedPercentage).tag(DiskMenuBarStyle.percent)
-                Text(l10n.s.diskMenuBarAvailableSpace).tag(DiskMenuBarStyle.free)
-                Text(l10n.s.diskMenuBarUsedSpace).tag(DiskMenuBarStyle.used)
-            }
-            .pickerStyle(.menu))
+            return AnyView(VStack(alignment: .leading, spacing: 8) {
+                Picker(l10n.s.diskMenuBarStyleLabel, selection: $diskStyle) {
+                    Text(l10n.s.diskMenuBarUsedPercentage).tag(DiskMenuBarStyle.percent)
+                    Text(l10n.s.diskMenuBarAvailableSpace).tag(DiskMenuBarStyle.free)
+                    Text(l10n.s.diskMenuBarUsedSpace).tag(DiskMenuBarStyle.used)
+                }
+                .pickerStyle(.menu)
+                // Free or used space has no scale for a bar or a ring.
+                if diskStyle.showsPercentage {
+                    stylePicker
+                }
+            })
+        case .aiAgents:
+            let strings = FeatureStrings.notchAgents(l10n.language)
+            return AnyView(VStack(alignment: .leading, spacing: 8) {
+                Picker(strings.agents, selection: $agentProvider) {
+                    ForEach(AgentMenuBarSupport.providers) { Text($0.displayName).tag($0.rawValue) }
+                }
+                .pickerStyle(.menu)
+                stylePicker
+                Text(strings.menuBarCaption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            })
         default:
             return nil
         }

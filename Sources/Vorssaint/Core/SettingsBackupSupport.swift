@@ -129,12 +129,17 @@ enum SettingsBackupSupport {
     /// out by construction (they are not preference keys), listed here only
     /// when they would otherwise slip in through the registered set.
     static let machineStateKeys: Set<String> = [
+        // Whether a packaged copy already started from the settings it carries.
+        DefaultsKey.editionSettingsApplied,
         DefaultsKey.displaysSwitchedOff,
         DefaultsKey.displaysSwitchedOffFingerprints,
         // Agent profiles are folders on this Mac whose sign-in the cards use,
         // never settings to bring to another one.
         DefaultsKey.notchAgentsCodexProfiles,
         DefaultsKey.notchAgentsClaudeProfile,
+        // The chosen GIF and the companion's picture are files on this Mac.
+        DefaultsKey.notchMusicBarsGIF,
+        DefaultsKey.notchMascotCustomImage,
         DefaultsKey.dockPreviewRestoreAutohide,
         // The Space arrangement setting to put back, and a Dock restart still
         // owed, belong to this Mac's Dock.

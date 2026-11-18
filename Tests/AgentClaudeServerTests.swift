@@ -53,6 +53,8 @@ enum AgentClaudeServerTests {
         alerts(suite)
         checks(suite)
         discovery(suite)
+        modelAllowances(suite)
+        switchedProfiles(suite)
         let now = AgentTimestamp.parse("2026-10-15T07:00:00Z")!
         func result(_ used: Any = 62, resets: Any = "2026-10-15T10:39:59.973389+00:00") -> [String: Any] {
             ["rate_limits_available": true, "rate_limits": [
@@ -403,6 +405,105 @@ enum AgentClaudeServerTests {
         suite.expect(AppLanguage.allCases.allSatisfy { language in
             Set(failures.map { FeatureStrings.notchAgents(language).claudeCode($0) }).count == failures.count
         }, "Settings says in every language why Claude Code could not check")
+    }
+
+    /// Max keeps a weekly allowance for Fable that Claude Code 2.1.325
+    /// reports by the name /usage shows, under `model_scoped`, beside the
+    /// account's own windows, as a Max account answered on 2026-11-14.
+    private static func modelAllowances(_ suite: TestSuite) {
+        let now = AgentTimestamp.parse("2026-11-14T16:41:33Z")!
+        func result(_ scoped: Any, opus: Any = NSNull()) -> [String: Any] {
+            ["rate_limits_available": true, "rate_limits": [
+                "five_hour": ["utilization": 43, "resets_at": "2026-11-14T17:19:59.792543+00:00"],
+                "seven_day": ["utilization": 15, "resets_at": "2026-11-18T12:59:59.792566+00:00"],
+                "seven_day_oauth_apps": NSNull(), "seven_day_opus": opus, "seven_day_sonnet": NSNull(),
+                "model_scoped": scoped]]
+        }
+        let fable: [String: Any] = ["display_name": "Fable", "utilization": 7, "resets_at": "2026-11-18T12:59:59.792717+00:00"]
+        let limits = AgentClaudeServer.limits(result([fable]), observed: now)
+        let window = limits?.windows.last
+        suite.expect(limits?.windows.map(\.id) == ["claude.fh", "claude.sd", "claude.model.fable"]
+                        && window?.kind == .weekly && window?.minutes == 10_080 && window?.scope == "Fable"
+                        && window?.usedPercent == 7 && window?.resetsAt == AgentTimestamp.parse("2026-11-18T12:59:59.792717Z"),
+                     "a model's own weekly allowance, as Fable's on Max, is read beside the account's windows: \(limits?.windows.map(\.id) ?? [])")
+        let named = ["display_name": "Fable 5.2", "utilization": 12, "resets_at": NSNull()] as [String: Any]
+        let unknown = ["display_name": "Mythos 5.2", "utilization": NSNull(), "resets_at": "2026-11-18T12:59:59Z"] as [String: Any]
+        let renewed = ["display_name": "Mythos", "utilization": 40, "resets_at": "2026-11-14T16:00:00Z"] as [String: Any]
+        let odd = ["display_name": "Fa\u{202E}ble", "utilization": 9] as [String: Any]
+        let repeated = AgentClaudeServer.limits(result([fable, fable, named, unknown, renewed, odd, "Fable"]), observed: now)
+        suite.expect(repeated?.windows.map(\.id) == ["claude.fh", "claude.sd", "claude.model.fable", "claude.model.fable-5.2"]
+                        && repeated?.windows.last?.scope == "Fable 5.2" && repeated?.windows.last?.resetsAt == nil,
+                     "each model's allowance is read once, never with an invented percentage, a passed renewal or a name that is not one: \(repeated?.windows.map(\.id) ?? [])")
+        let opus = ["display_name": "Opus", "utilization": 70, "resets_at": "2026-11-18T12:59:59Z"] as [String: Any]
+        let both = AgentClaudeServer.limits(result([opus, fable], opus: ["utilization": 70, "resets_at": "2026-11-18T12:59:59Z"]),
+                                            observed: now)
+        suite.expect(both?.windows.map(\.id) == ["claude.fh", "claude.sd", "claude.so", "claude.model.fable"],
+                     "a model the account already reports under its own key is not read twice: \(both?.windows.map(\.id) ?? [])")
+        suite.expect(AgentClaudeServer.limits(result(NSNull()), observed: now)?.windows.map(\.id) == ["claude.fh", "claude.sd"]
+                        && AgentClaudeServer.limits(["rate_limits_available": true, "rate_limits": ["model_scoped": [fable]]],
+                                                    observed: now)?.windows.map(\.id) == ["claude.model.fable"],
+                     "an answer without model allowances reads as before, and one with only them still reads")
+
+        // The island's card keeps two rows; the panel's shows every model's own.
+        let windows = limits?.windows ?? []
+        suite.expect(AgentLimitSupport.cardWindows(windows, everyModel: false).map(\.id) == ["claude.fh", "claude.sd"]
+                        && AgentLimitSupport.cardWindows(windows, everyModel: true).map(\.id)
+                            == ["claude.fh", "claude.sd", "claude.model.fable"],
+                     "the panel's Claude card shows Fable's week beside the overall one, the island's the one that binds first")
+        let spent = AgentClaudeServer.limits(result([["display_name": "Fable", "utilization": 92,
+                                                      "resets_at": "2026-11-18T12:59:59Z"]]), observed: now)?.windows ?? []
+        suite.expect(AgentLimitSupport.cardWindows(spent, everyModel: false).map(\.id) == ["claude.fh", "claude.model.fable"]
+                        && AgentLimitSupport.cardWindows(spent, everyModel: true).map(\.id)
+                            == ["claude.fh", "claude.sd", "claude.model.fable"]
+                        && AgentLimitSupport.cardWindows(both?.windows ?? [], everyModel: true).map(\.id)
+                            == ["claude.fh", "claude.sd", "claude.so", "claude.model.fable"],
+                     "a model's allowance that runs out first heads the island's card, and the panel keeps the overall week too")
+        let codex = [AgentLimitWindow(id: "codex.300", kind: .session, minutes: 300, scope: nil, usedPercent: 20, resetsAt: nil),
+                     AgentLimitWindow(id: "codex.10080", kind: .weekly, minutes: 10_080, scope: nil, usedPercent: 5, resetsAt: nil)]
+        suite.expect(AgentLimitSupport.cardWindows(codex, everyModel: true) == AgentLimitSupport.cardWindows(codex, everyModel: false)
+                        && AgentLimitSupport.cardWindows([], everyModel: true).isEmpty,
+                     "a card without model allowances shows the same rows in the panel and the island")
+    }
+
+    /// CCS runs Claude Code with `CLAUDE_CONFIG_DIR` set to the folder it
+    /// keeps for each account, so the sessions and sign-in are there, not
+    /// in ~/.claude.
+    private static func switchedProfiles(_ suite: TestSuite) {
+        let manager = FileManager.default
+        let home = manager.temporaryDirectory.appending(path: "vorssaint-claude-ccs-\(UUID())")
+        defer { try? manager.removeItem(at: home) }
+        do {
+            let instances = home.appending(path: ".ccs/instances")
+            let personal = instances.appending(path: "personal")
+            for folder in [personal, instances.appending(path: "personal.lock"), instances.appending(path: ".locks"),
+                           home.appending(path: ".claude")] {
+                try manager.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            }
+            let account = personal.appending(path: ".claude.json")
+            try JSONSerialization.data(withJSONObject: ["oauthAccount": ["accountUuid": "personal",
+                "emailAddress": "personal@example.invalid", "organizationType": "claude_max"]]).write(to: account)
+            try manager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: account.path)
+            let time = ISO8601DateFormatter().string(from: Date())
+            let log = personal.appending(path: "projects/-Users-me-code-harness/session.jsonl")
+            try manager.createDirectory(at: log.deletingLastPathComponent(), withIntermediateDirectories: true)
+            let line = #"{"type":"assistant","timestamp":"\#(time)","sessionId":"s","cwd":"/Users/me/code/harness","requestId":"r","message":{"id":"m","model":"claude-opus-5-5","stop_reason":"end_turn","usage":{"input_tokens":40,"output_tokens":2}}}"#
+            try Data((line + "\n").utf8).write(to: log)
+
+            let found = ClaudeAccountProfile.discover(home: home)
+            suite.expect(found.map(\.directory) == [personal.path] && found.first?.name(defaultName: "Default") == "personal"
+                            && found.first?.read(home: home).identity?.email == "personal@example.invalid",
+                         "an account CCS switches to is offered by its own folder, spelled as CCS hands it to Claude Code: \(found.map(\.directory))")
+            guard let profile = found.first else { return }
+            suite.expect(profile.logURLs(home: home) == [personal.appending(path: "projects", directoryHint: .isDirectory)],
+                         "its sessions are read from its own projects folder")
+            let host = AgentUsageReadTests.Host()
+            host.home = home
+            host.start(session: 1, providers: [.claude], cancellation: AgentUsageReadTests.Cancellation(), claudeProfile: profile)
+            let today = host.snapshot.usage(.today)
+            suite.expect(today.total.tokens.input == 40 && today.models.map(\.name) == ["Opus 5.5"]
+                            && today.projects.map(\.name) == ["harness"],
+                         "choosing that account counts its sessions' models and projects: \(today.models.map(\.name)) \(today.projects.map(\.name))")
+        } catch { suite.expect(false, "CCS account profiles: \(error)") }
     }
 
     private static let standIn = #"""

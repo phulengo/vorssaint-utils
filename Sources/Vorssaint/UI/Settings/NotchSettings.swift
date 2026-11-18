@@ -29,6 +29,11 @@ struct NotchSettings: View {
     @AppStorage(DefaultsKey.notchLyricsEnabled) private var lyricsEnabled = true
     @AppStorage(DefaultsKey.notchLyricsOnline) private var lyricsOnline = false
     @AppStorage(DefaultsKey.notchBrowserCovers) private var browserCovers = false
+    @AppStorage(DefaultsKey.notchMotionCovers) private var motionCovers = false
+    @AppStorage(DefaultsKey.notchMusicBarsGIF) private var chosenGIF = ""
+    @AppStorage(DefaultsKey.notchMusicGIFSize) private var gifSize = NotchMusicStripFit.defaultGIFSide
+    @AppStorage(DefaultsKey.notchMusicSidePadding) private var stripSidePadding = 0.0
+    @AppStorage(DefaultsKey.notchMusicVerticalPadding) private var stripVerticalPadding = 0.0
     @AppStorage(DefaultsKey.notchQueueEnabled) private var queueEnabled = true
     @AppStorage(DefaultsKey.notchLiveEqualizer) private var liveEqualizer = false
     @AppStorage(DefaultsKey.notchEnabled) private var enabled = false
@@ -110,6 +115,9 @@ struct NotchSettings: View {
     @State private var draggingModule: NotchModule?
     @State private var draggingControl: NotchControlItem?
     @State private var preferredPlayers: [NotchPreferredPlayer.Choice]?
+    @ObservedObject private var barsGIF = NotchBarsGIF.shared
+    /// The last GIF chosen could not be used.
+    @State private var barsGIFRefused = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var text: NotchStrings { FeatureStrings.notch(l10n.language) }
@@ -133,7 +141,8 @@ struct NotchSettings: View {
          String(microphone), String(battery), String(clipboard), String(clipboardWindow), clipboardCardSize,
          String(capture), String(trackChange), captureAction, String(showInCaptures),
          String(returnHome), homeModule, String(opensActivity), String(scratchpad),
-         String(agentsEnabled), String(watchEnabled), String(keepAwakeActivity), String(shortcutEnabled)]
+         String(agentsEnabled), String(watchEnabled), String(keepAwakeActivity), String(shortcutEnabled),
+         chosenGIF, String(gifSize), String(stripSidePadding), String(stripVerticalPadding)]
     }
 
     private var access: Binding<NotchQuickAccessConfiguration> {
@@ -179,6 +188,7 @@ struct NotchSettings: View {
         .onChange(of: configuration) { _, _ in sync() }
         .onChange(of: accessData) { _, _ in NotchService.shared.syncWithPreferences() }
         .onChange(of: browserCovers) { _, _ in NotchMusicService.shared.syncBrowserCovers() }
+        .onChange(of: motionCovers) { _, _ in NotchMotionArtwork.shared.sync() }
         .onChange(of: tab) { _, _ in draggingModule = nil; draggingControl = nil }
         .onAppear(perform: revealDestination)
         .onChange(of: router.requestID) { _, _ in revealDestination() }
@@ -450,6 +460,17 @@ struct NotchSettings: View {
                     .padding(.leading, settingsRowTextInset)
             }
             switchRow("photo", music.browserCovers, caption: music.browserCoversHint, isOn: $browserCovers)
+            switchRow("play.square", music.motionCovers, caption: music.motionCoversHint, isOn: $motionCovers)
+            SettingsRow(symbol: "waveform.circle", title: music.barsGIF,
+                        caption: barsGIFRefused ? music.invalidGIF : music.barsGIFHint) {
+                Button(music.chooseGIF) { barsGIFRefused = barsGIF.add() == false }
+            }
+            VStack(alignment: .leading, spacing: 14) {
+                NotchBarsGIFCollection(store: barsGIF, strings: music)
+                NotchMusicStripFitSliders(strings: music, showsGIFSize: barsGIF.data != nil,
+                                          stripHeight: notch.geometry.stripHeight)
+            }
+            .padding(.leading, settingsRowTextInset)
             SettingsFeatureSwitchRow(symbol: "list.bullet", title: music.enableQueue, caption: music.queueDescription,
                                      isOn: $queueEnabled, feature: .notchQueue)
             SettingsFeatureSwitchRow(symbol: "waveform", title: music.liveEqualizer,

@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Dynamic Island can play an album’s animated cover from Apple Music in place of the still cover, both closed and open. Turn on Animated covers from Apple Music in the music settings. It’s off by default, and most albums don’t have one.
+- Choose your own GIF to replace the music bars in the closed Dynamic Island. It plays with the song and holds still while it’s paused. Every GIF you add stays in a collection to pick again or delete, and you can set its size and the strip’s side and top-and-bottom padding; the strip widens to fit. Opened, the island’s Now Playing shows the GIF as large as the cover, across from it.
+- A new Pebble companion: a cut stone with gem eyes and a glowing crystal, with every reaction of the other companions. Any companion can also sit in a little glass dome.
+- A new Rocky companion, cut from a photo of a stone statue: a carapace on five jointed legs that turn at their joints, so he bumps a fist, waves, taps out a count, leans in to listen and sways to the music for every reaction of the other companions. With the dome on he lives in a geodesic glass ball and keeps his gestures small enough to fit. He has a line for each of those moments, for a stroll now and then and for dozing off, shown as a subtitle under the island as he says it; the companion settings list what he says and when, and his subtitles can be turned off. While the island has nothing else to show he stays out and plays a little act now and then, tapping a rhythm, stretching, hammering or dancing; with the music paused for an hour he sits and waits for it, and dances when it comes back; a shorter pause, as between clips in a feed or a video paused while you work, changes nothing. Click him there and he leaps out under the island, as big as a pet on the desktop, waves hello, plays an act and bows goodbye, with a line for each shown under his feet and said in his voice when it’s on, then shrinks back into his place; click the big Rocky to send him back sooner. With the pointer on him, the island waits a moment longer before it opens, so the click reaches him. Turn off Perform when the island is empty to let him hide again. Turn on Rocky’s voice to also hear it in his chords and an English translation; it’s off by default.
+- Claude account has an Automatic choice that follows the account Claude Code wrote to last, such as one CCS switched to, so the live session, its model and the projects are those of the work under way.
+- The Custom companion shows a picture or GIF of your own and moves it with every reaction of the other companions. A still photo has its subject lifted off its background, and a GIF plays its own frames.
+- Pin AI Agents to the menu bar to see the session and weekly limits of Claude Code or Codex, shown as left or used like the island’s Limits card. It reads the limits AI Agents follows in Dynamic Island and shows a dash until the agent reports them. Clicking it opens the panel’s AI Agents tab.
+- The menu bar panel has an AI Agents tab with the same cards as the AI page in Dynamic Island: limits with their countdowns, cost, trend, models, projects, activity and resets. You can hide it or move it in the panel layout.
+- Menu bar readings can show a progress ring beside the number. Usage display now offers Rings, and CPU, GPU, memory, disk usage, battery and AI Agents can each keep their own style of values, bars or a ring in their options. Readings without a style of their own look the same as before.
+
+### Changed
+- Music starting brings a companion out to sway along at most once an hour, so sound coming and going while you work, as a video played and paused, no longer calls it out each time.
+
+### Fixed
+- Rocky says his line for a screenshot as it is taken, even when its preview takes over the island at once, and for a download as it lands, even with the island open. His line moves with the island as it opens or closes.
+- Downloads in Dynamic Island watches your Downloads folder until you choose another, so finished downloads show, and Rocky cheers them, without setting it up first. The first time, macOS asks to let the app see that folder.
+- Companions also react to screenshots taken with macOS's own shortcuts or the Screenshot app once they are saved. The first time, macOS asks to let the app look in the folder screenshots are saved to, the Desktop unless you changed it, since only then does Spotlight report them.
+- The Volume Mixer's FaceTime row now sets the volume of the person on the call, and the Phone row does the same for calls taken from an iPhone. macOS plays calls through a system service rather than the app, so the slider used to change nothing.
+- During a call the Volume Mixer says that macOS is turning other apps down, so their sliders no longer seem broken. The note tells a call on the speakers apart from one in headphones.
+- When there are more apps than fit, arrows at the edges of the island's Volume Mixer turn its apps a page at a time, for a mouse whose wheel sets the slider under it.
+- AI Agents shows the weekly Fable limit Claude Code reports on Max plans, as its own row in the menu bar panel and in limit alerts. Claude account also lists the accounts CCS keeps in ~/.ccs/instances, so their usage, models and projects can be followed.
+- AI Agents counts the sessions of every Claude Code profile signed in to the same account, such as the CCS instances of one subscription, so usage, models and projects are complete whichever of them is selected. Another account’s profile stays apart.
+- AI Agents names a project after its repository: a worktree, wherever it is kept, and a folder inside a repository count toward that repository rather than showing under their own folder names.
+
 ## [3.4.4] - 2026-11-11
 
 ### Summary

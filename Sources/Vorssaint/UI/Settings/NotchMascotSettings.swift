@@ -21,6 +21,13 @@ struct NotchMascotSettings: View {
     @AppStorage(DefaultsKey.notchMascotStyle) private var style = NotchMascotStyle.minimal.rawValue
     @AppStorage(DefaultsKey.notchMascotShape) private var shape = NotchMascotShape.ball.rawValue
     @AppStorage(DefaultsKey.notchMascotPalette) private var palette = NotchMascotPalette.pearl.rawValue
+    @AppStorage(DefaultsKey.notchMascotEnclosed) private var enclosed = false
+    @AppStorage(DefaultsKey.notchMascotCustomImage) private var customImage = ""
+    @AppStorage(DefaultsKey.notchMascotVoice) private var voice = false
+    @AppStorage(DefaultsKey.notchMascotSubtitles) private var subtitles = true
+    @AppStorage(DefaultsKey.notchMascotPerforms) private var performs = true
+    /// The last picture chosen could not be used.
+    @State private var imageRefused = false
     @AppStorage(DefaultsKey.notchMascotSide) private var side = NotchMascotSide.left.rawValue
     @AppStorage(DefaultsKey.notchMascotVisitFrequency) private var frequency = NotchMascotVisitFrequency.normal.rawValue
     @AppStorage(DefaultsKey.notchCommandBar) private var commandBar = true
@@ -33,7 +40,8 @@ struct NotchMascotSettings: View {
     private var look: NotchMascotLook {
         NotchMascotLook(style: NotchMascotStyle(rawValue: style) ?? .minimal,
                         shape: NotchMascotShape(rawValue: shape) ?? .ball,
-                        palette: NotchMascotPalette(rawValue: palette) ?? .pearl)
+                        palette: NotchMascotPalette(rawValue: palette) ?? .pearl,
+                        enclosed: enclosed, customImage: customImage)
     }
 
     private var restingSide: NotchMascotSide { NotchMascotSide(rawValue: side) ?? .left }
@@ -119,8 +127,15 @@ struct NotchMascotSettings: View {
                     NotchMascotChoiceTile(title: text.style(item), selected: look.style == item) {
                         style = item.rawValue
                     } preview: {
-                        NotchMascotView(look: NotchMascotLook(style: item, shape: look.shape, palette: look.palette),
-                                        size: 30, idles: false)
+                        Group {
+                            if item == .custom, customImage.isEmpty {
+                                Image(systemName: "photo.badge.plus").font(.system(size: 17)).foregroundStyle(.white.opacity(0.8))
+                            } else {
+                                NotchMascotView(look: NotchMascotLook(style: item, shape: look.shape, palette: look.palette,
+                                                                      enclosed: look.enclosed, customImage: customImage),
+                                                size: 30, idles: false)
+                            }
+                        }
                             .frame(width: 30, height: 30)
                             .frame(width: 64, height: 42)
                             .background(Color.black, in: Capsule())
@@ -128,6 +143,26 @@ struct NotchMascotSettings: View {
                 }
             }
             .padding(.leading, settingsRowTextInset)
+            if look.style == .custom {
+                SettingsRow(symbol: "photo", title: text.custom, caption: imageRefused ? text.imageRefused : text.customHint) {
+                    Button(text.chooseImage) { imageRefused = NotchCompanionImage.shared.choose() == false }
+                }
+                .transition(.opacity)
+            }
+            SettingsRow(symbol: "circle.dotted.circle", title: text.enclosure) {
+                Toggle(text.enclosure, isOn: $enclosed).labelsHidden().toggleStyle(.switch)
+            }
+            if look.style == .rocky {
+                SettingsRow(symbol: "waveform", title: text.voice, caption: text.voiceHint) {
+                    Toggle(text.voice, isOn: $voice).labelsHidden().toggleStyle(.switch)
+                        .onChange(of: voice) { _, on in if !on { NotchMascotSpeech.shared.stop() } }
+                }
+                .transition(.opacity)
+                SettingsRow(symbol: "captions.bubble", title: text.subtitles, caption: text.subtitlesHint) {
+                    Toggle(text.subtitles, isOn: $subtitles).labelsHidden().toggleStyle(.switch)
+                }
+                .transition(.opacity)
+            }
             if look.style == .minimal {
                 SettingsRow(symbol: "circle.square", title: text.shape) {
                     Text(text.shape(look.shape)).foregroundStyle(.secondary)
@@ -136,10 +171,13 @@ struct NotchMascotSettings: View {
                 shapes
                     .transition(.opacity)
             }
-            SettingsRow(symbol: "swatchpalette", title: text.color) {
-                Text(text.palette(look.palette)).foregroundStyle(.secondary)
+            // Rocky is photographed stone; a colour would not change him.
+            if look.style != .rocky {
+                SettingsRow(symbol: "swatchpalette", title: text.color) {
+                    Text(text.palette(look.palette)).foregroundStyle(.secondary)
+                }
+                swatches
             }
-            swatches
         }
         .animation(animation, value: look.style)
     }
@@ -210,7 +248,13 @@ struct NotchMascotSettings: View {
                 }
                 .padding(.leading, settingsRowTextInset)
             }
+            if look.style == .rocky {
+                switchRow("theatermasks.fill", text.performs, caption: text.performsHint, isOn: $performs)
+                    .transition(.opacity)
+            }
+            // Performing, Rocky stays out of the island however this is set.
             switchRow("eye.slash", text.hidesWhenIdle, caption: text.hidesWhenIdleHint, isOn: $hidesWhenIdle)
+                .disabled(look.style == .rocky && performs)
             switchRow("figure.walk", text.visits, caption: text.visitsHint, isOn: $visits)
             if visits {
                 SettingsChoiceRow(symbol: "clock", title: text.frequency, selection: $frequency) {
@@ -335,6 +379,9 @@ private struct NotchMascotStageCard: View {
                 // Asleep while it is switched off, it answers none of this,
                 // so the tip dims with the moments.
                 .opacity(awake ? 1 : 0.45)
+            if look.style == .rocky {
+                NotchMascotLinesGuide(text: text, language: language)
+            }
         }
         .padding(16)
         .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -405,6 +452,7 @@ private struct NotchMascotStageCard: View {
         playing = moment
         let length: TimeInterval
         if let reaction = moment.reaction {
+            NotchMascotSpeech.shared.cue(moment.line, for: reaction, within: 2)
             react(reaction)
             length = reaction.length + 0.15
         } else {
@@ -448,6 +496,8 @@ private struct NotchMascotStageCard: View {
 /// from it, the companion in its place beside the camera, or in a capsule's
 /// middle, as the island on this Mac has it.
 private struct NotchMascotStage: View {
+    /// Rocky shows his acts here as the island would.
+    @AppStorage(DefaultsKey.notchMascotPerforms) private var performs = true
     let look: NotchMascotLook
     let side: NotchMascotSide
     let awake: Bool
@@ -489,7 +539,8 @@ private struct NotchMascotStage: View {
                 }
                 .overlay(alignment: .top) {
                     NotchMascotTrackView(look: look, track: track, rests: true, visit: visit, mood: .idle,
-                                         reaction: reaction, awake: awake)
+                                         reaction: reaction, awake: awake,
+                                         performance: look.style == .rocky && performs ? .show : .off)
                         .frame(width: track.width, height: track.height)
                         .allowsHitTesting(false)
                 }
@@ -683,6 +734,42 @@ private struct NotchMascotLens: View {
         }
         .frame(width: diameter, height: diameter)
         .accessibilityHidden(true)
+    }
+}
+
+/// What each moment makes Rocky say, so the person knows what to expect of
+/// him: the island's moments as the chips above name them, and dozing off.
+private struct NotchMascotLinesGuide: View {
+    let text: NotchMascotStrings
+    let language: AppLanguage
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(text.linesTitle).font(.subheadline.weight(.medium))
+            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 10, verticalSpacing: 5) {
+                ForEach(NotchMascotMoment.allCases) { moment in
+                    row(symbol: moment.symbol, title: text.moment(moment, language: language),
+                        lines: NotchMascotLine.lines(for: moment))
+                }
+                row(symbol: "zzz", title: text.dozing, lines: [.sleep])
+                row(symbol: "sparkles", title: text.showtime, lines: NotchMascotLine.showLines)
+            }
+        }
+        .padding(.top, 4)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func row(symbol: String, title: String, lines: [NotchMascotLine]) -> some View {
+        GridRow {
+            Label(title, systemImage: symbol)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            // His own words, as the translator says them.
+            Text(lines.map { "“\($0.text)”" }.joined(separator: "  "))
+                .font(.caption.italic())
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

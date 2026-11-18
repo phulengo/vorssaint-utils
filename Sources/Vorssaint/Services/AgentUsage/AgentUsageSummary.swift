@@ -411,6 +411,19 @@ enum AgentLimitSupport {
                                 scope: window.scope, usedPercent: 0, resetsAt: nil)
     }
 
+    /// The rows a limits card shows. Where two fit, the session and whichever
+    /// longer window binds first. Where the card can grow, the session, the
+    /// longer window that covers every model, and each allowance a plan keeps
+    /// for one model, as Max does for Fable, which is spent on its own and
+    /// can run out while the overall week still has room.
+    static func cardWindows(_ windows: [AgentLimitWindow], everyModel: Bool) -> [AgentLimitWindow] {
+        let session = windows.first { $0.kind == .session }
+        let longer = windows.filter { $0.kind != .session }
+        guard everyModel else { return [session, longer.max { $0.usedPercent < $1.usedPercent }].compactMap { $0 } }
+        let overall = longer.filter { $0.scope == nil }.max { $0.usedPercent < $1.usedPercent }
+        return [session, overall].compactMap { $0 } + longer.filter { $0.scope != nil }
+    }
+
     /// Once an estimate has passed, the countdown is unknown until another
     /// reading places it. That does not mean the allowance has renewed.
     static func displayedReset(_ window: AgentLimitWindow, now: Date) -> Date? {

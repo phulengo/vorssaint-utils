@@ -6,6 +6,7 @@ import AppKit
 /// A live reading the user can pin next to the menu bar icon.
 enum MenuBarMetric: String, CaseIterable, Identifiable {
     case cpu, gpu, memory, cpuTemperature, gpuTemperature, batteryTemperature, network, diskUsage, diskActivity, battery, batteryTime, peripheralBattery, power, fanSpeed, connectedDevices
+    case aiAgents
 
     var id: String { rawValue }
 
@@ -26,6 +27,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .power: return DefaultsKey.menuBarPower
         case .connectedDevices: return DefaultsKey.menuBarConnectedDevices
         case .fanSpeed: return DefaultsKey.menuBarFanSpeed
+        case .aiAgents: return DefaultsKey.menuBarAIAgents
         }
     }
 
@@ -46,6 +48,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .connectedDevices: return "cable.connector"
         case .power: return "powerplug.fill"
         case .fanSpeed: return "fanblades"
+        case .aiAgents: return AppFeature.notchAgents.symbolName
         }
     }
 
@@ -66,6 +69,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .connectedDevices: return FeatureStrings.connectedDevices(L10n.shared.language).title
         case .power: return strings.monitorShowPowerLabel
         case .fanSpeed: return FeatureStrings.fanControl(L10n.shared.language).menuBarTitle
+        case .aiAgents: return FeatureStrings.notchAgents(L10n.shared.language).title
         }
     }
 
@@ -75,6 +79,7 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         .memory,
         .battery, .batteryTime, .batteryTemperature, .peripheralBattery,
         .network, .diskUsage, .diskActivity, .connectedDevices, .power, .fanSpeed,
+        .aiAgents,
     ]
 
     static func order(in defaults: UserDefaults) -> [MenuBarMetric] {
@@ -100,7 +105,52 @@ enum MenuBarMetric: String, CaseIterable, Identifiable {
         case .connectedDevices: return .connectedDevices
         case .battery, .batteryTime, .batteryTemperature, .peripheralBattery, .power: return .monitorPower
         case .fanSpeed: return .fanControl
+        case .aiAgents: return .notchAgents
         }
+    }
+
+    /// Readings the system sampler supplies. The AI reading comes from the
+    /// AI section of Dynamic Island instead.
+    var readsSystemMonitor: Bool { self != .aiAgents }
+
+    /// Where this reading, one with a 0...100 scale, keeps its own style of
+    /// values, bars or a ring; nil for readings that only show their value.
+    var appearanceKey: String? {
+        switch self {
+        case .cpu: return DefaultsKey.menuBarCPUAppearance
+        case .gpu: return DefaultsKey.menuBarGPUAppearance
+        case .memory: return DefaultsKey.menuBarMemoryAppearance
+        case .diskUsage: return DefaultsKey.menuBarDiskUsageAppearance
+        case .battery: return DefaultsKey.menuBarBatteryAppearance
+        case .aiAgents: return DefaultsKey.menuBarAIAgentsAppearance
+        default: return nil
+        }
+    }
+
+    /// Usage readings follow the Usage display choice until given a style of
+    /// their own. The battery keeps its numeric block, as it always has.
+    var followsUsageDisplay: Bool { appearanceKey != nil && self != .battery }
+
+    /// How this reading draws: its own style, or its default.
+    func appearance(in defaults: UserDefaults = .standard) -> MenuBarMetricAppearance {
+        guard let key = appearanceKey else { return .values }
+        return MenuBarReadingStyleSupport.appearance(key: key, followsUsageDisplay: followsUsageDisplay, in: defaults)
+    }
+
+    /// Whether any reading can draw a bar or a ring.
+    static func usesGauges(in defaults: UserDefaults = .standard) -> Bool {
+        MenuBarReadingStyleSupport.usesGauges(in: defaults)
+    }
+
+    /// A temperature shares its component's block only while that component
+    /// shows its value.
+    func combinesTemperature(in defaults: UserDefaults = .standard) -> Bool {
+        defaults.bool(forKey: DefaultsKey.menuBarCombineTemperatures) && appearance(in: defaults) == .values
+    }
+
+    /// Whether combining temperatures can apply to any reading.
+    static func offersCombinedTemperatures(in defaults: UserDefaults = .standard) -> Bool {
+        MenuBarReadingStyleSupport.offersCombinedTemperatures(in: defaults)
     }
 
     var isAvailableOnCurrentHardware: Bool {
@@ -199,7 +249,15 @@ enum MenuBarSegment {
     case largeSymbol(String)
     case metricBlock(label: String, value: String, minimumValue: String, style: MenuBarBlockStyle,
                      pressure: MemoryPressure?, warning: BatteryWarning = .none)
-    case usageBarBlock(label: String, fraction: Double?, style: MenuBarBlockStyle, pressure: MemoryPressure?)
+    /// `level` sets the gauge's colour where the reading has its own scale of
+    /// concern, as the battery does; nil colours it by the usage limits.
+    case usageBarBlock(label: String, fraction: Double?, style: MenuBarBlockStyle, pressure: MemoryPressure?,
+                       level: MenuBarUsageBarSupport.Level? = nil)
+    /// A round gauge beside the reading's label and value, as Usage4Claude
+    /// draws its limits.
+    case ringBlock(label: String, value: String, minimumValue: String, fraction: Double?,
+                   level: MenuBarUsageBarSupport.Level? = nil, style: MenuBarBlockStyle,
+                   pressure: MemoryPressure?, warning: BatteryWarning = .none)
     case networkBlock(down: String, up: String, style: MenuBarBlockStyle)
     case diskActivityBlock(read: String, write: String, style: MenuBarBlockStyle)
     case batteryBlock(percent: Int, isCharging: Bool, externalConnected: Bool,
@@ -342,10 +400,7 @@ enum MenuBarRenderer {
                                       metrics: [MenuBarMetric],
                                       style: MenuBarBlockStyle) -> [MenuBarSegment] {
         var groups: [[MenuBarSegment]] = []
-        let appearance = MenuBarMetricAppearance.current
-        let usesBars = appearance == .bars
-        let combineTemperatures = appearance.allowsCombinedTemperatures
-            && UserDefaults.standard.bool(forKey: DefaultsKey.menuBarCombineTemperatures)
+        let defaults = UserDefaults.standard
         let enabled = Set(metrics)
         var renderedCPU = false
         var renderedGPU = false
@@ -354,19 +409,13 @@ enum MenuBarRenderer {
         for metric in metrics {
             switch metric {
             case .cpu, .cpuTemperature:
-                if combineTemperatures {
+                if MenuBarMetric.cpu.combinesTemperature(in: defaults) {
                     guard !renderedCPU else { break }
                     renderedCPU = true
                     let usageFraction = enabled.contains(.cpu) ? snapshot.cpuUsage : nil
                     let usage = usageFraction.map(percent)
                     let temperature = enabled.contains(.cpuTemperature) ? snapshot.cpuTemperature.map(temperatureCompact) : nil
-                    if usesBars {
-                        let group = usageAndTemperatureSegments(label: "CPU",
-                                                                fraction: usageFraction,
-                                                                temperature: temperature,
-                                                                style: style)
-                        if !group.isEmpty { groups.append(group) }
-                    } else if let value = combinedComponentValue(primary: usage, temperature: temperature) {
+                    if let value = combinedComponentValue(primary: usage, temperature: temperature) {
                         groups.append([.metricBlock(label: combinedComponentLabel("CPU",
                                                                                   hasPrimary: usage != nil,
                                                                                   hasTemperature: temperature != nil),
@@ -389,33 +438,18 @@ enum MenuBarRenderer {
                     break
                 }
                 if let usage = snapshot.cpuUsage {
-                    if usesBars {
-                        groups.append([.usageBarBlock(label: "CPU",
-                                                      fraction: usage,
-                                                      style: style,
-                                                      pressure: nil)])
-                    } else {
-                        groups.append([.metricBlock(label: "CPU",
-                                                    value: percent(usage),
-                                                    minimumValue: "100%",
-                                                    style: style,
-                                                    pressure: nil)])
-                    }
+                    groups.append([usageSegment(label: "CPU", fraction: usage, value: percent(usage),
+                                                minimumValue: "100%",
+                                                appearance: MenuBarMetric.cpu.appearance(in: defaults), style: style)])
                 }
             case .gpu, .gpuTemperature:
-                if combineTemperatures {
+                if MenuBarMetric.gpu.combinesTemperature(in: defaults) {
                     guard !renderedGPU else { break }
                     renderedGPU = true
                     let usageFraction = enabled.contains(.gpu) ? snapshot.gpuUsage : nil
                     let usage = usageFraction.map(percent)
                     let temperature = enabled.contains(.gpuTemperature) ? snapshot.gpuTemperature.map(temperatureCompact) : nil
-                    if usesBars {
-                        let group = usageAndTemperatureSegments(label: "GPU",
-                                                                fraction: usageFraction,
-                                                                temperature: temperature,
-                                                                style: style)
-                        if !group.isEmpty { groups.append(group) }
-                    } else if let value = combinedComponentValue(primary: usage, temperature: temperature) {
+                    if let value = combinedComponentValue(primary: usage, temperature: temperature) {
                         groups.append([.metricBlock(label: combinedComponentLabel("GPU",
                                                                                   hasPrimary: usage != nil,
                                                                                   hasTemperature: temperature != nil),
@@ -438,38 +472,24 @@ enum MenuBarRenderer {
                     break
                 }
                 if let usage = snapshot.gpuUsage {
-                    if usesBars {
-                        groups.append([.usageBarBlock(label: "GPU",
-                                                      fraction: usage,
-                                                      style: style,
-                                                      pressure: nil)])
-                    } else {
-                        groups.append([.metricBlock(label: "GPU",
-                                                    value: percent(usage),
-                                                    minimumValue: "100%",
-                                                    style: style,
-                                                    pressure: nil)])
-                    }
+                    groups.append([usageSegment(label: "GPU", fraction: usage, value: percent(usage),
+                                                minimumValue: "100%",
+                                                appearance: MenuBarMetric.gpu.appearance(in: defaults), style: style)])
                 }
             case .memory:
                 let memoryStyle = MemoryMenuBarStyle.current
                 let memoryValue = MonitorMemoryMetric.current.value(in: snapshot)
-                if usesBars {
-                    groups.append([.usageBarBlock(label: "RAM",
-                                                  fraction: MenuBarUsageBarSupport.memoryFraction(used: memoryValue,
-                                                                                                  total: snapshot.memoryTotal),
-                                                  style: style,
-                                                  pressure: memoryStyle.showsDot ? snapshot.memoryPressure : nil)])
-                } else {
-                    let value = memoryStyle.showsPercent
-                        ? MetricFormat.menuBarMemoryPercent(used: memoryValue, total: snapshot.memoryTotal)
-                        : ""
-                    groups.append([.metricBlock(label: "RAM",
-                                                value: value,
-                                                minimumValue: memoryStyle.showsPercent ? "100%" : "",
-                                                style: style,
-                                                pressure: memoryStyle.showsDot ? snapshot.memoryPressure : nil)])
-                }
+                let value = memoryStyle.showsPercent
+                    ? MetricFormat.menuBarMemoryPercent(used: memoryValue, total: snapshot.memoryTotal)
+                    : ""
+                groups.append([usageSegment(label: "RAM",
+                                            fraction: MenuBarUsageBarSupport.memoryFraction(used: memoryValue,
+                                                                                            total: snapshot.memoryTotal),
+                                            value: value,
+                                            minimumValue: memoryStyle.showsPercent ? "100%" : "",
+                                            appearance: MenuBarMetric.memory.appearance(in: defaults),
+                                            style: style,
+                                            pressure: memoryStyle.showsDot ? snapshot.memoryPressure : nil)])
             case .network:
                 if let down = snapshot.netDownBytesPerSec, let up = snapshot.netUpBytesPerSec {
                     groups.append([.networkBlock(down: MetricFormat.networkRateCompact(down),
@@ -479,18 +499,13 @@ enum MenuBarRenderer {
             case .diskUsage:
                 if let disk = primaryDisk(from: snapshot.disk) {
                     let diskStyle = DiskMenuBarStyle.current
-                    if usesBars && diskStyle.showsPercentage {
-                        groups.append([.usageBarBlock(label: "DSK",
-                                                      fraction: disk.usedFraction,
-                                                      style: style,
-                                                      pressure: nil)])
-                    } else {
-                        groups.append([.metricBlock(label: "DSK",
-                                                    value: diskStyle.value(for: disk),
-                                                    minimumValue: diskStyle.minimumValue,
-                                                    style: style,
-                                                    pressure: nil)])
-                    }
+                    // Free or used space has no scale for a gauge to fill.
+                    groups.append([usageSegment(label: "DSK", fraction: disk.usedFraction,
+                                                value: diskStyle.value(for: disk),
+                                                minimumValue: diskStyle.minimumValue,
+                                                appearance: diskStyle.showsPercentage
+                                                    ? MenuBarMetric.diskUsage.appearance(in: defaults) : .values,
+                                                style: style)])
                 }
             case .diskActivity:
                 if let activity = diskActivity(from: snapshot.disk) {
@@ -499,7 +514,7 @@ enum MenuBarRenderer {
                                                       style: style)])
                 }
             case .battery, .batteryTemperature:
-                if combineTemperatures {
+                if MenuBarMetric.battery.combinesTemperature(in: defaults) {
                     guard !renderedBattery else { break }
                     renderedBattery = true
                     let charge = enabled.contains(.battery)
@@ -542,11 +557,22 @@ enum MenuBarRenderer {
                     break
                 }
                 if let charge = snapshot.power?.chargePercent {
-                    groups.append([.batteryBlock(percent: charge,
-                                                 isCharging: snapshot.power?.isCharging ?? false,
-                                                 externalConnected: snapshot.power?.externalConnected ?? false,
-                                                 warning: batteryWarning(for: snapshot.power),
-                                                 style: style)])
+                    let warning = batteryWarning(for: snapshot.power)
+                    let appearance = MenuBarMetric.battery.appearance(in: defaults)
+                    if appearance == .values {
+                        groups.append([.batteryBlock(percent: charge,
+                                                     isCharging: snapshot.power?.isCharging ?? false,
+                                                     externalConnected: snapshot.power?.externalConnected ?? false,
+                                                     warning: warning,
+                                                     style: style)])
+                    } else {
+                        let held = max(0, min(100, charge))
+                        groups.append([usageSegment(label: "BAT", fraction: Double(held) / 100,
+                                                    value: "\(held)%", minimumValue: "100%",
+                                                    appearance: appearance, style: style,
+                                                    level: MenuBarReadingStyleSupport.level(for: warning),
+                                                    warning: warning)])
+                    }
                 }
             case .batteryTime:
                 if let power = snapshot.power,
@@ -598,34 +624,46 @@ enum MenuBarRenderer {
                                                 style: style,
                                                 pressure: nil)])
                 }
+            case .aiAgents:
+                // Always drawn, with dashes until the agent reports its
+                // windows, so a pinned reading never vanishes unexplained.
+                let strings = FeatureStrings.notchAgents(L10n.shared.language)
+                let reading = snapshot.agentReading ?? .unknown
+                let appearance = MenuBarMetric.aiAgents.appearance(in: defaults)
+                for (label, value, share) in [(strings.session, reading.session, reading.sessionShare),
+                                              (strings.weekly, reading.weekly, reading.weeklyShare)] {
+                    // A gauge fills with what the number says, left or used,
+                    // and warns by what is used.
+                    groups.append([usageSegment(label: label.uppercased(), fraction: share?.shown, value: value,
+                                                minimumValue: "100%", appearance: appearance, style: style,
+                                                level: share.map { MenuBarUsageBarSupport.currentLevel(for: $0.used) })])
+                }
             }
         }
         return blockJoined(groups, style: style)
     }
 
-    private static func usageAndTemperatureSegments(label: String,
-                                                    fraction: Double?,
-                                                    temperature: String?,
-                                                    style: MenuBarBlockStyle) -> [MenuBarSegment] {
-        var segments: [MenuBarSegment] = []
-        if let fraction {
-            segments.append(.usageBarBlock(label: label,
-                                           fraction: fraction,
-                                           style: style,
-                                           pressure: nil))
+    /// A reading with a percentage in its style. `value` is the number the
+    /// values style shows, which a ring keeps beside its gauge.
+    private static func usageSegment(label: String,
+                                     fraction: Double?,
+                                     value: String,
+                                     minimumValue: String,
+                                     appearance: MenuBarMetricAppearance,
+                                     style: MenuBarBlockStyle,
+                                     pressure: MemoryPressure? = nil,
+                                     level: MenuBarUsageBarSupport.Level? = nil,
+                                     warning: BatteryWarning = .none) -> MenuBarSegment {
+        switch appearance {
+        case .values:
+            return .metricBlock(label: label, value: value, minimumValue: minimumValue, style: style,
+                                pressure: pressure, warning: warning)
+        case .bars:
+            return .usageBarBlock(label: label, fraction: fraction, style: style, pressure: pressure, level: level)
+        case .ring:
+            return .ringBlock(label: label, value: value, minimumValue: minimumValue, fraction: fraction,
+                              level: level, style: style, pressure: pressure, warning: warning)
         }
-        if let temperature {
-            if !segments.isEmpty {
-                segments.append(.text(MenuBarSpacingSupport.blockGlue(readableStyle: style == .readable,
-                                                                      spacing: MenuBarMetricSpacing.current)))
-            }
-            segments.append(.metricBlock(label: temperatureLabel(label),
-                                         value: temperature,
-                                         minimumValue: "999°",
-                                         style: style,
-                                         pressure: nil))
-        }
-        return segments
     }
 
     private static func estimatedUsesStackedLayout(for metrics: [MenuBarMetric],
@@ -656,11 +694,16 @@ enum MenuBarRenderer {
     }
 
     private static func reservedWidth(for metric: MenuBarMetric, preset: MenuBarPreset) -> Int {
+        // A ring sits beside its block, so it widens the reading; a bar
+        // takes no more room than the number it replaces.
+        func gauge(blocks: Int = 1) -> Int {
+            MenuBarReadingStyleSupport.extraColumns(for: metric.appearance(), blocks: blocks)
+        }
         switch (preset, metric) {
         case (_, .cpu), (_, .gpu):
-            return 11      // symbol + " CPU 100%"
+            return 11 + gauge()      // symbol + " CPU 100%"
         case (_, .memory):
-            return MemoryMenuBarStyle.current.showsDot ? 13 : 11
+            return (MemoryMenuBarStyle.current.showsDot ? 13 : 11) + gauge()
         case (_, .cpuTemperature), (_, .gpuTemperature), (_, .batteryTemperature):
             return 11      // symbol + " CPU 999°" / " GPU 999°" / " BAT 999°"
         case (_, .peripheralBattery):
@@ -668,11 +711,13 @@ enum MenuBarRenderer {
         case (_, .network):
             return 15      // down symbol + 999Kb/1023K + up symbol + 999Kb/1023K
         case (_, .diskUsage):
-            return DiskMenuBarStyle.current.showsPercentage ? 11 : 14
+            return DiskMenuBarStyle.current.showsPercentage ? 11 + gauge() : 14
         case (_, .diskActivity):
             return 15      // R1.0G + W1.0G
-        case (_, .battery), (_, .power):
-            return 11      // symbol + " BAT 100%" / " PWR 99W"
+        case (_, .battery):
+            return 11 + gauge()      // symbol + " BAT 100%"
+        case (_, .power):
+            return 11      // symbol + " PWR 99W"
         case (_, .batteryTime):
             return 12      // clock symbol + "99h 59m"
         case (_, .connectedDevices):
@@ -680,6 +725,8 @@ enum MenuBarRenderer {
         case (_, .fanSpeed):
             let count = max(1, SystemMonitor.fanTelemetryCount)
             return FanControlPolicy.menuBarWidthUnits(fanCount: count)
+        case (_, .aiAgents):
+            return 11 + gauge(blocks: 2)      // "100%" + "100%" under their session and week labels
         }
     }
 
@@ -736,11 +783,21 @@ enum MenuBarRenderer {
                                                     style: style,
                                                     pressure: pressure,
                                                     warning: warning))
-            case let .usageBarBlock(label, fraction, style, pressure):
+            case let .usageBarBlock(label, fraction, style, pressure, level):
                 result.append(usageBarBlockAttachment(label: label,
                                                       fraction: fraction,
                                                       style: style,
-                                                      pressure: pressure))
+                                                      pressure: pressure,
+                                                      level: level))
+            case let .ringBlock(label, value, minimumValue, fraction, level, style, pressure, warning):
+                result.append(ringBlockAttachment(label: label,
+                                                  value: value,
+                                                  minimumValue: minimumValue,
+                                                  fraction: fraction,
+                                                  level: level,
+                                                  style: style,
+                                                  pressure: pressure,
+                                                  warning: warning))
             case let .networkBlock(down, up, style):
                 result.append(networkBlockAttachment(down: down, up: up, style: style))
             case let .diskActivityBlock(read, write, style):
@@ -812,11 +869,13 @@ enum MenuBarRenderer {
     private static func usageBarBlockAttachment(label: String,
                                                 fraction: Double?,
                                                 style: MenuBarBlockStyle,
-                                                pressure: MemoryPressure?) -> NSAttributedString {
+                                                pressure: MemoryPressure?,
+                                                level: MenuBarUsageBarSupport.Level?) -> NSAttributedString {
         let image = usageBarBlockImage(label: label,
                                        fraction: fraction,
                                        style: style,
-                                       pressure: pressure)
+                                       pressure: pressure,
+                                       level: level)
         let attachment = NSTextAttachment()
         attachment.image = image
         // The gauge outline fills the image symmetrically, so the offset
@@ -935,12 +994,11 @@ enum MenuBarRenderer {
     private static func usageBarBlockImage(label: String,
                                            fraction: Double?,
                                            style: MenuBarBlockStyle,
-                                           pressure: MemoryPressure?) -> NSImage {
+                                           pressure: MemoryPressure?,
+                                           level: MenuBarUsageBarSupport.Level?) -> NSImage {
         let innerSteps = style == .readable ? 17 : 15
         let fillLevel = fraction.map { MenuBarUsageBarSupport.fillLevel(for: $0, steps: innerSteps) }
-        let fillColorHex = fraction.map {
-            MenuBarUsageBarSupport.currentColorHex(for: MenuBarUsageBarSupport.currentLevel(for: $0))
-        } ?? "missing"
+        let fillColorHex = gaugeColorHex(fraction: fraction, level: level) ?? "missing"
         let pressureKey = pressure.map(String.init(describing:)) ?? "none"
         let levelKey = fillLevel.map(String.init) ?? "missing"
         let cacheKey = "usageBar|\(label)|\(levelKey)|\(fillColorHex)|\(style)|\(pressureKey)" as NSString
@@ -1008,6 +1066,97 @@ enum MenuBarRenderer {
                 dash.lineWidth = 1
                 dash.stroke()
             }
+            return true
+        }
+        image.isTemplate = false
+        blockImageCache.setObject(image, forKey: cacheKey, cost: blockImageCost(image))
+        return image
+    }
+
+    /// The colour a gauge fills with: the level the reading gives, or the
+    /// usage limits applied to its fraction. Nil while there is no reading.
+    private static func gaugeColorHex(fraction: Double?, level: MenuBarUsageBarSupport.Level?) -> String? {
+        guard let fraction else { return nil }
+        return MenuBarUsageBarSupport.currentColorHex(for: level ?? MenuBarUsageBarSupport.currentLevel(for: fraction))
+    }
+
+    private static func ringBlockAttachment(label: String,
+                                            value: String,
+                                            minimumValue: String,
+                                            fraction: Double?,
+                                            level: MenuBarUsageBarSupport.Level?,
+                                            style: MenuBarBlockStyle,
+                                            pressure: MemoryPressure?,
+                                            warning: BatteryWarning) -> NSAttributedString {
+        let image = ringBlockImage(label: label,
+                                   value: value,
+                                   minimumValue: minimumValue,
+                                   fraction: fraction,
+                                   level: level,
+                                   style: style,
+                                   pressure: pressure,
+                                   warning: warning)
+        let attachment = NSTextAttachment()
+        attachment.image = image
+        // As tall as a metric block, so it sits where a value would.
+        attachment.bounds = NSRect(x: 0,
+                                   y: (style == .readable ? -5.9 : -5.7) + legacyBlockAttachmentNudge,
+                                   width: image.size.width,
+                                   height: image.size.height)
+        return NSAttributedString(attachment: attachment)
+    }
+
+    /// A round gauge beside the reading's own metric block: a faint track in
+    /// the menu bar's text colour, filled clockwise from the top in the
+    /// gauge colours. Without a reading only the track shows. The block
+    /// beside it is the one the values style draws, so its label, number and
+    /// warning colour read the same in both.
+    private static func ringBlockImage(label: String,
+                                       value: String,
+                                       minimumValue: String,
+                                       fraction: Double?,
+                                       level: MenuBarUsageBarSupport.Level?,
+                                       style: MenuBarBlockStyle,
+                                       pressure: MemoryPressure?,
+                                       warning: BatteryWarning) -> NSImage {
+        let steps = 100
+        let filled = fraction.map { MenuBarUsageBarSupport.fillLevel(for: $0, steps: steps) }
+        let colorHex = gaugeColorHex(fraction: fraction, level: level)
+        let pressureKey = pressure.map(String.init(describing:)) ?? "none"
+        let cacheKey = ("ring|\(label)|\(value)|\(minimumValue)|\(filled.map(String.init) ?? "missing")|"
+            + "\(colorHex ?? "missing")|\(style)|\(pressureKey)|\(warning)|\(MenuBarMetricSpacing.current)") as NSString
+        if let cached = blockImageCache.object(forKey: cacheKey) { return cached }
+
+        let text = metricBlockImage(label: label,
+                                    value: value,
+                                    minimumValue: minimumValue,
+                                    style: style,
+                                    pressure: pressure,
+                                    warning: warning)
+        let diameter: CGFloat = style == .readable ? 15 : 14
+        let lineWidth: CGFloat = style == .readable ? 2.4 : 2.2
+        let gap: CGFloat = style == .readable ? 3 : 2.5
+        let size = NSSize(width: ceil(diameter + gap + text.size.width), height: text.size.height)
+        let image = NSImage(size: size, flipped: false) { rect in
+            NSColor.clear.setFill()
+            rect.fill()
+            let ringRect = NSRect(x: 0, y: (size.height - diameter) / 2, width: diameter, height: diameter)
+                .insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
+            let track = NSBezierPath(ovalIn: ringRect)
+            track.lineWidth = lineWidth
+            NSColor.labelColor.withAlphaComponent(0.22).setStroke()
+            track.stroke()
+            if let filled, filled > 0, let colorHex {
+                let center = NSPoint(x: ringRect.midX, y: ringRect.midY)
+                let arc = NSBezierPath()
+                arc.appendArc(withCenter: center, radius: ringRect.width / 2, startAngle: 90,
+                              endAngle: 90 - 360 * CGFloat(filled) / CGFloat(steps), clockwise: true)
+                arc.lineWidth = lineWidth
+                arc.lineCapStyle = filled < steps ? .round : .butt
+                usageBarColor(hex: colorHex).setStroke()
+                arc.stroke()
+            }
+            text.draw(at: NSPoint(x: diameter + gap, y: 0), from: .zero, operation: .sourceOver, fraction: 1)
             return true
         }
         image.isTemplate = false

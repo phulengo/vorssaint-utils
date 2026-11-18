@@ -8,6 +8,7 @@ import SwiftUI
 /// visual cost before they occupy the actual menu bar.
 struct MenuBarMetricsPreview: View {
     @ObservedObject private var monitor = SystemMonitor.shared
+    @ObservedObject private var agents = AgentUsageService.shared
     @AppStorage(DefaultsKey.menuBarCPU) private var cpu = false
     @AppStorage(DefaultsKey.menuBarGPU) private var gpu = false
     @AppStorage(DefaultsKey.menuBarMemory) private var memory = false
@@ -24,9 +25,18 @@ struct MenuBarMetricsPreview: View {
     @AppStorage(DefaultsKey.menuBarPower) private var power = false
     @AppStorage(DefaultsKey.menuBarFanSpeed) private var fanSpeed = false
     @AppStorage(DefaultsKey.menuBarConnectedDevices) private var connectedDevices = false
+    @AppStorage(DefaultsKey.menuBarAIAgents) private var aiAgents = false
+    @AppStorage(DefaultsKey.menuBarAIAgentsProvider) private var aiAgentsProvider = AgentProvider.claude.rawValue
+    @AppStorage(DefaultsKey.notchAgentsLimitDisplay) private var agentLimitDisplay = NotchAgentLimitDisplay.remaining.rawValue
     @AppStorage(DefaultsKey.menuBarMetricOrder) private var metricOrder = ""
     @AppStorage(DefaultsKey.menuBarCombineTemperatures) private var combineTemperatures = true
     @AppStorage(DefaultsKey.menuBarMetricAppearance) private var metricAppearance = "values"
+    @AppStorage(DefaultsKey.menuBarCPUAppearance) private var cpuAppearance = ""
+    @AppStorage(DefaultsKey.menuBarGPUAppearance) private var gpuAppearance = ""
+    @AppStorage(DefaultsKey.menuBarMemoryAppearance) private var memoryAppearance = ""
+    @AppStorage(DefaultsKey.menuBarDiskUsageAppearance) private var diskUsageAppearance = ""
+    @AppStorage(DefaultsKey.menuBarBatteryAppearance) private var batteryAppearance = ""
+    @AppStorage(DefaultsKey.menuBarAIAgentsAppearance) private var aiAgentsAppearance = ""
     @AppStorage(DefaultsKey.menuBarUsageBarNormalColor) private var usageBarNormalColor = "#64D2FF"
     @AppStorage(DefaultsKey.menuBarUsageBarElevatedColor) private var usageBarElevatedColor = "#FFD60A"
     @AppStorage(DefaultsKey.menuBarUsageBarCriticalColor) private var usageBarCriticalColor = "#FF453A"
@@ -46,6 +56,8 @@ struct MenuBarMetricsPreview: View {
         let _ = metricOrder
         let _ = combineTemperatures
         let _ = metricAppearance
+        let _ = [cpuAppearance, gpuAppearance, memoryAppearance, diskUsageAppearance, batteryAppearance,
+                 aiAgentsAppearance]
         let _ = usageBarNormalColor
         let _ = usageBarElevatedColor
         let _ = usageBarCriticalColor
@@ -58,13 +70,16 @@ struct MenuBarMetricsPreview: View {
         let _ = temperatureUnit
         let _ = networkSpeedUnit
         let _ = metricSpacing
+        let _ = aiAgentsProvider
+        let _ = agentLimitDisplay
         let metrics = activeMetrics
-        let lines = separateMetrics ? [] : MenuBarRenderer.lines(for: monitor.snapshot, metrics: metrics)
+        let snapshot = previewSnapshot(showsAgents: metrics.contains(.aiAgents))
+        let lines = separateMetrics ? [] : MenuBarRenderer.lines(for: snapshot, metrics: metrics)
         // Separate items are their own status items, which macOS seats to
         // the left of the one that was there first.
         let items = separateMetrics
             ? StatusItemController.metricStatusGroups(for: metrics, strings: l10n.s)
-                .map { MenuBarRenderer.lines(for: monitor.snapshot, metrics: $0.metrics) }
+                .map { MenuBarRenderer.lines(for: snapshot, metrics: $0.metrics) }
                 .filter { !$0.isEmpty }
             : []
         // The steady state of the hide option: a pending update, a running
@@ -136,7 +151,16 @@ struct MenuBarMetricsPreview: View {
         let _ = power
         let _ = fanSpeed
         let _ = connectedDevices
+        let _ = aiAgents
         return MenuBarMetric.enabled(in: .standard)
+    }
+
+    /// The monitor's latest reading with the AI reading the menu bar would
+    /// draw beside it, redrawn as the AI section reads new limits.
+    private func previewSnapshot(showsAgents: Bool) -> SystemSnapshot {
+        var snapshot = monitor.snapshot
+        if showsAgents { snapshot.agentReading = StatusItemController.agentReading() }
+        return snapshot
     }
 
     @ViewBuilder
@@ -167,11 +191,23 @@ struct MenuBarMetricsPreview: View {
                         style: style,
                         pressure: pressure,
                         warning: warning)
-        case let .usageBarBlock(label, fraction, style, pressure):
+        case let .usageBarBlock(label, fraction, style, pressure, level):
             usageBarBlock(label: label,
                           fraction: fraction,
                           style: style,
-                          pressure: pressure)
+                          pressure: pressure,
+                          level: level)
+        case let .ringBlock(label, value, minimumValue, fraction, level, style, pressure, warning):
+            HStack(spacing: style == .readable ? 3 : 2.5) {
+                ring(fraction: fraction, level: level, style: style)
+                metricBlock(label: label,
+                            value: value,
+                            minimumValue: minimumValue,
+                            style: style,
+                            pressure: pressure,
+                            warning: warning)
+            }
+            .fixedSize(horizontal: true, vertical: true)
         case let .networkBlock(down, up, style):
             let rows = networkUploadFirst ? [("↑", up), ("↓", down)] : [("↓", down), ("↑", up)]
             VStack(alignment: .trailing, spacing: -0.6) {
@@ -260,10 +296,31 @@ struct MenuBarMetricsPreview: View {
         .fixedSize(horizontal: true, vertical: true)
     }
 
+    /// The renderer's round gauge: a faint track, filled clockwise from the top.
+    private func ring(fraction: Double?, level: MenuBarUsageBarSupport.Level?, style: MenuBarBlockStyle) -> some View {
+        let diameter: CGFloat = style == .readable ? 15 : 14
+        let lineWidth: CGFloat = style == .readable ? 2.4 : 2.2
+        let clamped = fraction.map(MenuBarUsageBarSupport.clampedFraction) ?? 0
+        return ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.22), lineWidth: lineWidth)
+            if let fraction {
+                Circle()
+                    .trim(from: 0, to: clamped)
+                    .stroke(usageBarColor(for: fraction, level: level),
+                            style: StrokeStyle(lineWidth: lineWidth, lineCap: clamped < 1 ? .round : .butt))
+                    .rotationEffect(.degrees(-90))
+            }
+        }
+        .padding(lineWidth / 2)
+        .frame(width: diameter, height: diameter)
+    }
+
     private func usageBarBlock(label: String,
                                fraction: Double?,
                                style: MenuBarBlockStyle,
-                               pressure: MemoryPressure?) -> some View {
+                               pressure: MemoryPressure?,
+                               level: MenuBarUsageBarSupport.Level?) -> some View {
         let size = MenuBarRenderer.usageBarSize(style: style, showsPressure: pressure != nil)
         let barWidth: CGFloat = style == .readable ? 10 : 9
         let barHeight: CGFloat = style == .readable ? 20 : 18
@@ -294,7 +351,7 @@ struct MenuBarMetricsPreview: View {
                     .stroke(Color.white, lineWidth: 1.15)
                 if let clamped, clamped > 0 {
                     RoundedRectangle(cornerRadius: 1.2, style: .continuous)
-                        .fill(usageBarColor(for: clamped))
+                        .fill(usageBarColor(for: clamped, level: level))
                         .frame(width: barWidth - 4.2,
                                height: max(1, innerHeight * clamped))
                         .padding(.bottom, 2.1)
@@ -311,9 +368,8 @@ struct MenuBarMetricsPreview: View {
         .fixedSize(horizontal: true, vertical: true)
     }
 
-    private func usageBarColor(for fraction: Double) -> Color {
-        let level = MenuBarUsageBarSupport.currentLevel(for: fraction)
-        let hex = MenuBarUsageBarSupport.currentColorHex(for: level)
+    private func usageBarColor(for fraction: Double, level: MenuBarUsageBarSupport.Level?) -> Color {
+        let hex = MenuBarUsageBarSupport.currentColorHex(for: level ?? MenuBarUsageBarSupport.currentLevel(for: fraction))
         let rgb = MenuBarUsageBarSupport.rgb(for: hex,
                                              fallback: MenuBarUsageBarSupport.defaultNormalColor)
         return Color(red: rgb.red, green: rgb.green, blue: rgb.blue)

@@ -29,5 +29,19 @@ enum MenuPanelSectionGateContract {
         expectGate(.utilities, keeps: UtilityPanelItem.allCases.map(\.feature), "utility")
         expectGate(.toggles, keeps: QuickToggleAction.allCases.map(\.feature), "quick toggle")
         expectGate(.system, keeps: [.connectedDevices], "connected devices")
+
+        suite.expect(PanelSectionID.agents.featureGate == [.notchAgents]
+                     && PanelSectionID.agents.visibilityKey == DefaultsKey.panelShowAgents
+                     && Defaults.registeredDefaults[DefaultsKey.panelShowAgents] as? Bool == true,
+                     "the AI tab comes and goes with the AI section and shows until hidden")
+        suite.expect(PanelLayout.order(saved: "") == PanelSectionID.allCases,
+                     "a new panel lists the AI tab in its place after Power")
+        suite.expect(Array(PanelLayout.order(saved: "toggles,power,system").prefix(4)) == [.toggles, .power, .agents, .system],
+                     "a saved order from before the AI tab gains it right after Power, keeping its own order")
+        suite.expect(PanelLayout.order(saved: "agents,keepAwake").prefix(2) == [.agents, .keepAwake],
+                     "a saved place for the AI tab is kept")
+        let restored = PanelLayout.order(saved: "wallpaper,disk,power")
+        suite.expect(Set(restored) == Set(PanelSectionID.allCases) && restored.count == PanelSectionID.allCases.count,
+                     "every section appears exactly once whatever the saved order omits")
     }
 }

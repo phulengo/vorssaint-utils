@@ -10,6 +10,10 @@ struct NotchAgentsSettingsControls: View {
     @ObservedObject private var usage = AgentUsageService.shared
     @AppStorage(DefaultsKey.notchAgentsClaude) private var claude = true
     @AppStorage(DefaultsKey.notchAgentsClaudeProfile) private var claudeProfile = ""
+    /// The account the cards read, which the automatic choice resolves.
+    private var claudeAccount: ClaudeAccountProfile {
+        claudeProfile == ClaudeAccountProfile.automaticChoice ? usage.claudeProfile : ClaudeAccountProfile(directory: claudeProfile)
+    }
     @AppStorage(DefaultsKey.notchAgentsCodex) private var codex = true
     @AppStorage(DefaultsKey.notchAgentsOpenCode) private var opencode = true
     @AppStorage(DefaultsKey.notchAgentsCopilot) private var copilot = true
@@ -143,7 +147,7 @@ struct NotchAgentsSettingsControls: View {
                     claudeLimitsStatus(now: context.date)
                 }
                 if usage.claudeAccountChecking { ProgressView().controlSize(.small) }
-                if claudeProfile.isEmpty {
+                if claudeAccount.isDefault {
                     Text(text.claudeLimitsPrivacy).font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -161,6 +165,12 @@ struct NotchAgentsSettingsControls: View {
             findRoots()
             if claude { findClaudeApp() }
             NotchService.shared.syncWithPreferences()
+        }
+        // The automatic choice moves with the account in use, once read.
+        .onChange(of: usage.claudeProfile) { _, _ in
+            claudeAppFileCheck = nil
+            findRoots()
+            if claude { findClaudeApp() }
         }
         // Cards and agents set the page's height, and the live reading the
         // closed island's width, which the island follows.
@@ -190,7 +200,7 @@ struct NotchAgentsSettingsControls: View {
                     .foregroundStyle(now.timeIntervalSince(account) < AgentClaudeAppUsage.freshness ? .green : .orange)
                 explained(failure) { Text("Claude Code · " + text.updated(relative(account, now: now))) }
                 Spacer(minLength: 0)
-            } else if !claudeProfile.isEmpty {
+            } else if !claudeAccount.isDefault {
                 Image(systemName: "info.circle.fill").foregroundStyle(.secondary)
                 Text(failure ?? FeatureStrings.claudeAccount(l10n.language).noLimits)
                 Spacer(minLength: 0)
@@ -236,11 +246,11 @@ struct NotchAgentsSettingsControls: View {
     /// The app and the file are looked up when the page opens, off the main
     /// thread for the file, never on every draw.
     private func findClaudeApp() {
-        guard claudeProfile.isEmpty else { claudeApp = nil; claudeAppFileCheck = nil; return }
+        guard claudeAccount.isDefault else { claudeApp = nil; claudeAppFileCheck = nil; return }
         claudeApp = NSWorkspace.shared.urlForApplication(withBundleIdentifier: AgentClaudeAppUsage.bundleIdentifier)
         DispatchQueue.global(qos: .utility).async {
             let checked = AgentClaudeAppUsage.lastCheck()
-            DispatchQueue.main.async { if claudeProfile.isEmpty { claudeAppFileCheck = checked } }
+            DispatchQueue.main.async { if claudeAccount.isDefault { claudeAppFileCheck = checked } }
         }
     }
 
@@ -264,10 +274,15 @@ struct NotchAgentsSettingsControls: View {
         }
     }
 
-    /// Where the logs live is checked when the page opens, not on every draw.
+    /// Where the logs live is checked when the page opens, not on every draw,
+    /// and off the main thread: it reads the account of every Claude profile.
     private func findRoots() {
-        let found = AgentLogRoot.all(claudeProfile: ClaudeAccountProfile(directory: claudeProfile)).filter(\.exists).map(\.provider)
-        roots = Dictionary(uniqueKeysWithValues: AgentProvider.allCases.map { ($0, found.contains($0)) })
+        let profile = claudeAccount
+        DispatchQueue.global(qos: .userInitiated).async {
+            let found = AgentLogRoot.all(claudeProfile: profile).filter(\.exists).map(\.provider)
+            let roots = Dictionary(uniqueKeysWithValues: AgentProvider.allCases.map { ($0, found.contains($0)) })
+            DispatchQueue.main.async { self.roots = roots }
+        }
     }
 
     private func switchRow(_ symbol: String, _ title: String, isOn: Binding<Bool>) -> some View {

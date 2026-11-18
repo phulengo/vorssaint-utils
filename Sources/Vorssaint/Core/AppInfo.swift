@@ -25,6 +25,30 @@ enum AppInfo {
         (Bundle.main.bundleIdentifier ?? "").hasSuffix(".dev")
     }
 
+    /// A copy packaged apart from the official releases, as one renamed for a
+    /// friend, sets `VorssaintUpdatesDisabled` in its Info.plist: an official
+    /// update would replace it with a different app, so it never looks for one.
+    static var updatesDisabled: Bool {
+        Bundle.main.object(forInfoDictionaryKey: "VorssaintUpdatesDisabled") as? Bool == true
+    }
+
+    /// A renamed copy that updates itself from releases of its own: the
+    /// GitHub repository, "owner/name", whose releases it takes, and the
+    /// certificate, its SHA-1 as hex, each update must be signed with. Nil
+    /// for the app, which takes the official releases.
+    static var updateRepository: String? {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: "VorssaintUpdateRepository") as? String,
+              value.range(of: #"^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$"#, options: .regularExpression) != nil else { return nil }
+        return value
+    }
+
+    static var updateSigner: String? {
+        guard updateRepository != nil,
+              let value = (Bundle.main.object(forInfoDictionaryKey: "VorssaintUpdateSigner") as? String)?.lowercased(),
+              value.range(of: "^[0-9a-f]{40}$", options: .regularExpression) != nil else { return nil }
+        return value
+    }
+
     /// True when the current version is a pre-release (e.g. 3.3.4-beta.1 or 3.3.4-rc.1).
     static var isBeta: Bool {
         if isDeveloperBuild && UserDefaults.standard.bool(forKey: DefaultsKey.simulateBetaUI) {

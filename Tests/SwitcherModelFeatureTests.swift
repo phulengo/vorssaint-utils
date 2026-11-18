@@ -2728,6 +2728,7 @@ enum SwitcherModelFeatureTests {
                "numeric menu bar values may combine usage and temperature")
         suite.expect(!MenuBarMetricAppearance.bars.allowsCombinedTemperatures,
                "menu bar bars keep usage and temperature separate")
+        menuBarReadingStyles(suite, registeredDefaults: registeredDefaults)
         suite.expectClose(MenuBarUsageBarSupport.memoryFraction(used: 3, total: 4) ?? -1, 0.75,
                     "menu bar memory bars use the current used fraction")
         suite.expect(MenuBarUsageBarSupport.memoryFraction(used: 3, total: 0) == nil,
@@ -3595,7 +3596,7 @@ enum SwitcherModelFeatureTests {
         suite.expect(registeredDefaults[DefaultsKey.menuBarFanSpeed] as? Bool == false,
                "menu bar fan speed is opt-in")
         suite.expect(registeredDefaults[DefaultsKey.menuBarMetricOrder] as? String
-               == "cpu,cpuTemperature,gpu,gpuTemperature,memory,battery,batteryTime,batteryTemperature,peripheralBattery,network,diskUsage,diskActivity,connectedDevices,power,fanSpeed",
+               == "cpu,cpuTemperature,gpu,gpuTemperature,memory,battery,batteryTime,batteryTemperature,peripheralBattery,network,diskUsage,diskActivity,connectedDevices,power,fanSpeed,aiAgents",
                "menu bar metric order keeps temperature sensors next to their components and disk near live I/O")
         suite.expect(registeredDefaults[DefaultsKey.menuBarCombineTemperatures] as? Bool == true,
                "menu bar combines usage and temperature by default")
@@ -7009,6 +7010,56 @@ enum SwitcherModelFeatureTests {
                                                     preferredID: "beta",
                                                     previousIndex: 2) == 0,
                "App Switcher search falls back to a valid selection")
+    }
+
+    /// Each reading with a percentage draws as values, bars or a ring of its
+    /// own, and a usage reading follows the Usage display until it has one.
+    private static func menuBarReadingStyles(_ suite: TestSuite, registeredDefaults: [String: Any]) {
+        let keys = MenuBarReadingStyleSupport.readings.map(\.key)
+        suite.expect(keys.count == 6 && keys.allSatisfy { registeredDefaults[$0] as? String == "" },
+               "every reading starts without a style of its own, so existing menu bars look the same")
+        suite.expect(Defaults.sanitizedMenuBarMetricAppearance("ring") == "ring"
+                        && Defaults.sanitizedMenuBarReadingAppearance("bars") == "bars"
+                        && Defaults.sanitizedMenuBarReadingAppearance("banana") == ""
+                        && !MenuBarMetricAppearance.ring.allowsCombinedTemperatures,
+               "rings are a stored choice, an unknown style falls back to the default, and rings keep temperatures apart")
+        suite.expect(MenuBarReadingStyleSupport.appearance(own: nil, followsUsageDisplay: true, usageDisplay: "bars") == .bars
+                        && MenuBarReadingStyleSupport.appearance(own: "", followsUsageDisplay: false, usageDisplay: "bars") == .values
+                        && MenuBarReadingStyleSupport.appearance(own: "ring", followsUsageDisplay: false, usageDisplay: "values") == .ring
+                        && MenuBarReadingStyleSupport.appearance(own: "values", followsUsageDisplay: true, usageDisplay: "ring") == .values
+                        && MenuBarReadingStyleSupport.appearance(own: "banana", followsUsageDisplay: true, usageDisplay: "ring") == .ring,
+               "a reading's own style wins, a usage reading follows the Usage display, and the battery keeps its value")
+        suite.expect(MenuBarReadingStyleSupport.extraColumns(for: .ring) == MenuBarReadingStyleSupport.ringColumns
+                        && MenuBarReadingStyleSupport.extraColumns(for: .ring, blocks: 2) == MenuBarReadingStyleSupport.ringColumns * 2
+                        && MenuBarReadingStyleSupport.extraColumns(for: .bars, blocks: 2) == 0
+                        && MenuBarReadingStyleSupport.extraColumns(for: .values) == 0,
+               "the menu bar reserves room for each ring beside its block, and none for bars or values")
+        suite.expect(MenuBarReadingStyleSupport.level(for: .none) == .normal
+                        && MenuBarReadingStyleSupport.level(for: .early) == .elevated
+                        && MenuBarReadingStyleSupport.level(for: .low) == .critical,
+               "a battery gauge warns by the battery's own warning, never by how full it is")
+
+        let domain = "com.vorssaint.tests.menu-bar-reading-styles"
+        let defaults = UserDefaults(suiteName: domain)!
+        defaults.removePersistentDomain(forName: domain)
+        defer { defaults.removePersistentDomain(forName: domain) }
+        suite.expect(!MenuBarReadingStyleSupport.usesGauges(in: defaults)
+                        && MenuBarReadingStyleSupport.offersCombinedTemperatures(in: defaults),
+               "out of the box no gauge shows and temperatures can share their component's block")
+        defaults.set("bars", forKey: DefaultsKey.menuBarMetricAppearance)
+        suite.expect(MenuBarReadingStyleSupport.usesGauges(in: defaults)
+                        && MenuBarReadingStyleSupport.offersCombinedTemperatures(in: defaults),
+               "bars for usage leave the battery's value, beside which its temperature can still sit")
+        defaults.set("ring", forKey: DefaultsKey.menuBarBatteryAppearance)
+        suite.expect(!MenuBarReadingStyleSupport.offersCombinedTemperatures(in: defaults),
+               "with every component on a gauge, no temperature shares a block")
+        defaults.set("values", forKey: DefaultsKey.menuBarMetricAppearance)
+        defaults.set("values", forKey: DefaultsKey.menuBarBatteryAppearance)
+        defaults.set("ring", forKey: DefaultsKey.menuBarAIAgentsAppearance)
+        suite.expect(MenuBarReadingStyleSupport.usesGauges(in: defaults)
+                        && MenuBarReadingStyleSupport.appearance(key: DefaultsKey.menuBarCPUAppearance,
+                                                                 followsUsageDisplay: true, in: defaults) == .values,
+               "one reading's own ring brings the gauge colours without changing the others")
     }
 
     private static func switcherFocusRetryChecks(_ suite: TestSuite) {

@@ -56,6 +56,9 @@ enum ClaudeAccountProfileTests {
             suite.expect(host.snapshot.usage(.today).total.tokens.input == 91, "choosing the default account again restores its own history")
 
             try environment(suite, home: home, work: work)
+            try following(suite, home: home, work: work, personal: personal)
+            try repositories(suite)
+            try sharedAccount(suite)
             try conversations(suite, home: home, work: work)
             try sourceChanges(suite, home: home, work: work)
             try boundaries(suite, home: home, work: work)
@@ -76,6 +79,140 @@ enum ClaudeAccountProfileTests {
         suite.expect(tiles.first?.accountID == "work" && tiles.last?.accountID == nil
                         && NotchAgentSupport.height(of: tiles) == NotchAgentSupport.accountCardHeight,
                      "a selected Claude account has room for its identity, refresh and failure state")
+    }
+
+    /// The automatic choice follows the account whose sessions were written
+    /// last, by file dates alone, and an explicit choice stays put.
+    private static func following(_ suite: TestSuite, home: URL, work: ClaudeAccountProfile,
+                                  personal: ClaudeAccountProfile) throws {
+        let manager = FileManager.default
+        func touch(_ profile: ClaudeAccountProfile, _ date: Date) throws {
+            let log = profile.configurationURL(home: home).appending(path: "projects/project/session.jsonl")
+            try manager.setAttributes([.modificationDate: date], ofItemAtPath: log.path)
+        }
+        let now = Date()
+        try touch(personal, now.addingTimeInterval(-3_600))
+        try touch(work, now.addingTimeInterval(-60))
+        let workLast = ClaudeAccountProfile.mostRecentlyUsed(home: home)
+        try touch(personal, now)
+        let personalLast = ClaudeAccountProfile.mostRecentlyUsed(home: home)
+        suite.expect(workLast == work && personalLast == personal,
+                     "the automatic choice follows the account Claude Code wrote to last: \(workLast.directory), \(personalLast.directory)")
+        let defaults = UserDefaults(suiteName: "vorss.tests.claude-follow.\(UUID())")!
+        defaults.set(ClaudeAccountProfile.automaticChoice, forKey: DefaultsKey.notchAgentsClaudeProfile)
+        let followed = ClaudeAccountProfile.selected(in: defaults, followed: work)
+        let unfound = ClaudeAccountProfile.selected(in: defaults)
+        let follows = ClaudeAccountProfile.followsActivity(in: defaults)
+        defaults.set(work.directory, forKey: DefaultsKey.notchAgentsClaudeProfile)
+        let chosen = ClaudeAccountProfile.selected(in: defaults, followed: personal)
+        suite.expect(followed == work && unfound.isDefault && chosen == work && follows
+                        && !ClaudeAccountProfile.followsActivity(in: defaults),
+                     "the automatic choice reads as the account it follows, and an explicit one ignores it")
+        suite.expect(ClaudeAccountProfile.lastLogWrite([home.appending(path: "missing")]) == nil,
+                     "a profile without logs has never been written to")
+    }
+
+    /// A project is named by its repository: a worktree kept anywhere, and a
+    /// folder below a repository's top, belong to it.
+    private static func repositories(_ suite: TestSuite) throws {
+        let manager = FileManager.default
+        let root = manager.temporaryDirectory.appending(path: "vorssaint-projects-\(UUID())").resolvingSymlinksInPath()
+        defer { try? manager.removeItem(at: root) }
+        let git = "." + "git"
+        func folder(_ path: String) throws -> String {
+            let url = root.appending(path: path)
+            try manager.createDirectory(at: url, withIntermediateDirectories: true)
+            return url.path
+        }
+        func mark(_ path: String, _ text: String) throws {
+            try Data(text.utf8).write(to: root.appending(path: path).appending(path: git))
+        }
+        _ = try folder("code/vorssaint-utils/\(git)/worktrees/amphipod")
+        let nested = try folder("code/vorssaint-utils/Sources/App")
+        let worktree = try folder("workspaces/vorssaint-utils/amphipod/Sources")
+        try mark("workspaces/vorssaint-utils/amphipod", "gitdir: \(root.path)/code/vorssaint-utils/\(git)/worktrees/amphipod\n")
+        _ = try folder("bare/tools\(git)/worktrees/fix")
+        let bareTree = try folder("trees/fix")
+        try mark("trees/fix", "gitdir: \(root.path)/bare/tools\(git)/worktrees/fix")
+        let relative = try folder("code/relative-tree")
+        try mark("code/relative-tree", "gitdir: vorssaint-utils/\(git)/worktrees/amphipod")
+        let module = try folder("code/vorssaint-utils/Vendor/cgif")
+        try mark("code/vorssaint-utils/Vendor/cgif", "gitdir: ../../\(git)/modules/cgif")
+        let plain = try folder("notes/drafts")
+        // A bare repository kept hidden inside its project, as `.bare`.
+        _ = try folder("hidden/\(".bare")/worktrees/main")
+        let hiddenTree = try folder("hidden/main")
+        try mark("hidden/main", "gitdir: ../\(".bare")/worktrees/main")
+        // A repository kept under a folder that happens to be named worktrees,
+        // with a submodule: neither is anyone's worktree.
+        _ = try folder("worktrees/app/\(git)/modules/lib")
+        let moduleUnder = try folder("worktrees/app/lib")
+        try mark("worktrees/app/lib", "gitdir: ../\(git)/modules/lib")
+        let names = [nested, worktree, bareTree, relative, module, plain, "/nowhere/at/all/app", hiddenTree, moduleUnder]
+            .map(AgentLogParser.projectName)
+        suite.expect(names == ["vorssaint-utils", "vorssaint-utils", "tools", "vorssaint-utils", "cgif", "drafts", "app",
+                               "hidden", "lib"],
+                     "a worktree, a bare repository's worktree, one of a hidden bare repository and a nested folder are named by their repository; a submodule, a plain folder and a missing one by their own: \(names)")
+        // Folders macOS guards with a privacy prompt, and other disks, are not looked into.
+        let guarded = try folder("Documents/code/vorssaint-utils/Sources")
+        _ = try folder("Documents/code/vorssaint-utils/\(git)")
+        suite.expect(AgentProjectFolders.lookUp(guarded, home: root.path) == nil
+                        && AgentProjectFolders.lookUp(nested, home: root.path) != nil
+                        && AgentProjectFolders.isGuarded("/Volumes/Share/code", home: root.path),
+                     "a project in Documents or on another disk keeps its folder's name without Git's marks being read")
+    }
+
+    /// Folders signed in to one account count as one: CCS keeps a folder for
+    /// each instance it switches between, often all one person's, beside
+    /// Claude's usual login. Another account's folder stays apart, and the
+    /// automatic choice still tells the folders apart by their own logs.
+    private static func sharedAccount(_ suite: TestSuite) throws {
+        let manager = FileManager.default
+        let home = manager.temporaryDirectory.appending(path: "vorssaint-claude-shared-\(UUID())")
+        defer { try? manager.removeItem(at: home) }
+        let instances = home.appending(path: ".ccs/instances")
+        let usual = ClaudeAccountProfile()
+        let personal = ClaudeAccountProfile(directory: instances.appending(path: "personal").path)
+        let pro = ClaudeAccountProfile(directory: instances.appending(path: "pro").path)
+        let other = ClaudeAccountProfile(directory: instances.appending(path: "other").path)
+        let time = ISO8601DateFormatter().string(from: Date())
+        let sessions: [(ClaudeAccountProfile, String, String, String, Int, TimeInterval)] = [
+            (usual, "same", "warmup", "claude-haiku-4-5", 5, -3_600), (personal, "same", "harness", "claude-opus-5-5", 40, 0),
+            (pro, "same", "notes", "claude-sonnet-4-5", 300, -60), (other, "other", "secret", "claude-opus-5-5", 7_000, -120),
+        ]
+        for (profile, account, project, model, used, age) in sessions {
+            let folder = profile.configurationURL(home: home)
+            try manager.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            try saveAccount(account, to: profile.profileURL(home: home))
+            let log = folder.appending(path: "projects/-Users-me-\(project)/\(project).jsonl")
+            try manager.createDirectory(at: log.deletingLastPathComponent(), withIntermediateDirectories: true)
+            let line = #"{"type":"assistant","timestamp":"\#(time)","sessionId":"\#(project)","cwd":"/nowhere/me/\#(project)","requestId":"r-\#(project)","message":{"id":"m-\#(project)","model":"\#(model)","stop_reason":"end_turn","usage":{"input_tokens":\#(used),"output_tokens":1}}}"#
+            try Data((line + "\n").utf8).write(to: log)
+            try manager.setAttributes([.modificationDate: Date().addingTimeInterval(age)], ofItemAtPath: log.path)
+        }
+        // Claude's own folder, signed in by itself too: the same logs, once.
+        try saveAccount("same", to: home.appending(path: ".claude/.claude.json"))
+
+        func projects(_ profile: ClaudeAccountProfile) -> [String] {
+            profile.logURLs(home: home).map { $0.deletingLastPathComponent().lastPathComponent }
+        }
+        suite.expect(projects(usual) == [".claude", "claude", "personal", "pro"] && projects(personal) == ["personal", ".claude", "claude", "pro"]
+                        && projects(other) == ["other"],
+                     "every folder signed in to the account is read once, and another account's is not: \(projects(usual)), \(projects(personal)), \(projects(other))")
+        let host = AgentUsageReadTests.Host()
+        host.home = home
+        host.start(session: 1, providers: [.claude], cancellation: AgentUsageReadTests.Cancellation())
+        let today = host.snapshot.usage(.today)
+        let models = Set(["claude-haiku-4-5", "claude-opus-5-5", "claude-sonnet-4-5"].map(AgentPricing.displayName))
+        suite.expect(today.total.tokens.input == 345 && Set(today.models.map(\.name)) == models
+                        && Set(today.projects.map(\.name)) == ["warmup", "harness", "notes"],
+                     "Claude's usual login counts the sessions of every folder of its account: \(today.total.tokens.input) \(today.models.map(\.name)) \(today.projects.map(\.name))")
+        host.start(session: 2, providers: [.claude], cancellation: AgentUsageReadTests.Cancellation(), claudeProfile: other)
+        let apart = host.snapshot.usage(.today)
+        suite.expect(apart.total.tokens.input == 7_000 && apart.projects.map(\.name) == ["secret"],
+                     "another account counts only its own sessions: \(apart.total.tokens.input) \(apart.projects.map(\.name))")
+        let followed = ClaudeAccountProfile.mostRecentlyUsed(home: home)
+        suite.expect(followed == personal, "the automatic choice follows the folder written to last, not its account's: \(followed.directory)")
     }
 
     private static func saveAccount(_ name: String, to url: URL) throws {

@@ -527,7 +527,7 @@ extension AppFeature {
                     && !(stringFor(DefaultsKey.notchHiddenModules) ?? "").split(separator: ",").contains("notifications")
             case (.notchDownloads, .filesAndFolders):
                 return isAvailable(.notch) && boolFor(DefaultsKey.notchEnabled)
-                    && dataFor(DefaultsKey.notchDownloadsFolderBookmark) != nil
+                    && boolFor(DefaultsKey.notchDownloadsEnabled)
                     && !(stringFor(DefaultsKey.notchHiddenModules) ?? "").split(separator: ",").contains("downloads")
             case (.notchCalendar, .calendar):
                 return isAvailable(.notch) && boolFor(DefaultsKey.notchEnabled)

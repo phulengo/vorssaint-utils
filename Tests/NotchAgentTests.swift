@@ -41,6 +41,7 @@ enum NotchAgentTests {
         CodexAccountLimitsTests.run(suite)
         preferences(suite)
         limitUse(suite)
+        menuBarReading(suite)
         agentDefaults(suite)
         formatting(suite)
         AgentUsageEventDeliveryTests.run(suite)
@@ -3132,6 +3133,78 @@ enum NotchAgentTests {
         defaults.set(NotchIdleContent.agents.rawValue, forKey: DefaultsKey.notchIdleContent)
         suite.expect(alerts && unused && card && readout && liveOff && used(page: false),
                      "limits are in use for their alerts, a live limit reading, the resting island or the page's Limits card, and only then")
+        defaults.set(NotchIdleContent.music.rawValue, forKey: DefaultsKey.notchIdleContent)
+        let idleOff = !used(page: false)
+        defaults.set(true, forKey: DefaultsKey.menuBarAIAgents)
+        let pinned = used(page: false)
+        defaults.set(false, forKey: AppFeature.notchAgents.availabilityKey)
+        suite.expect(idleOff && pinned && !used(page: false),
+                     "the AI reading pinned to the menu bar keeps the limits in use while the page is closed, until its feature leaves")
+    }
+
+    /// The menu bar shows one agent's plan windows the way the island's
+    /// Limits card does, and says so when it has none.
+    private static func menuBarReading(_ suite: TestSuite) {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        func window(_ id: String, _ kind: AgentLimitWindow.Kind, used: Double, resets: TimeInterval?,
+                    scope: String? = nil) -> AgentLimitWindow {
+            AgentLimitWindow(id: id, kind: kind, minutes: kind == .session ? 300 : 10_080, scope: scope,
+                             usedPercent: used, resetsAt: resets.map { now.addingTimeInterval($0) })
+        }
+        let limits = AgentLimits(provider: .claude, windows: [
+            window("opus-week", .weekly, used: 90, resets: 7200, scope: "Opus"),
+            window("session", .session, used: 41.6, resets: 1800),
+            window("week", .weekly, used: 18, resets: 86_400),
+        ], observedAt: now, source: .account)
+        func texts(_ reading: AgentMenuBarReading) -> [String] { [reading.session, reading.weekly] }
+        func close(_ share: AgentMenuBarShare?, shown: Double, used: Double) -> Bool {
+            guard let share else { return false }
+            return abs(share.shown - shown) < 0.0001 && abs(share.used - used) < 0.0001
+        }
+        let used = AgentMenuBarSupport.reading(limits, display: .used, now: now)
+        suite.expect(texts(used) == ["42%", "18%"]
+                        && close(used.sessionShare, shown: 0.416, used: 0.416) && close(used.weeklyShare, shown: 0.18, used: 0.18),
+                     "the menu bar shows the plan's session and week as used, never a model's own allowance")
+        let left = AgentMenuBarSupport.reading(limits, display: .remaining, now: now)
+        suite.expect(texts(left) == ["58%", "82%"]
+                        && close(left.sessionShare, shown: 0.584, used: 0.416) && close(left.weeklyShare, shown: 0.82, used: 0.18),
+                     "the menu bar shows what is left when the island does, and a gauge still warns by what is used")
+        let renewed = AgentMenuBarSupport.reading(limits, display: .used, now: now.addingTimeInterval(1801))
+        suite.expect(texts(renewed) == ["0%", "18%"] && close(renewed.sessionShare, shown: 0, used: 0),
+                     "a session that renewed since it was read shows nothing spent")
+        let sessionOnly = AgentLimits(provider: .codex, windows: [window("session", .session, used: 7, resets: nil)],
+                                      observedAt: now, source: .sessionLog)
+        let partial = AgentMenuBarSupport.reading(sessionOnly, display: .used, now: now)
+        suite.expect(texts(partial) == ["7%", AgentMenuBarSupport.placeholder] && partial.weeklyShare == nil
+                        && AgentMenuBarSupport.reading(nil, display: .remaining, now: now) == .unknown,
+                     "a window the agent has not reported shows a dash and an empty gauge instead of disappearing")
+        suite.expect(AgentMenuBarSupport.nextRenewal(limits, after: now) == now.addingTimeInterval(1800)
+                        && AgentMenuBarSupport.nextRenewal(limits, after: now.addingTimeInterval(1800))
+                            == now.addingTimeInterval(86_400)
+                        && AgentMenuBarSupport.nextRenewal(sessionOnly, after: now) == nil,
+                     "the menu bar redraws at the next renewal of a window it shows, and a model's own allowance sets none")
+
+        let domain = "com.vorssaint.tests.agent-menu-bar"
+        let defaults = UserDefaults(suiteName: domain)!
+        defaults.removePersistentDomain(forName: domain)
+        defer { defaults.removePersistentDomain(forName: domain) }
+        suite.expect(Defaults.registeredDefaults[DefaultsKey.menuBarAIAgents] as? Bool == false
+                        && Defaults.registeredDefaults[DefaultsKey.menuBarAIAgentsProvider] as? String == "claude"
+                        && SettingsBackupSupport.exportKeys().isSuperset(of: [DefaultsKey.menuBarAIAgents,
+                                                                              DefaultsKey.menuBarAIAgentsProvider]),
+                     "the AI reading is opt-in, starts on Claude Code and travels with the settings backup")
+        suite.expect(AgentMenuBarSupport.provider(in: defaults) == .claude, "an unset choice reads Claude Code")
+        defaults.set("codex", forKey: DefaultsKey.menuBarAIAgentsProvider)
+        let codex = AgentMenuBarSupport.provider(in: defaults) == .codex
+        defaults.set("copilot", forKey: DefaultsKey.menuBarAIAgentsProvider)
+        suite.expect(codex && AgentMenuBarSupport.provider(in: defaults) == .claude,
+                     "Codex can be chosen, and an agent without a session and a week falls back to Claude Code")
+        defaults.set(true, forKey: DefaultsKey.menuBarAIAgents)
+        defaults.set(false, forKey: AppFeature.notchAgents.availabilityKey)
+        let unavailable = !AgentMenuBarSupport.isShown(in: defaults)
+        defaults.set(true, forKey: AppFeature.notchAgents.availabilityKey)
+        suite.expect(unavailable && AgentMenuBarSupport.isShown(in: defaults),
+                     "the AI reading shows only while its feature is installed")
     }
 
     private static func preferences(_ suite: TestSuite) {

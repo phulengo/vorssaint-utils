@@ -30,18 +30,32 @@ struct ClaudeAccountSettings: View {
     private var options: [Entry] {
         var options = entries
         if !options.contains(where: { $0.id.isEmpty }) { options.insert(Entry(profile: ClaudeAccountProfile()), at: 0) }
-        if !options.contains(where: { $0.id == selected }) { options.append(Entry(profile: ClaudeAccountProfile(directory: selected))) }
+        if !follows, !options.contains(where: { $0.id == selected }) {
+            options.append(Entry(profile: ClaudeAccountProfile(directory: selected)))
+        }
         return options
     }
+
+    private var follows: Bool { selected == ClaudeAccountProfile.automaticChoice }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             SettingsMenuRow(symbol: "person.crop.circle", title: text.title, selection: $selected) {
+                Text(text.automatic).tag(ClaudeAccountProfile.automaticChoice)
                 ForEach(options) { entry in
                     Text(entry.label(defaultName: text.defaultAccount)).tag(entry.id)
                 }
             }
-            if let entry = entries.first(where: { $0.id == selected }) {
+            if follows {
+                // The account it follows right now, as the usage reading found it.
+                let followed = entries.first { $0.id == usage.claudeProfile.id } ?? Entry(profile: usage.claudeProfile)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(text.automaticHint)
+                    Text(followed.label(defaultName: text.defaultAccount))
+                }
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            } else if let entry = entries.first(where: { $0.id == selected }) {
                 if !entry.available {
                     Text(text.invalidFolder).font(.caption).foregroundStyle(.orange)
                 } else if entry.identity == nil {
@@ -61,6 +75,7 @@ struct ClaudeAccountSettings: View {
         .onAppear { refresh() }
         .onChange(of: selected) { _, _ in refresh() }
         .onChange(of: usage.claudeAccountIdentity) { _, _ in refresh() }
+        .onChange(of: usage.claudeProfile) { _, _ in refresh() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in refresh() }
         .onDisappear { readID = UUID() }
         .alert(text.title, isPresented: $invalidFolder) {
@@ -74,8 +89,8 @@ struct ClaudeAccountSettings: View {
         let selected = selected
         DispatchQueue.global(qos: .utility).async {
             let home = FileManager.default.homeDirectoryForCurrentUser
-            let profiles = [ClaudeAccountProfile(), ClaudeAccountProfile(directory: selected)]
-                + ClaudeAccountProfile.discover(home: home)
+            let chosen = selected == ClaudeAccountProfile.automaticChoice ? [] : [ClaudeAccountProfile(directory: selected)]
+            let profiles = [ClaudeAccountProfile()] + chosen + ClaudeAccountProfile.discover(home: home)
             var seen = Set<String>()
             let found = profiles.filter { seen.insert($0.id).inserted }.map { profile in
                 Entry(profile: profile, identity: profile.read(home: home).identity, available: profile.isAvailable(home: home))

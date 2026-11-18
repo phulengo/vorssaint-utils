@@ -10,7 +10,7 @@ protocol PanelOrderItem: RawRepresentable, CaseIterable, Hashable where RawValue
 /// stable identifiers persisted in the saved order and the collapsed set, so
 /// renaming a case would orphan a user's stored layout — keep them stable.
 enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
-    case keepAwake, brightness, mixer, system, network, disk, power, fanControl, utilities, controls,
+    case keepAwake, brightness, mixer, system, network, disk, power, agents, fanControl, utilities, controls,
          toggles, wallpaper
 
     var id: String { rawValue }
@@ -25,6 +25,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .network: return s.networkSection
         case .disk: return s.diskSection
         case .power: return s.powerSection
+        case .agents: return FeatureStrings.notchAgents(L10n.shared.language).title
         case .fanControl: return FeatureStrings.fanControl(L10n.shared.language).title
         case .utilities: return s.utilitiesSection
         case .controls: return s.quickControlsSection
@@ -42,6 +43,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .network: return "network"
         case .disk: return "internaldrive"
         case .power: return "bolt.fill"
+        case .agents: return AppFeature.notchAgents.symbolName
         case .fanControl: return "fanblades.fill"
         case .utilities: return "wrench.and.screwdriver.fill"
         case .controls: return "switch.2"
@@ -62,6 +64,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .network: return DefaultsKey.monitorShowNetwork
         case .disk: return DefaultsKey.monitorShowDisk
         case .power: return DefaultsKey.monitorShowPower
+        case .agents: return DefaultsKey.panelShowAgents
         case .fanControl: return DefaultsKey.panelShowFanControl
         case .utilities: return DefaultsKey.panelShowUtilities
         case .controls: return DefaultsKey.panelShowControls
@@ -86,6 +89,8 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .network: return [.monitorNetwork]
         case .disk: return [.monitorDisk]
         case .power: return [.monitorPower]
+        // The tab shows the AI section's own page, so it lives and goes with it.
+        case .agents: return [.notchAgents]
         case .fanControl: return [.fanControl]
         case .utilities: return [.quickLauncher, .cleaner, .homebrew, .appUpdates, .mediaTools,
                                  .clipboardHistory,
@@ -115,7 +120,12 @@ enum PanelLayout {
     /// The sections in display order: the user's saved order first, then any not
     /// yet listed, in their canonical order.
     static var order: [PanelSectionID] {
-        let saved = (defaults.string(forKey: DefaultsKey.panelSectionOrder) ?? "")
+        order(saved: defaults.string(forKey: DefaultsKey.panelSectionOrder) ?? "")
+    }
+
+    /// The saved comma-joined order, with every section it omits in place.
+    static func order(saved raw: String) -> [PanelSectionID] {
+        let saved = raw
             .split(separator: ",")
             .compactMap { PanelSectionID(rawValue: String($0)) }
         var seen = Set<PanelSectionID>()
@@ -130,6 +140,10 @@ enum PanelLayout {
                 // New in 3.1.13: saved orders predate it, so it slots in at
                 // its canonical place instead of the end.
                 result.insert(id, at: keepAwakeIndex + 1)
+            } else if id == .agents, let powerIndex = result.firstIndex(of: .power) {
+                // Saved orders predate the AI tab too: it follows the other
+                // readings, after Power, rather than the tools at the end.
+                result.insert(id, at: powerIndex + 1)
             } else {
                 result.append(id)
             }

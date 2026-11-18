@@ -184,25 +184,32 @@ enum NotchBrowserArtworkSupport {
     /// else counts as no match, so a wrong cover never shows. The art loads
     /// only from Apple's own image servers, whatever the reply names.
     static func appleMusicArtworkURL(inSearch json: Data, title: String, artist: String?) -> URL? {
-        guard let artist,
-              let root = try? JSONSerialization.jsonObject(with: json) as? [String: Any],
-              let results = root["results"] as? [[String: Any]] else { return nil }
-        let wantedTitle = folded(title)
-        let wantedArtist = folded(artist)
-        guard let match = results.first(where: { result in
-            guard let name = result["trackName"] as? String,
-                  let credit = result["artistName"] as? String else { return false }
-            let artists = folded(credit)
-            return folded(name) == wantedTitle
-                && (holdsName(wantedArtist, in: artists) || holdsName(artists, in: wantedArtist))
-        }), let small = match["artworkUrl100"] as? String, small.hasSuffix("/100x100bb.jpg"),
+        guard let match = appleMusicMatches(inSearch: json, title: title, artist: artist).first,
+              let small = match["artworkUrl100"] as? String, small.hasSuffix("/100x100bb.jpg"),
               let cover = URL(string: String(small.dropLast("100x100bb.jpg".count)) + "600x600bb.jpg"),
               cover.scheme?.lowercased() == "https",
               cover.host?.lowercased().hasSuffix(".mzstatic.com") == true else { return nil }
         return cover
     }
 
-    private static func folded(_ text: String) -> String {
+    /// The results of a catalog search whose title and artist both match the
+    /// track, in the order Apple ranked them.
+    static func appleMusicMatches(inSearch json: Data, title: String, artist: String?) -> [[String: Any]] {
+        guard let artist,
+              let root = try? JSONSerialization.jsonObject(with: json) as? [String: Any],
+              let results = root["results"] as? [[String: Any]] else { return [] }
+        let wantedTitle = folded(title)
+        let wantedArtist = folded(artist)
+        return results.filter { result in
+            guard let name = result["trackName"] as? String,
+                  let credit = result["artistName"] as? String else { return false }
+            let artists = folded(credit)
+            return folded(name) == wantedTitle
+                && (holdsName(wantedArtist, in: artists) || holdsName(artists, in: wantedArtist))
+        }
+    }
+
+    static func folded(_ text: String) -> String {
         text.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: nil)
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }

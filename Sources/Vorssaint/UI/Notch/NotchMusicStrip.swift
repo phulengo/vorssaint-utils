@@ -28,6 +28,7 @@ struct NotchMusicStrip: View {
     /// or a strip on its way out only shows the song.
     var interactive = false
     @ObservedObject private var music = NotchMusicService.shared
+    @ObservedObject private var barsGIF = NotchBarsGIF.shared
     @ObservedObject private var l10n = L10n.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -51,6 +52,16 @@ struct NotchMusicStrip: View {
     private var artworkSide: CGFloat { Layout.coverSide(geometry) }
     private var artworkRadius: CGFloat { min(artworkSide / 2, geometry.compactMusicArtworkRadius) }
     private var artworkInset: CGFloat { Layout.coverInset(geometry) }
+    /// The person's GIF takes the size asked in Settings, or mirrors the cover
+    /// across the camera on a geometry that carries no fit of its own.
+    private var gifSide: CGFloat {
+        min(geometry.compactMusicGIFSide ?? artworkSide,
+            max(0, geometry.compactActivityWingWidth - innerInset))
+    }
+    private var gifInset: CGFloat {
+        let inset = geometry.compactMusicGIFSide == nil ? artworkInset : geometry.compactMusicGIFInset
+        return max(0, min(inset, geometry.compactActivityWingWidth - gifSide - innerInset))
+    }
     private var barsInset: CGFloat {
         max(0, min(geometry.compactMusicBarsInset,
                    geometry.compactActivityWingWidth - NotchLayout.compactMusicBarsWidth - innerInset))
@@ -82,7 +93,7 @@ struct NotchMusicStrip: View {
                     if wing > 0 {
                         // Circular corners, like the strip's, so the two stay parallel.
                         NotchMusicCover(artwork: artwork, side: artworkSide, radius: artworkRadius,
-                                        source: playback?.track)
+                                        source: playback?.track, animated: true)
                     }
                 }
                 .padding(.leading, named == nil ? artworkInset : Layout.endInset)
@@ -101,7 +112,7 @@ struct NotchMusicStrip: View {
                     if wing > 0 { bars }
                 }
                 .padding(.leading, innerInset)
-                .padding(.trailing, barsInset)
+                .padding(.trailing, barsGIF.data == nil ? barsInset : gifInset)
                 .frame(width: wing, height: geometry.compactActivityContentHeight, alignment: .trailing)
                 .contentShape(Rectangle())
                 .onHover { if live { service.hoverMusicStrip(.bars, entered: $0) } }
@@ -123,16 +134,24 @@ struct NotchMusicStrip: View {
         .frame(width: (named ?? wing) * 2 + geometry.compactActivityCameraGap, alignment: .leading)
     }
 
-    /// The bars, or the button they become while the pointer rests on them.
-    /// Both stay in place and cross-fade, and hidden bars hold still.
+    /// The bars, or the person's GIF in their place, or the button they become
+    /// while the pointer rests on them. Both stay in place and cross-fade, and
+    /// hidden bars hold still.
     private var bars: some View {
         ZStack {
-            NotchLiveEqualizerBars(isPlaying: playing && !showsControl,
-                                   bars: NotchLayout.compactMusicBarCount,
-                                   barWidth: NotchLayout.compactMusicBarWidth,
-                                   height: geometry.compactMusicBarHeight,
-                                   tint: tint?.color ?? .white)
-                .opacity(showsControl ? 0 : 1)
+            Group {
+                if let gif = barsGIF.data {
+                    NotchBarsGIFView(data: gif, animates: playing && !showsControl && !reduceMotion)
+                        .frame(width: gifSide, height: gifSide)
+                } else {
+                    NotchLiveEqualizerBars(isPlaying: playing && !showsControl,
+                                           bars: NotchLayout.compactMusicBarCount,
+                                           barWidth: NotchLayout.compactMusicBarWidth,
+                                           height: geometry.compactMusicBarHeight,
+                                           tint: tint?.color ?? .white)
+                }
+            }
+            .opacity(showsControl ? 0 : 1)
             if showsControl {
                 NotchMusicStripButton(playing: playing, tint: tint?.color ?? .white,
                                       height: geometry.compactMusicBarHeight)
@@ -240,6 +259,8 @@ struct NotchMusicCover: View {
     let radius: CGFloat
     /// The player whose icon stands in for a missing cover; see NotchArtwork.
     var source: RadialNowPlayingSnapshot? = nil
+    /// Plays the song's animated cover over the still one; see NotchMotionCover.
+    var animated = false
 
     var body: some View {
         Group {
@@ -253,6 +274,7 @@ struct NotchMusicCover: View {
                 Color.black.overlay { Image(systemName: "music.note").foregroundStyle(.secondary) }
             }
         }
+        .overlay { if animated { NotchMotionCover(track: source) } }
         .frame(width: side, height: side)
         .clipShape(RoundedRectangle(cornerRadius: radius, style: .circular))
         .overlay {

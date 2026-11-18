@@ -200,6 +200,7 @@ struct NotchCapsuleRestingView: View {
                                                                          bodyHeight: geometry.stripBodyHeight),
                                          rests: service.mascotAtRest, visit: service.mascotVisit,
                                          mood: service.mascotRestingMood, reaction: service.mascotReaction,
+                                         performance: service.mascotPerformance,
                                          yieldsToActivities: true)
                         .frame(width: size.width, height: geometry.stripHeight)
                         .allowsHitTesting(false)
@@ -257,6 +258,7 @@ struct NotchCapsuleMusicStrip: View {
     /// display or a strip on its way out only shows the song.
     var interactive = false
     @ObservedObject private var music = NotchMusicService.shared
+    @ObservedObject private var barsGIF = NotchBarsGIF.shared
     @ObservedObject private var l10n = L10n.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -284,7 +286,7 @@ struct NotchCapsuleMusicStrip: View {
         NotchCapsuleRow(size: size ?? CapsuleLayout.musicSurface(title: named ? title : nil, geometry: geometry),
                         geometry: geometry, leading: 0, trailing: 0) {
             HStack(spacing: 0) {
-                NotchMusicCover(artwork: artwork, side: side, radius: side / 2, source: playback?.track)
+                NotchMusicCover(artwork: artwork, side: side, radius: side / 2, source: playback?.track, animated: true)
                     .padding(.leading, CapsuleLayout.artworkInset(geometry))
                     .frame(maxHeight: .infinity)
                     .contentShape(Rectangle())
@@ -296,12 +298,21 @@ struct NotchCapsuleMusicStrip: View {
                 .padding(.horizontal, CapsuleLayout.endPadding)
                 .frame(maxWidth: .infinity)
                 ZStack {
-                    NotchLiveEqualizerBars(isPlaying: playing && !showsControl,
-                                           bars: NotchLayout.compactMusicBarCount,
-                                           barWidth: NotchLayout.compactMusicBarWidth,
-                                           height: CapsuleLayout.barsHeight(geometry),
-                                           tint: tint?.color ?? .white)
-                        .opacity(showsControl ? 0 : 1)
+                    Group {
+                        // The person's GIF takes the bars' place, in a square as wide as the
+                        // bars, so the capsule keeps the width it measured for them.
+                        if let gif = barsGIF.data {
+                            NotchBarsGIFView(data: gif, animates: playing && !showsControl && !reduceMotion)
+                                .frame(width: CapsuleLayout.barsWidth, height: CapsuleLayout.barsWidth)
+                        } else {
+                            NotchLiveEqualizerBars(isPlaying: playing && !showsControl,
+                                                   bars: NotchLayout.compactMusicBarCount,
+                                                   barWidth: NotchLayout.compactMusicBarWidth,
+                                                   height: CapsuleLayout.barsHeight(geometry),
+                                                   tint: tint?.color ?? .white)
+                        }
+                    }
+                    .opacity(showsControl ? 0 : 1)
                     if showsControl {
                         NotchMusicStripButton(playing: playing, tint: tint?.color ?? .white,
                                               height: CapsuleLayout.barsHeight(geometry))

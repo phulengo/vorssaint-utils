@@ -38,6 +38,8 @@ final class NotchMascotRig: NSObject {
     private(set) var idles = false
     var reduceMotion = false
 
+    /// Shrinks the companion into its dome, when it has one.
+    private let inside = CALayer()
     private let hopper = CALayer()
     private let squasher = CALayer()
     private let tilter = CALayer()
@@ -51,13 +53,46 @@ final class NotchMascotRig: NSObject {
     private let fillMask = CAShapeLayer()
     private let visor = CAShapeLayer()
     private let shine = CAShapeLayer()
+    /// The custom style's own picture, in place of a drawn body and face.
+    private let picture = CALayer()
+    /// Rocky: his photographed parts, each on a layer turning at its joint,
+    /// the legs on the carapace's frame so they follow it.
+    private let puppet = CALayer()
+    private let puppetBody = CALayer()
+    private var puppetParts: [String: CALayer] = [:]
+    private var puppetRig: NotchMascotPuppet?
+    /// Rocky's geodesic ball: struts behind him, then lit panels, struts in front, its rim, a glint and hubs.
+    private let ballBack = CAShapeLayer()
+    private let ballPanels = [CAShapeLayer(), CAShapeLayer(), CAShapeLayer()]
+    private let ballFront = CAShapeLayer()
+    private let ballRim = CAShapeLayer()
+    private let ballGlint = CAShapeLayer()
+    private let ballHubs = CAShapeLayer()
     private let face = CALayer()
     private let leftEye = CAShapeLayer()
     private let rightEye = CAShapeLayer()
+    /// The dome stays put while the companion moves inside it.
+    private let domeGlass = CAShapeLayer()
+    private let domeBars = CAShapeLayer()
+    private let domeBase = CAShapeLayer()
     private var blinks = 0
     /// It grew sleepy on its own after a long rest, rather than being shown
     /// so, and anything that happens wakes it.
     private var dozed = false
+    /// What Rocky plays while the island has nothing else to show. Coming
+    /// out to perform, he starts soon; a change of what he plays keeps the
+    /// time of his next act, so music coming and going never hurries him.
+    var performance = NotchMascotPerformance.off {
+        didSet {
+            guard performance != oldValue else { return }
+            syncPerforming(soon: oldValue == .off)
+        }
+    }
+    private var actWork: DispatchWorkItem?
+    private var nextAct = 0
+    /// When he last played an act, for whichever companion in the island
+    /// plays the next: one coming back out after an activity keeps the pace.
+    private static var lastAct: CFTimeInterval = -.infinity
     /// When its eyes last went after something: a pointer, a drag or typing.
     private var attended: CFTimeInterval = -.infinity
     /// When the visit it plays is over, on the media clock.
@@ -69,19 +104,45 @@ final class NotchMascotRig: NSObject {
 
     override init() {
         super.init()
-        root.addSublayer(hopper)
+        root.addSublayer(domeGlass)
+        root.addSublayer(ballBack)
+        root.addSublayer(inside)
+        root.addSublayer(domeBars)
+        root.addSublayer(domeBase)
+        for layer in ballPanels + [ballFront, ballRim, ballGlint, ballHubs] { root.addSublayer(layer) }
+        puppet.addSublayer(puppetBody)
+        inside.addSublayer(hopper)
         hopper.addSublayer(squasher)
         squasher.addSublayer(tilter)
-        for layer in [ears, antenna, bulb, fill, visor, shine] { tilter.addSublayer(layer) }
+        for layer in [ears, antenna, bulb, fill, visor, shine, picture, puppet] { tilter.addSublayer(layer) }
         tilter.addSublayer(attention)
         attention.addSublayer(face)
         face.addSublayer(leftEye)
         face.addSublayer(rightEye)
         fill.mask = fillMask
-        for layer in [root, hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, visor, shine,
-                      leftEye, rightEye] {
+        for layer in [root, inside, hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, visor,
+                      shine, picture, leftEye, rightEye, domeGlass, domeBars, domeBase, puppet, puppetBody, ballBack, ballFront,
+                      ballRim, ballGlint, ballHubs] + ballPanels {
             layer.actions = Self.noActions
         }
+        ballBack.fillColor = nil
+        ballBack.strokeColor = CGColor(srgbRed: 0.84, green: 0.88, blue: 0.91, alpha: 0.28)
+        for (panel, alpha) in zip(ballPanels, [0.16, 0.10, 0.05] as [CGFloat]) { panel.fillColor = CGColor(srgbRed: 1, green: 1, blue: 1, alpha: alpha) }
+        ballFront.fillColor = nil
+        ballFront.strokeColor = CGColor(srgbRed: 0.88, green: 0.91, blue: 0.93, alpha: 0.85)
+        ballRim.fillColor = nil
+        ballRim.strokeColor = CGColor(srgbRed: 0.91, green: 0.93, blue: 0.95, alpha: 0.95)
+        ballGlint.fillColor = nil
+        ballGlint.strokeColor = CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.5)
+        ballHubs.fillColor = CGColor(srgbRed: 0.92, green: 0.94, blue: 0.96, alpha: 0.9)
+        for layer in [ballBack, ballFront, ballRim, ballGlint] { layer.lineCap = .round; layer.lineJoin = .round }
+        picture.contentsGravity = .resizeAspect
+        domeGlass.fillColor = CGColor(srgbRed: 0.75, green: 0.88, blue: 1, alpha: 0.10)
+        domeGlass.strokeColor = CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.45)
+        domeBars.fillColor = nil
+        domeBars.strokeColor = CGColor(srgbRed: 0.78, green: 0.80, blue: 0.84, alpha: 0.75)
+        domeBars.lineCap = .round
+        domeBase.fillColor = NotchMascotColor.darkStone.cgColor
         shine.fillColor = NotchMascotColor.shine.cgColor
         visor.fillColor = NotchMascotColor.visor.cgColor
     }
@@ -115,17 +176,26 @@ final class NotchMascotRig: NSObject {
         }
         let box = CGRect(x: 0, y: 0, width: size, height: size)
         root.bounds = box
-        for layer in [hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, visor, shine] {
+        for layer in [inside, hopper, squasher, tilter, attention, face, ears, antenna, bulb, fill, fillMask, visor, shine,
+                      domeGlass, domeBars, domeBase, ballBack, ballFront, ballRim, ballGlint, ballHubs] + ballPanels {
             layer.frame = box
             layer.contentsScale = scale
         }
         root.contentsScale = scale
+        configureDome(look)
+        configurePicture(look, scale: scale)
+        configurePuppet(look)
         let robot = look.style == .robot
         let palette = look.palette
         fill.colors = [palette.light.cgColor, palette.shade.cgColor]
         fill.startPoint = CGPoint(x: 0.5, y: 0)
         fill.endPoint = CGPoint(x: 0.5, y: 1)
-        if robot {
+        visor.fillColor = NotchMascotColor.visor.cgColor
+        shine.fillColor = NotchMascotColor.shine.cgColor
+        for layer in [antenna, ears] { layer.shadowOpacity = 0 }
+        if look.style == .pebble {
+            configurePebble(palette: palette)
+        } else if robot {
             let parts = NotchMascotGeometry.robot(size: size)
             fillMask.path = parts.head
             ears.path = parts.ears
@@ -152,9 +222,15 @@ final class NotchMascotRig: NSObject {
                 eye.shadowOpacity = 0
             }
         }
-        for layer in [ears, antenna, bulb, visor] { layer.isHidden = !robot }
-        shine.path = NotchMascotGeometry.shine(look.face, size: size)
-        shine.isHidden = robot
+        // A picture or a puppet stands in for the drawn body and face.
+        let photographed = look.style == .custom || look.style == .rocky
+        let drawsParts = look.style != .minimal && !photographed
+        for layer in [ears, visor] { layer.isHidden = !drawsParts }
+        for layer in [antenna, bulb] { layer.isHidden = !lightsBulb }
+        if look.style != .pebble { shine.path = NotchMascotGeometry.shine(look.face, size: size) }
+        shine.isHidden = robot || photographed
+        fill.isHidden = photographed
+        face.isHidden = photographed
         let face = look.face
         let side = size * 0.4
         leftEye.frame = CGRect(x: face.leftEye.x * size - side / 2, y: face.leftEye.y * size - side / 2, width: side, height: side)
@@ -162,6 +238,282 @@ final class NotchMascotRig: NSObject {
         leftEye.contentsScale = scale
         rightEye.contentsScale = scale
         apply(mood.expression, animated: false)
+        startPuppetMood()
+        syncPerforming(soon: true)
+    }
+
+    /// The pebble: a cut stone, lit from the top left, with its upper face
+    /// catching the light and the faces below and to the right in shade, on
+    /// two darker feet, a crystal glowing behind it and gem eyes that glow.
+    private func configurePebble(palette: NotchMascotPalette) {
+        let parts = NotchMascotGeometry.pebble(size: size)
+        let stoneLight = NotchMascotColor.stone.mixed(with: palette.light, 0.45)
+        let stoneShade = NotchMascotColor.darkStone.mixed(with: palette.shade, 0.35)
+        fill.colors = [stoneLight.cgColor, stoneShade.cgColor]
+        fill.startPoint = CGPoint(x: 0.2, y: 0.1)
+        fill.endPoint = CGPoint(x: 0.85, y: 1)
+        fillMask.path = parts.body
+        ears.path = parts.feet
+        ears.fillColor = NotchMascotColor.darkStone.mixed(with: palette.shade, 0.2).cgColor
+        antenna.path = parts.crystal
+        antenna.fillColor = palette.light.mixed(with: palette.shade, 0.25).cgColor
+        antenna.shadowColor = palette.light.cgColor
+        antenna.shadowOpacity = 0.7
+        antenna.shadowRadius = max(0.6, size * 0.05)
+        antenna.shadowOffset = .zero
+        bulb.path = parts.core
+        bulb.fillColor = (mood == .sleepy ? palette.shade : palette.light).cgColor
+        bulb.shadowColor = palette.light.cgColor
+        bulb.shadowRadius = max(0.8, size * 0.09)
+        bulb.shadowOffset = .zero
+        visor.path = parts.shaded
+        visor.fillColor = NotchMascotColor.pebbleShade.cgColor
+        shine.path = parts.lit
+        shine.fillColor = NotchMascotColor.pebbleLight.cgColor
+        for eye in [leftEye, rightEye] {
+            eye.fillColor = palette.light.cgColor
+            eye.shadowColor = palette.light.cgColor
+            eye.shadowOpacity = 0.9
+            eye.shadowRadius = max(0.6, size * 0.045)
+            eye.shadowOffset = .zero
+        }
+    }
+
+    /// Rocky: each photographed part on its own layer, its anchor at its
+    /// joint, so turning it turns the stone about that joint. The back legs
+    /// sit behind the carapace and the front legs before it; a lower leg
+    /// rides inside its upper one.
+    private func configurePuppet(_ look: NotchMascotLook) {
+        stopPuppet()
+        guard look.style == .rocky, let rig = NotchMascotPuppet.rocky else {
+            puppet.isHidden = true
+            return
+        }
+        puppet.isHidden = false
+        if puppetRig != rig || puppetParts.isEmpty { buildPuppet(rig) }
+        let place = rig.placement(size: size, enclosed: look.enclosed)
+        puppet.bounds = CGRect(x: 0, y: 0, width: rig.width, height: rig.height)
+        puppet.anchorPoint = .zero
+        puppet.position = place.origin
+        puppet.transform = CATransform3DMakeScale(place.scale, place.scale, 1)
+        // A faint warm rim keeps the stone from sinking into the black island.
+        puppet.shadowColor = CGColor(srgbRed: 1, green: 0.76, blue: 0.48, alpha: 1)
+        puppet.shadowOpacity = 0.35
+        puppet.shadowRadius = max(0.6, 1 / max(place.scale, 0.01) * 0.6)
+        puppet.shadowOffset = .zero
+        applyPuppet(.rest)
+    }
+
+    private func buildPuppet(_ rig: NotchMascotPuppet) {
+        puppetParts.values.forEach { $0.removeFromSuperlayer() }
+        puppetParts = [:]
+        puppetRig = rig
+        guard let body = rig.root, let directory = Bundle.main.resourceURL?.appending(path: "Companion/Rocky") else { return }
+        let images = NotchMascotPuppet.images(of: rig, in: directory)
+        let middle = CGPoint(x: rig.width / 2, y: rig.height / 2)
+        let bodyPivot = body.pivot ?? middle
+        puppetBody.bounds = CGRect(x: 0, y: 0, width: rig.width, height: rig.height)
+        puppetBody.anchorPoint = CGPoint(x: bodyPivot.x / rig.width, y: bodyPivot.y / rig.height)
+        puppetBody.position = bodyPivot
+        for part in rig.parts {
+            let layer = CALayer()
+            layer.actions = Self.noActions
+            layer.contents = images[part.id]
+            layer.contentsGravity = .resize
+            layer.minificationFilter = .trilinear
+            layer.bounds = CGRect(origin: .zero, size: part.size)
+            let pivot = part.pivot ?? CGPoint(x: part.offset.x + part.size.width / 2, y: part.offset.y + part.size.height / 2)
+            layer.anchorPoint = CGPoint(x: (pivot.x - part.offset.x) / part.size.width, y: (pivot.y - part.offset.y) / part.size.height)
+            puppetParts[part.id] = layer
+        }
+        // Back to front, on the carapace's frame; each lower leg inside its upper one.
+        for part in rig.parts {
+            guard let layer = puppetParts[part.id] else { continue }
+            let pivot = part.pivot ?? CGPoint(x: part.offset.x + part.size.width / 2, y: part.offset.y + part.size.height / 2)
+            if let parentID = part.parent, parentID != body.id, let parent = rig.part(parentID), let parentLayer = puppetParts[parentID] {
+                layer.position = CGPoint(x: pivot.x - parent.offset.x, y: pivot.y - parent.offset.y)
+                parentLayer.addSublayer(layer)
+            } else {
+                layer.position = pivot
+                puppetBody.addSublayer(layer)
+            }
+        }
+    }
+
+    private func puppetBodyTransform(_ pose: NotchMascotPuppetPose) -> CATransform3D {
+        CATransform3DConcat(CATransform3DMakeRotation(pose.rot * .pi / 180, 0, 0, 1), CATransform3DMakeTranslation(pose.dx, pose.dy, 0))
+    }
+
+    /// Rocky held still in `pose`.
+    private func applyPuppet(_ pose: NotchMascotPuppetPose) {
+        puppetBody.transform = puppetBodyTransform(pose)
+        for (id, layer) in puppetParts where id != puppetRig?.root?.id {
+            layer.transform = CATransform3DMakeRotation((pose.turns[id] ?? 0) * .pi / 180, 0, 0, 1)
+        }
+    }
+
+    /// Plays one of Rocky's moves through Core Animation: the carapace's
+    /// offset and lean, and each joint's turn. In his ball his gestures are smaller.
+    /// Plays `track` on his layers; `holds` keeps its first pose still
+    /// instead, an animation that ends at once and stays.
+    private func playPuppet(_ track: NotchMascotPuppetTrack, key: String, duration: TimeInterval? = nil,
+                            begin: CFTimeInterval? = nil, repeatFor: TimeInterval? = nil, holds: Bool = false) {
+        guard look.style == .rocky, puppetRig != nil, !reduceMotion, size > 0 else { return }
+        let damping = look.enclosed ? NotchMascotPuppet.ballDamping : 1
+        let count = holds ? 1 : 36
+        let poses = (0...count).map { track.pose(at: holds ? 0 : Double($0) / Double(count)).damped(damping) }
+        let times = (0...count).map { NSNumber(value: Double($0) / Double(count)) }
+        func configure(_ animation: CAKeyframeAnimation) {
+            animation.keyTimes = times
+            animation.calculationMode = .linear
+            if holds {
+                animation.duration = 0.01
+                animation.fillMode = .forwards
+                animation.isRemovedOnCompletion = false
+                return
+            }
+            animation.duration = duration ?? track.duration
+            if let begin { animation.beginTime = begin }
+            if let repeatFor { animation.repeatDuration = repeatFor } else if track.loops { animation.repeatCount = .infinity }
+        }
+        let body = CAKeyframeAnimation(keyPath: "transform")
+        body.values = poses.map { NSValue(caTransform3D: puppetBodyTransform($0)) }
+        configure(body)
+        puppetBody.add(body, forKey: key)
+        for id in track.joints {
+            guard let layer = puppetParts[id] else { continue }
+            let turn = CAKeyframeAnimation(keyPath: "transform.rotation.z")
+            turn.values = poses.map { ($0.turns[id] ?? 0) * .pi / 180 }
+            configure(turn)
+            layer.add(turn, forKey: key)
+        }
+    }
+
+    private func stopPuppet(_ key: String? = nil) {
+        for layer in [puppetBody] + Array(puppetParts.values) {
+            if let key { layer.removeAnimation(forKey: key) } else { layer.removeAllAnimations() }
+        }
+    }
+
+    /// The pose Rocky keeps for his mood, breathing, under whatever he does.
+    private func startPuppetMood() {
+        guard look.style == .rocky else { return }
+        stopPuppet("puppetMood")
+        playPuppet(NotchMascotPuppetMotion.track(for: mood), key: "puppetMood",
+                   holds: NotchMascotPuppetMotion.holdsStill(mood, size: size))
+    }
+
+    /// Plans his next act while he rests awake in an empty island, and stops
+    /// them otherwise. Asked again while one is planned, it keeps that one.
+    private func syncPerforming(soon: Bool = false) {
+        guard look.style == .rocky, performance != .off, idles, !dozed, !reduceMotion, size > 0 else {
+            actWork?.cancel(); actWork = nil
+            stopPuppet("puppetAct")
+            return
+        }
+        guard actWork == nil else { return }
+        let work = DispatchWorkItem { [weak self] in self?.performAct() }
+        actWork = work
+        // Soon only when he has not played for a while: coming and going with
+        // the music between clips in a feed, he keeps his usual pace.
+        let rested = CACurrentMediaTime() - Self.lastAct > NotchMascotPerformance.spacing.lowerBound
+        let delay = soon && rested ? Double.random(in: 3...6) : Double.random(in: NotchMascotPerformance.spacing)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+
+    /// Plays `act` now, as on a show out of the island.
+    func play(act: NotchMascotPuppetAct) {
+        playPuppet(act.track, key: "puppetAct")
+    }
+
+    private func performAct() {
+        actWork = nil
+        guard look.style == .rocky, performance != .off, idles, !dozed, !reduceMotion else { return }
+        // A visit or a reaction has the stage; he goes on once it is over.
+        if isVisiting || puppetBody.animation(forKey: "puppetReact") != nil {
+            syncPerforming(soon: true)
+            return
+        }
+        let acts = NotchMascotPuppetMotion.acts(for: performance)
+        guard !acts.isEmpty else { return }
+        let act = acts[nextAct % acts.count]
+        nextAct += 1
+        Self.lastAct = CACurrentMediaTime()
+        playPuppet(act.track, key: "puppetAct")
+        if let line = act.line { NotchMascotSpeech.shared.ambient([line]) }
+        syncPerforming()
+    }
+
+    /// The person's own picture fills the figure's square with its own
+    /// proportions. A GIF plays its frames at their own pace, through Core
+    /// Animation like every other motion, and holds its first one under
+    /// Reduce Motion. Without a picture yet, the square stays empty.
+    private func configurePicture(_ look: NotchMascotLook, scale: CGFloat) {
+        picture.removeAnimation(forKey: "frames")
+        guard look.style == .custom else {
+            picture.isHidden = true
+            picture.contents = nil
+            return
+        }
+        picture.isHidden = false
+        picture.frame = NotchMascotGeometry.customFrame(size: size)
+        picture.contentsScale = scale
+        let frames = NotchCompanionImage.shared.frames(named: look.customImage) ?? []
+        picture.contents = frames.first?.image
+        guard frames.count > 1, !reduceMotion else { return }
+        let total = frames.reduce(0) { $0 + $1.delay }
+        var elapsed = 0.0
+        var times: [NSNumber] = []
+        for frame in frames {
+            times.append(NSNumber(value: elapsed / total))
+            elapsed += frame.delay
+        }
+        let play = CAKeyframeAnimation(keyPath: "contents")
+        play.values = frames.map(\.image)
+        play.keyTimes = times
+        play.calculationMode = .discrete
+        play.duration = total
+        play.repeatCount = .infinity
+        play.isRemovedOnCompletion = false
+        picture.add(play, forKey: "frames")
+    }
+
+    /// The dome, and the companion drawn smaller inside it, standing on its base.
+    private func configureDome(_ look: NotchMascotLook) {
+        // Rocky lives in a geodesic ball, as in the film, and fits himself inside it.
+        let ball = look.enclosed && look.style == .rocky
+        for layer in [ballBack, ballFront, ballRim, ballGlint, ballHubs] + ballPanels { layer.isHidden = !ball }
+        if ball {
+            for layer in [domeGlass, domeBars, domeBase] { layer.isHidden = true }
+            inside.transform = CATransform3DIdentity
+            let parts = NotchMascotGeometry.geodesicBall(size: size)
+            ballBack.path = size >= 24 ? parts.back : nil
+            for (layer, panel) in zip(ballPanels, parts.panels + Array(repeating: CGMutablePath(), count: 3)) { layer.path = panel }
+            ballFront.path = parts.front
+            ballRim.path = parts.rim
+            ballGlint.path = parts.glint
+            let hubs = CGMutablePath(), hub = max(0.45, size * 0.018)
+            if size >= 28 { for point in parts.hubs { hubs.addEllipse(in: CGRect(x: point.x - hub, y: point.y - hub, width: hub * 2, height: hub * 2)) } }
+            ballHubs.path = hubs
+            let line = max(0.5, size * 0.022)
+            ballBack.lineWidth = line * 0.75
+            ballFront.lineWidth = line
+            ballRim.lineWidth = line * 1.25
+            ballGlint.lineWidth = line
+            return
+        }
+        for layer in [domeGlass, domeBars, domeBase] { layer.isHidden = !look.enclosed }
+        guard look.enclosed else { inside.transform = CATransform3DIdentity; return }
+        let parts = NotchMascotGeometry.enclosure(size: size)
+        domeGlass.path = parts.glass
+        domeGlass.lineWidth = max(0.5, size * 0.03)
+        domeBars.path = parts.bars
+        domeBars.lineWidth = max(0.5, size * 0.035)
+        domeBase.path = parts.base
+        let scale = NotchMascotGeometry.enclosedScale
+        let shift = NotchMascotGeometry.enclosedOffset(look, size: size)
+        inside.transform = CATransform3DConcat(CATransform3DMakeScale(scale, scale, 1),
+                                               CATransform3DMakeTranslation(shift.x, shift.y, 0))
     }
 
     // MARK: Faces
@@ -174,6 +526,8 @@ final class NotchMascotRig: NSObject {
         if mood != .sleepy { blinks = 0 }
         apply(mood.expression, animated: animated && !reduceMotion)
         lightBulb(mood != .sleepy, animated: animated && !reduceMotion)
+        startPuppetMood()
+        syncPerforming()
         guard animated, !reduceMotion, size > 0 else { syncBlinking(); return }
         switch mood {
         case .surprised: pop()
@@ -269,11 +623,14 @@ final class NotchMascotRig: NSObject {
     func reset(to mood: NotchMascotMood) {
         stopBlinking()
         for layer in [root, hopper, squasher, tilter, attention, face, leftEye, rightEye] { layer.removeAllAnimations() }
+        stopPuppet()
         attention.transform = CATransform3DIdentity
         self.mood = mood
         blinks = 0
         dozed = false
         apply(mood.expression, animated: false)
+        startPuppetMood()
+        syncPerforming(soon: true)
     }
 
     // MARK: Attention
@@ -292,6 +649,7 @@ final class NotchMascotRig: NSObject {
     func endVisit() {
         for layer in [root, squasher, face] { layer.removeAnimation(forKey: "visit") }
         root.removeAnimation(forKey: "visitFade")
+        stopPuppet("puppetVisit")
         blinksResume = CACurrentMediaTime()
         stopBlinking()
         syncBlinking()
@@ -303,6 +661,7 @@ final class NotchMascotRig: NSObject {
         guard root.animation(forKey: "visit") != nil, CACurrentMediaTime() >= visitEnds else { return }
         for layer in [root, squasher, face] { layer.removeAnimation(forKey: "visit") }
         root.removeAnimation(forKey: "visitFade")
+        stopPuppet("puppetVisit")
     }
     /// It grew sleepy on its own after a long rest.
     var isDozing: Bool { dozed }
@@ -400,10 +759,13 @@ final class NotchMascotRig: NSObject {
         squasher.add(squash, forKey: "squash")
     }
 
+    /// The robot's antenna and bulb, or the pebble's crystal and its core.
+    private var lightsBulb: Bool { look.style == .robot || look.style == .pebble }
+
     /// The robot's antenna bulb goes dark while it sleeps and lights again as
     /// it wakes.
     private func lightBulb(_ lit: Bool, animated: Bool) {
-        guard look.style == .robot else { return }
+        guard lightsBulb else { return }
         let color = (lit ? look.palette.light : look.palette.shade).cgColor
         if animated {
             let fade = CABasicAnimation(keyPath: "fillColor")
@@ -420,7 +782,7 @@ final class NotchMascotRig: NSObject {
 
     /// Lit already, the bulb shows dark a moment longer, then lights.
     private func relightBulb(after delay: TimeInterval) {
-        guard look.style == .robot else { return }
+        guard lightsBulb else { return }
         let dark = look.palette.shade.cgColor
         let light = CAKeyframeAnimation(keyPath: "fillColor")
         light.values = [dark, dark, look.palette.light.cgColor]
@@ -431,7 +793,7 @@ final class NotchMascotRig: NSObject {
 
     /// A reaction lights the robot's bulb up with a soft glow for as long as it plays.
     private func glowBulb(for duration: TimeInterval) {
-        guard look.style == .robot else { return }
+        guard lightsBulb else { return }
         let glow = CAKeyframeAnimation(keyPath: "shadowOpacity")
         glow.values = [0, 1, 1, 0]
         glow.keyTimes = [0, 0.12, 0.7, 1]
@@ -442,6 +804,8 @@ final class NotchMascotRig: NSObject {
     /// Positive flattens it on the ground, negative stretches it up, and its
     /// bottom stays where it was.
     private func squashed(_ amount: CGFloat) -> CATransform3D {
+        // Stone barely gives: Rocky squashes a quarter as much as the soft companions.
+        let amount = look.style == .rocky ? amount * 0.25 : amount
         let scaleX = 1 + amount * 0.8, scaleY = 1 - amount
         let bottom = size * 0.42
         return CATransform3DConcat(CATransform3DMakeScale(scaleX, scaleY, 1),
@@ -501,6 +865,11 @@ final class NotchMascotRig: NSObject {
         blinks = 0
         let now = CACurrentMediaTime()
         glowBulb(for: reaction.length)
+        if look.style == .rocky {
+            // Rocky acts it out with his legs, and says his line for it.
+            playPuppet(NotchMascotPuppetMotion.track(for: reaction), key: "puppetReact")
+            NotchMascotSpeech.shared.react(reaction)
+        }
         guard !reduceMotion else {
             switch reaction {
             case .celebrate, .wakeUp: flashFace(.happy, duration: 1)
@@ -719,6 +1088,8 @@ final class NotchMascotRig: NSObject {
         look.beginTime = start
         look.isAdditive = true
         face.add(look, forKey: "visit")
+        // Rocky steps as he goes.
+        playPuppet(NotchMascotPuppetMotion.stroll, key: "puppetVisit", begin: start, repeatFor: path.duration)
         // Its eyes are for the way ahead while it walks.
         lookAhead()
         if path.greeting.upperBound > path.greeting.lowerBound {
@@ -740,6 +1111,7 @@ final class NotchMascotRig: NSObject {
             stopBlinking()
             if dozed, !idles { setMood(.idle, animated: false) }
         } else { syncBlinking() }
+        syncPerforming(soon: true)
     }
 
     /// Wakes it from a long rest. A face shown sleepy on purpose stays.
@@ -821,6 +1193,8 @@ final class NotchMascotRig: NSObject {
         if mood == .idle, blinks >= NotchMascotSupport.blinksBeforeSleep(hour: Calendar.current.component(.hour, from: Date())) {
             setMood(.sleepy, animated: true)
             dozed = true
+            if look.style == .rocky { NotchMascotSpeech.shared.ambient([.sleep]) }
+            syncPerforming()
             return
         }
         syncBlinking()
@@ -843,6 +1217,25 @@ private final class NotchMascotAnimationRelay: NSObject, CAAnimationDelegate {
 /// takes a click: what it stands on decides what a click does.
 final class NotchMascotHostView: NSView {
     let mascot = NotchMascotRig()
+    /// The island's resting companion while it performs: the closed island
+    /// asks it whether a click landed on him, and has him play an act.
+    private(set) static weak var islandStage: NotchMascotHostView?
+    var answersClicks = false {
+        didSet {
+            guard answersClicks != oldValue else { return }
+            if answersClicks {
+                Self.islandStage = self
+                // Where a click starts no show, it opens the island as anywhere else.
+                NotchMascotIslandStage.covers = { point in
+                    guard let stage = NotchMascotHostView.islandStage, stage.startsShowtime else { return false }
+                    return stage.contains(screenPoint: point)
+                }
+                NotchMascotIslandStage.performNow = { NotchMascotHostView.islandStage?.beginShowtime() }
+            } else if Self.islandStage === self {
+                Self.islandStage = nil
+            }
+        }
+    }
     private let stage = CALayer()
     private let visibilityMask = CAShapeLayer()
     private var visibilityObserver: NSObjectProtocol?
@@ -952,6 +1345,36 @@ final class NotchMascotHostView: NSView {
 
     override var isFlipped: Bool { true }
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    /// Whether a click on him now starts a show: Rocky only, never with
+    /// Reduce Motion, and not while one is on.
+    var startsShowtime: Bool {
+        mascot.look.style == .rocky && !mascot.reduceMotion && !NotchMascotShowtime.shared.isShowing
+    }
+
+    /// Rocky leaps out of the island for a show, big, and comes back; the
+    /// small one here waits hidden meanwhile. With Reduce Motion he plays
+    /// nothing, here or out there.
+    func beginShowtime() {
+        guard startsShowtime, let window else { return }
+        mascot.wake(animated: false)
+        let figure = (mascot.root.presentation() ?? mascot.root).frame
+        let small = window.convertToScreen(convert(figure, to: nil))
+        let strip = window.convertToScreen(convert(bounds, to: nil))
+        stage.isHidden = true
+        NotchMascotShowtime.shared.begin(look: mascot.look, from: small, stripBottom: strip.minY,
+                                         screen: window.screen?.frame ?? .zero, level: window.level,
+                                         behavior: window.collectionBehavior, scale: window.backingScaleFactor) { [weak self] in
+            self?.stage.isHidden = false
+        }
+    }
+
+    /// Whether `point`, on screen, is on the companion where it stands now.
+    func contains(screenPoint point: CGPoint) -> Bool {
+        guard let window, !isHidden else { return false }
+        let figure = (mascot.root.presentation() ?? mascot.root).frame
+        return window.convertToScreen(convert(figure, to: nil)).contains(point)
+    }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
@@ -1162,6 +1585,7 @@ final class NotchMascotHostView: NSView {
         }
         guard visit.id != playedVisit else { return }
         playedVisit = visit.id
+        if mascot.look.style == .rocky { NotchMascotSpeech.shared.ambient(NotchMascotLine.lines(for: visit.kind)) }
         cameoWork?.cancel(); cameoWork = nil
         mascot.wake(animated: false)
         mascot.playVisit(path(), greeting: visit.greeting, baseline: baseline, stand: stand, start: visit.start,
@@ -1235,6 +1659,8 @@ struct NotchMascotTrackView: NSViewRepresentable {
     /// Switched off, the Settings preview shows it asleep: eyes shut, no
     /// blinking, and no eyes for the pointer.
     var awake = true
+    /// What Rocky plays while he rests there with nothing else to show.
+    var performance = NotchMascotPerformance.off
     /// It rests in the closed island and fades out early as an activity takes its place.
     var yieldsToActivities = false
 
@@ -1245,6 +1671,9 @@ struct NotchMascotTrackView: NSViewRepresentable {
     func updateNSView(_ view: NotchMascotHostView, context: Context) {
         view.configure(look: look, size: track.size, mood: awake ? mood : .sleepy, idles: rests && awake,
                        reduceMotion: context.environment.accessibilityReduceMotion, animated: true)
+        view.mascot.performance = rests && awake ? performance : .off
+        // Only the island's own resting companion takes the island's clicks.
+        view.answersClicks = yieldsToActivities && rests && awake && performance != .off
         // Off stage at the far end once a visit is over, so nothing jumps
         // when its last frame hands back to where it stands.
         let x = rests ? track.rest : track.mirrored ? -track.size * 2 : track.width + track.size * 2

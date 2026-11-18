@@ -94,7 +94,9 @@ enum MetricDetailKind: String, Equatable, Identifiable {
 }
 
 extension MenuBarMetric {
-    var detailKind: MetricDetailKind {
+    /// The system reading's detail, which its menu bar item opens. The AI
+    /// reading has none: it opens the island's AI page instead.
+    var detailKind: MetricDetailKind? {
         switch self {
         case .cpu, .cpuTemperature:
             return .cpu
@@ -114,6 +116,8 @@ extension MenuBarMetric {
             return .fan
         case .connectedDevices:
             return .connectedDevices
+        case .aiAgents:
+            return nil
         }
     }
 }

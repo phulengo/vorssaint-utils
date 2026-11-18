@@ -23,8 +23,16 @@ enum UpdateInstallerSupport {
     /// $4 result marker path, $5 uid to relaunch as (used when running as
     /// root, where a plain `open` could launch the app as root), $6 expected
     /// version from the trusted release tag.
-    static func installerScript() -> String {
-        """
+    /// `signer` pins a renamed copy's updates to the certificate it is
+    /// signed with, the SHA-1 as hex, in place of the official Developer ID;
+    /// such a copy is not notarized, so Gatekeeper has no say in it.
+    static func installerScript(signer: String? = nil) -> String {
+        let pinned = signer.flatMap { $0.range(of: "^[0-9a-f]{40}$", options: .regularExpression) != nil ? $0 : nil }
+        let dmgRequirement = pinned.map { "certificate leaf = H\"\($0)\"" }
+            ?? "anchor apple generic and certificate leaf[subject.OU] = \"3D485NHW29\""
+        let appRequirement = pinned.map { "identifier \"com.vorssaint.utils\" and certificate leaf = H\"\($0)\"" }
+            ?? "identifier \"com.vorssaint.utils\" and anchor apple generic and certificate leaf[subject.OU] = \"3D485NHW29\""
+        return """
         #!/bin/sh
         APP="$1"; DMG="$2"; PID="$3"; RESULT="$4"; ASUSER="$5"; EXPECTED_VERSION="$6"
         SCRIPT="$0"
@@ -63,7 +71,7 @@ enum UpdateInstallerSupport {
         }
         while kill -0 "$PID" 2>/dev/null; do sleep 0.3; done
         note fail-dmg-verify
-        DMG_VERIFY_REQ='anchor apple generic and certificate leaf[subject.OU] = "3D485NHW29"'
+        DMG_VERIFY_REQ='\(dmgRequirement)'
         if ! /usr/bin/codesign -v --strict -R="$DMG_VERIFY_REQ" "$DMG" 2>/dev/null; then
             /bin/rm -f "$DMG"
             finalize
@@ -114,13 +122,13 @@ enum UpdateInstallerSupport {
                     # When the user disabled Gatekeeper, spctl cannot assess anything
                     # and rejects even a healthy bundle; the codesign identity check
                     # below stays as the gate in that case.
-                    GATEKEEPER_OK=0
+                    GATEKEEPER_OK=\(pinned == nil ? 0 : 1)
                     if /usr/sbin/spctl --status 2>/dev/null | /usr/bin/grep -q disabled; then
                         GATEKEEPER_OK=1
                     elif /usr/sbin/spctl -a -t exec "$STAGE" >/dev/null 2>&1; then
                         GATEKEEPER_OK=1
                     fi
-                    VERIFY_REQ='identifier "com.vorssaint.utils" and anchor apple generic and certificate leaf[subject.OU] = "3D485NHW29"'
+                    VERIFY_REQ='\(appRequirement)'
                     note fail-verify
                     if /usr/bin/codesign -v --deep --strict -R="$VERIFY_REQ" "$STAGE" 2>/dev/null \
                         && [ "$GATEKEEPER_OK" = 1 ]; then
@@ -182,8 +190,9 @@ enum UpdateInstallerSupport {
                                        pid: Int32,
                                        resultPath: String,
                                        uid: uid_t,
-                                       expectedVersion: String) -> String {
-        let script = shellSingleQuoted(installerScript())
+                                       expectedVersion: String,
+                                       signer: String? = nil) -> String {
+        let script = shellSingleQuoted(installerScript(signer: signer))
         let args = [appPath, dmgPath, "\(pid)", resultPath, "\(uid)", expectedVersion]
             .map(shellSingleQuoted)
             .joined(separator: " ")

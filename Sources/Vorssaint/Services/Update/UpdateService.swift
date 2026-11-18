@@ -27,7 +27,8 @@ final class UpdateService: ObservableObject {
     /// preview. Set alongside `.available`; cleared otherwise.
     @Published private(set) var availableNotes: String?
 
-    private let repository = "vorssaint/vorssaint-utils"
+    /// The official releases, or a renamed copy's own.
+    private var repository: String { AppInfo.updateRepository ?? "vorssaint/vorssaint-utils" }
     private var downloadURL: URL?
     /// Size the release advertises for the asset, used to bound the download.
     private var downloadExpectedBytes: Int64?
@@ -41,6 +42,7 @@ final class UpdateService: ObservableObject {
         get { UserDefaults.standard.object(forKey: DefaultsKey.autoCheckUpdates) as? Bool ?? true }
         set {
             UserDefaults.standard.set(newValue, forKey: DefaultsKey.autoCheckUpdates)
+            guard !AppInfo.updatesDisabled else { return }
             configureAutomaticChecks()
         }
     }
@@ -62,6 +64,7 @@ final class UpdateService: ObservableObject {
     /// Called at launch: checks shortly after start and then daily, if enabled.
     func startAutomaticChecks() {
         consumeInstallResult()
+        guard !AppInfo.updatesDisabled else { return }
         if AppInfo.isBeta && UserDefaults.standard.object(forKey: DefaultsKey.includeBetaUpdates) == nil {
             UserDefaults.standard.set(true, forKey: DefaultsKey.includeBetaUpdates)
         }
@@ -100,6 +103,7 @@ final class UpdateService: ObservableObject {
     // MARK: - Check
 
     func check(manual: Bool) {
+        guard !AppInfo.updatesDisabled else { return }
         if AppInfo.isDeveloperBuild {
             // No real update target; reflect the simulation default so the
             // notification UI can be exercised locally.
@@ -346,7 +350,7 @@ final class UpdateService: ObservableObject {
         let scriptURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("vorssaint-update-\(pid)-\(UUID().uuidString).sh")
         do {
-            try UpdateInstallerSupport.installerScript()
+            try UpdateInstallerSupport.installerScript(signer: AppInfo.updateSigner)
                 .write(to: scriptURL, atomically: true, encoding: .utf8)
         } catch {
             failInstall(dmgPath: dmgPath, message: error.localizedDescription)
@@ -383,7 +387,8 @@ final class UpdateService: ObservableObject {
                                                                     pid: pid,
                                                                     resultPath: resultPath,
                                                                     uid: getuid(),
-                                                                    expectedVersion: expectedVersion)
+                                                                    expectedVersion: expectedVersion,
+                                                                    signer: AppInfo.updateSigner)
         // The in-process authorization holds the main thread until it is
         // answered, and the system dialog never appears while the Extra
         // Brightness overlay is on screen (#1917). Once the request waits,
