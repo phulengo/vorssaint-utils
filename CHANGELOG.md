@@ -22,6 +22,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 - Rocky says his line for a screenshot as it is taken, even when its preview takes over the island at once, and for a download as it lands, even with the island open. His line moves with the island as it opens or closes.
+- Downloads in Dynamic Island watches your Downloads folder until you choose another, so finished downloads show, and Rocky cheers them, without setting it up first. The first time, macOS asks to let the app see that folder.
 - Companions also react to screenshots taken with macOS's own shortcuts or the Screenshot app once they are saved. The first time, macOS asks to let the app look in the folder screenshots are saved to, the Desktop unless you changed it, since only then does Spotlight report them.
 - The Volume Mixer's FaceTime row now sets the volume of the person on the call, and the Phone row does the same for calls taken from an iPhone. macOS plays calls through a system service rather than the app, so the slider used to change nothing.
 - During a call the Volume Mixer says that macOS is turning other apps down, so their sliders no longer seem broken. The note tells a call on the speakers apart from one in headphones.

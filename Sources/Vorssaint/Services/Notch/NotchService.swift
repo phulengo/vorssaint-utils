@@ -4282,10 +4282,12 @@ final class NotchService: ObservableObject {
                 self?.refreshPresentation()
             }.store(in: &subscriptions)
             NotchDownloadService.shared.onArrival = { [weak self] item in
+                // Said first: the notice may play his cheer as it draws.
+                self?.speakMascot(.celebrate, line: .amaze)
                 self?.show(NotchNotice(event: .download,
                     title: FeatureStrings.notchFiles(L10n.shared.language).completed,
                     detail: item.name, symbol: "arrow.down.circle.fill", mascot: .celebrate))
-                self?.reactMascot(.celebrate, line: .amaze, speaksUnseen: true)
+                self?.reactMascot(.celebrate)
             }
             NotchDownloadService.shared.onFailure = { [weak self] in self?.reactMascot(.confused, speaksUnseen: true) }
         }
@@ -5208,9 +5210,10 @@ extension NotchService {
         guard NotchMascotSupport.reacts() else { return }
         // Rocky says what the moment was, where other moments share its reaction.
         let window = delay + patience + reaction.length + 2
-        NotchMascotSpeech.shared.cue(line, for: reaction, within: window)
-        if speaksUnseen, NotchMascotSupport.look().style == .rocky {
-            NotchMascotSpeech.shared.reactAhead(reaction, within: window)
+        if speaksUnseen {
+            speakMascot(reaction, line: line, within: window)
+        } else {
+            NotchMascotSpeech.shared.cue(line, for: reaction, within: window)
         }
         // A notice on screen that shows the companion plays it there already.
         if notice?.mascot == reaction, noticeCanPresent {
@@ -5220,6 +5223,17 @@ extension NotchService {
         let now = CACurrentMediaTime()
         pendingMascotReaction = (reaction, now + delay + patience, now + delay)
         flushMascotReaction()
+    }
+
+    /// Rocky says his line for a moment now, whether or not he gets to play
+    /// it, and playing it within `within` says nothing more. Asked before a
+    /// notice that shows him, which may play the reaction as it draws.
+    func speakMascot(_ reaction: NotchMascotReaction, line: NotchMascotLine? = nil,
+                     within: TimeInterval = NotchMascotReactionGate.patience + 4) {
+        guard NotchMascotSupport.reacts() else { return }
+        NotchMascotSpeech.shared.cue(line, for: reaction, within: within)
+        guard NotchMascotSupport.look().style == .rocky else { return }
+        NotchMascotSpeech.shared.reactAhead(reaction, within: within)
     }
 
     /// Hands a waiting reaction to the companion once the closed island shows
