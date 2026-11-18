@@ -377,8 +377,10 @@ final class ScreenshotService: ObservableObject {
     /// exists to reach for.
     private func route(_ capture: ScreenshotSelectionController.Capture) {
         beginLatestCapture(capture)
-        // The island's companion blinks hard, as a flash, if it is there to see.
-        NotchService.shared.reactMascot(.flash, patience: 1)
+        // The island's companion blinks hard, as a flash, if it is there to
+        // see. The preview takes the island right after, so Rocky says his
+        // line as the picture is taken rather than when he gets to play it.
+        NotchService.shared.reactMascot(.flash, patience: 1, speaksUnseen: true)
         preview?.close()
         RecentCaptureService.shared.recordScreenshot(capture)
         let defaults = UserDefaults.standard

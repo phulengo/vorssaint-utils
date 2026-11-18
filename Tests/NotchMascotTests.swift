@@ -494,6 +494,22 @@ enum NotchMascotTests {
         suite.expect(first == .fist && echo == nil && cued == .amaze && after == .fist && stale == .watchdone
                         && replaced == .fist,
                      "a moment shown twice at once is said once, and a reaction says the line of what caused it while that is news, as the latest request tells it")
+        // A screenshot whose preview takes the island at once, or a download
+        // landing while it is open: he says it as it happens, once.
+        var ahead = NotchMascotLineGate()
+        ahead.cue(.amaze, for: .celebrate, until: 210)
+        let said = ahead.lineAhead(for: .celebrate, at: 200, holds: 210)
+        let played = ahead.line(for: .celebrate, at: 202)
+        let playedAgain = ahead.line(for: .celebrate, at: 205)
+        let flash = ahead.lineAhead(for: .flash, at: 220, holds: 230)
+        let burst = ahead.lineAhead(for: .flash, at: 225, holds: 235)
+        let burstPlayed = ahead.line(for: .flash, at: 226)
+        let nextShot = ahead.lineAhead(for: .flash, at: 220 + NotchMascotLineGate.aheadRepeat, holds: 240)
+        let lateCue = ahead.line(for: .celebrate, at: 300)
+        suite.expect(said == .amaze && played == nil && playedAgain == .fist
+                        && flash == .light && burst == nil && burstPlayed == nil && nextShot == .light
+                        && lateCue == .fist,
+                     "a line said as its moment happens is not said again as he plays it, a burst of the same moment is one line, and its cause is not left behind")
         suite.expect(NotchMascotPuppetMotion.holdsStill(.idle, size: 30) && NotchMascotPuppetMotion.holdsStill(.sleepy, size: 30)
                         && !NotchMascotPuppetMotion.holdsStill(.idle, size: NotchMascotSupport.showtimeSize)
                         && !NotchMascotPuppetMotion.holdsStill(.searching, size: 30),

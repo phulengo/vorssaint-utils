@@ -21,6 +21,8 @@ All notable changes to this project are documented here. The format follows
 - Music starting brings a companion out to sway along at most once an hour, so sound coming and going while you work, as a video played and paused, no longer calls it out each time.
 
 ### Fixed
+- Rocky says his line for a screenshot as it is taken, even when its preview takes over the island at once, and for a download as it lands, even with the island open. His line moves with the island as it opens or closes.
+- Companions also react to screenshots taken with macOS's own shortcuts or the Screenshot app once they are saved. The first time, macOS asks to let the app look in the folder screenshots are saved to, the Desktop unless you changed it, since only then does Spotlight report them.
 - The Volume Mixer's FaceTime row now sets the volume of the person on the call, and the Phone row does the same for calls taken from an iPhone. macOS plays calls through a system service rather than the app, so the slider used to change nothing.
 - During a call the Volume Mixer says that macOS is turning other apps down, so their sliders no longer seem broken. The note tells a call on the speakers apart from one in headphones.
 - When there are more apps than fit, arrows at the edges of the island's Volume Mixer turn its apps a page at a time, for a mouse whose wheel sets the slider under it.

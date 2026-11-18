@@ -1205,6 +1205,11 @@ final class NotchService: ObservableObject {
         NotchNotificationService.shared.syncWithPreferences()
         NotchAudioLevelService.shared.syncWithPreferences()
         AgentUsageService.shared.syncWithPreferences()
+        // A screenshot taken with macOS's own shortcuts flashes him as one taken here does.
+        NotchScreenshotWatcher.shared.onScreenshot = { [weak self] in
+            self?.reactMascot(.flash, patience: 1, speaksUnseen: true)
+        }
+        NotchScreenshotWatcher.shared.sync(watching: NotchMascotSupport.reacts())
         followsPointer = displayPreference == .pointer || displayPreference == .all
         showsOnAllDisplays = displayPreference == .all
         updateFullscreenDisplays()
@@ -1357,6 +1362,7 @@ final class NotchService: ObservableObject {
         CameraPreviewService.shared.hideEmbedded()
         NotchAccessoryService.shared.suspend()
         NotchDownloadService.shared.stop()
+        NotchScreenshotWatcher.shared.sync(watching: false)
         NotchCalendarService.shared.stop()
         NotchNotificationService.shared.stop()
         AgentUsageService.shared.pause()
@@ -4279,9 +4285,9 @@ final class NotchService: ObservableObject {
                 self?.show(NotchNotice(event: .download,
                     title: FeatureStrings.notchFiles(L10n.shared.language).completed,
                     detail: item.name, symbol: "arrow.down.circle.fill", mascot: .celebrate))
-                self?.reactMascot(.celebrate, line: .amaze)
+                self?.reactMascot(.celebrate, line: .amaze, speaksUnseen: true)
             }
-            NotchDownloadService.shared.onFailure = { [weak self] in self?.reactMascot(.confused) }
+            NotchDownloadService.shared.onFailure = { [weak self] in self?.reactMascot(.confused, speaksUnseen: true) }
         }
         if modules.contains(.agents) {
             // Only what changes the island's size or strip: a turn starting or
@@ -5194,11 +5200,18 @@ extension NotchService {
     /// enough, and never twice in a row.
     /// `delay` holds it back a moment, so a reaction asked for right after
     /// takes its place, as a command's own does the Command Bar's cheer.
+    /// `speaksUnseen` has Rocky say his line as the moment happens, even if
+    /// the island cannot show him playing it, as when a screenshot's preview
+    /// takes the island at once or a download lands while it is open.
     func reactMascot(_ reaction: NotchMascotReaction, patience: TimeInterval = NotchMascotReactionGate.patience,
-                     after delay: TimeInterval = 0, line: NotchMascotLine? = nil) {
+                     after delay: TimeInterval = 0, line: NotchMascotLine? = nil, speaksUnseen: Bool = false) {
         guard NotchMascotSupport.reacts() else { return }
         // Rocky says what the moment was, where other moments share its reaction.
-        NotchMascotSpeech.shared.cue(line, for: reaction, within: delay + patience + reaction.length + 2)
+        let window = delay + patience + reaction.length + 2
+        NotchMascotSpeech.shared.cue(line, for: reaction, within: window)
+        if speaksUnseen, NotchMascotSupport.look().style == .rocky {
+            NotchMascotSpeech.shared.reactAhead(reaction, within: window)
+        }
         // A notice on screen that shows the companion plays it there already.
         if notice?.mascot == reaction, noticeCanPresent {
             _ = mascotReactionGate.admits(reaction, at: CACurrentMediaTime())

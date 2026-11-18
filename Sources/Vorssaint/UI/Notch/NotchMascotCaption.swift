@@ -65,6 +65,22 @@ final class NotchMascotCaption {
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
     }
 
+    /// Keeps a line on screen hanging under `island` as the island changes
+    /// shape, as when a screenshot's preview opens it just after he speaks.
+    func follow(_ island: CGRect, reduceMotion: Bool) {
+        guard window.isVisible, hideWork != nil else { return }
+        let size = window.frame.size
+        let frame = CGRect(x: (island.midX - size.width / 2).rounded(), y: (island.minY - Self.gap - size.height).rounded(),
+                           width: size.width, height: size.height)
+        guard frame != window.frame else { return }
+        guard !reduceMotion else { window.setFrame(frame, display: true); return }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.3
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            window.animator().setFrame(frame, display: true)
+        }
+    }
+
     func hide(reduceMotion: Bool = false) {
         hideWork?.cancel()
         hideWork = nil

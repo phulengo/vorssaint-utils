@@ -123,11 +123,17 @@ struct NotchMascotLineGate {
     /// after any other line, and the same one no sooner than `ambientRepeat`.
     static let ambientSpacing: TimeInterval = 600
     static let ambientRepeat: TimeInterval = 1_800
+    /// A line said as its moment happens comes back no sooner than this, so
+    /// a burst of screenshots is one line, not one each.
+    static let aheadRepeat: TimeInterval = 10
 
     private var cues: [NotchMascotReaction: (line: NotchMascotLine, until: TimeInterval)] = [:]
     private var lastReaction: (reaction: NotchMascotReaction, at: TimeInterval)?
     private var lastSaid = -TimeInterval.infinity
     private var ambientSaid: [NotchMascotLine: TimeInterval] = [:]
+    /// Reactions whose line was said as their moment happened: when it was,
+    /// and until when his playing it says nothing more.
+    private var saidAhead: [NotchMascotReaction: (at: TimeInterval, holds: TimeInterval)] = [:]
 
     /// The cause of a reaction about to play, told by what asked for it:
     /// the next time he plays `reaction`, until `until`, he says `line`. The
@@ -138,11 +144,35 @@ struct NotchMascotLineGate {
 
     /// The line for `reaction` played at `now`, or nil for an echo of one just said.
     mutating func line(for reaction: NotchMascotReaction, at now: TimeInterval) -> NotchMascotLine? {
+        // Said already as its moment happened: playing it now only shows it.
+        if let ahead = saidAhead[reaction], now <= ahead.holds {
+            saidAhead[reaction]?.holds = -.infinity
+            cues[reaction] = nil
+            lastReaction = (reaction, now)
+            return nil
+        }
         if let last = lastReaction, last.reaction == reaction, now - last.at < Self.echo { return nil }
         lastReaction = (reaction, now)
         var line = NotchMascotLine.line(for: reaction)
         if let cue = cues.removeValue(forKey: reaction), now <= cue.until { line = cue.line }
         lastSaid = now
+        return line
+    }
+
+    /// The line for `reaction`, said as its moment happens at `now` whether
+    /// or not he can be seen playing it, as when a screenshot's preview takes
+    /// the island at once; nil within `aheadRepeat` of saying it so before.
+    /// Either way, his playing it until `holds` says nothing more.
+    mutating func lineAhead(for reaction: NotchMascotReaction, at now: TimeInterval,
+                            holds: TimeInterval) -> NotchMascotLine? {
+        if let ahead = saidAhead[reaction], now - ahead.at < Self.aheadRepeat {
+            saidAhead[reaction] = (ahead.at, holds)
+            cues[reaction] = nil
+            return nil
+        }
+        saidAhead[reaction] = nil
+        guard let line = line(for: reaction, at: now) else { return nil }
+        saidAhead[reaction] = (now, holds)
         return line
     }
 

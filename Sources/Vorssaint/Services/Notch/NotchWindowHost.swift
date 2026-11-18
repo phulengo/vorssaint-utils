@@ -365,6 +365,7 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         targetSize = size
         currentGeometry = geometry
         resizeCount += 1
+        caption?.follow(pixelAligned(geometry.frame(for: size)), reduceMotion: !canAnimate)
         guard canAnimate, sameScreen || revealing, let previousPath else {
             settle()
             return

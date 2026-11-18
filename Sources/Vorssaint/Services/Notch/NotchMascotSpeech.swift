@@ -33,6 +33,14 @@ final class NotchMascotSpeech {
         say(line, defaults: defaults)
     }
 
+    /// Says the line for `reaction` as its moment happens, whether or not he
+    /// gets to play it, and keeps his playing it within `within` quiet.
+    func reactAhead(_ reaction: NotchMascotReaction, within: TimeInterval, defaults: UserDefaults = .standard) {
+        let now = CACurrentMediaTime()
+        guard let line = gate.lineAhead(for: reaction, at: now, holds: now + within) else { return }
+        say(line, defaults: defaults)
+    }
+
     /// One of his own lines, said only now and then.
     func ambient(_ lines: [NotchMascotLine], defaults: UserDefaults = .standard) {
         guard let line = gate.ambient(lines, at: CACurrentMediaTime()) else { return }
